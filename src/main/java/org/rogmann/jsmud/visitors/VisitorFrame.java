@@ -1,0 +1,15 @@
+package org.rogmann.jsmud.visitors;
+
+import org.rogmann.jsmud.MethodFrame;
+
+/**
+ * Method-frame in a visitor.
+ */
+class VisitorFrame {
+
+	Class<?> clazz;
+	MethodFrame frame;
+	boolean isJreClass;
+	int currLine = -1;
+
+}
