@@ -78,7 +78,7 @@ public class CallSiteSimulation {
 			throw new JvmException(String.format("Can't load class (%s) for use in INVOKEDYNAMIC in (%s)",
 					className, method), e);
 		}
-		final Class<?>[] interfaces = { classInterface };
+		final Class<?>[] interfaces = { classInterface, JvmCallSiteMarker.class };
 		final InvocationHandler handler = new InvocationHandler() {
 			/** {@inheritDoc} */
 			@Override

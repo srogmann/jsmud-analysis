@@ -331,7 +331,7 @@ public class ClassRegistry implements VM {
 	}
 
 	/**
-	 * Registers a thread and the corresonding thread-group.
+	 * Registers a thread and the corresponding thread-group.
 	 * @param thread thread
 	 */
 	public void registerThread(final Thread thread) {

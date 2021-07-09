@@ -114,7 +114,15 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitMethodExitBack(Class<?> currClass, Executable method, MethodFrame frame, Object objReturn) {
 		if (showOutput) {
-			psOut.println(String.format("Back in %s with %s", method, objReturn));
+			String sObjReturn = null;
+			if (objReturn != null) {
+				try {
+					sObjReturn = objReturn.toString();
+				} catch (Exception e) {
+					sObjReturn = String.format("%s(ex/%s)", objReturn.getClass(), e.getMessage());
+				}
+			}
+			psOut.println(String.format("Back in %s with %s", method, sObjReturn));
 		}
 	}
 

@@ -1866,12 +1866,12 @@ whileInstr:
 	 * @param isStatic <code>true</code> in case of static method
 	 * @param isVirtual <code>true</code> in case of INVOKEVIRTUAL
 	 * @return <code>true</code> for next step in while, <code>false</code> leave switch only (and increment instr-idx)
-	 * @throws Throwable in case of anexception 
+	 * @throws Throwable in case of an exception 
 	 */
 	private boolean executeInvokeVirtualOrInterface(final MethodInsnNode mi, boolean isInterface,
 			boolean isStatic, boolean isVirtual) throws Throwable {
 		final Type[] origTypes = Type.getArgumentTypes(mi.desc);
-		int anzArgs = origTypes.length;
+		int numArgs = origTypes.length;
 		
 		Object objRef;
 		Class<?> classOwner;
@@ -1896,7 +1896,7 @@ whileInstr:
 				returnType = Type.getReturnType(methodDesc);
 				objRef = stack.peek();
 				classOwner = objRef.getClass(); //registry.loadClass("java.security.PrivilegedAction");
-				anzArgs = 0;
+				numArgs = 0;
 				isMethodOverriden = true;
 			}
 			else {
@@ -1905,18 +1905,24 @@ whileInstr:
 			}
 		}
 		else {
-			Boolean doContinueWhile = invocationHandler.preprocessInstanceCall(this, mi, stack);
+			final Object objRefStack = stack.peek(numArgs);
+			if (objRefStack == null) {
+				throw new NullPointerException("invokevirtual: NPE at " + mi.name + " with " + mi.desc);
+			}
+			Boolean doContinueWhile = invocationHandler.preprocessInstanceCall(this, mi, objRefStack, stack);
 			if (doContinueWhile != null) {
 				visitor.visitMethodExitBack(clazz, pMethod, this, null);
 				return doContinueWhile.booleanValue();
 			}
-			final Object objRefStack = stack.peek(anzArgs);
-			if (objRefStack == null) {
-				throw new NullPointerException("invokevirtual: NPE at " + mi.name + " with " + mi.desc);
-			}
 			objRef = objRefStack;
 			classOwner = objRefStack.getClass();
-			final CallSiteSimulation callSite = registry.getCallSiteRegistry().checkForCallSite(objRefStack);
+			final CallSiteSimulation callSite;
+			if (objRef instanceof JvmCallSiteMarker) {
+				callSite = registry.getCallSiteRegistry().checkForCallSite(objRefStack);
+			}
+			else {
+				callSite = null;
+			}
 			if (callSite != null && callSite.getName().equals(mi.name)) {
 				if (!callSite.getDesc().equals(mi.desc)) {
 					if (LOG.isDebugEnabled()) {
@@ -1925,7 +1931,7 @@ whileInstr:
 					}
 				}
 				// remove proxy-object from stack.
-				stack.pop(anzArgs);
+				stack.pop(numArgs);
 
 				// proxy-result of an previous INVOKEDYNAMIC-call.
 				// We retrieved the stored CallSiteSimulation-object.
@@ -1957,7 +1963,7 @@ whileInstr:
 				methodDesc = lamdaDesc;
 				types = Type.getArgumentTypes(lamdaDesc);
 				returnType = Type.getReturnType(lamdaDesc);
-				anzArgs = types.length;
+				numArgs = types.length;
 				final int objOffset;
 				lIsStatic = (callSite.getBsmTag() == Opcodes.H_INVOKESTATIC);
 				if ((classLambdaOwner.isInterface() || callSite.getBsmTag() == Opcodes.H_INVOKESPECIAL) && dynamicArgs.length > 0) {
@@ -1979,7 +1985,7 @@ whileInstr:
 				}
 				else {
 					try {
-						objRef = stack.peek(anzArgs - dynamicArgs.length);
+						objRef = stack.peek(numArgs - dynamicArgs.length);
 					} catch (ArrayIndexOutOfBoundsException e) {
 						throw new JvmException(String.format("Unexpected stack (%s) and types (%s)", stack, Arrays.toString(types)), e);
 					}
@@ -2034,9 +2040,9 @@ whileInstr:
 						 lMethodName, mi.name, methodDesc, mi.desc, miOwnerName, mi.owner, classOwner));
 			}
 			constructor.setAccessible(true);
-			final Object[] initargs = new Object[anzArgs];
-			for (int i = 0; i < anzArgs; i++) {
-				final int idxArg = anzArgs - 1 - i;
+			final Object[] initargs = new Object[numArgs];
+			for (int i = 0; i < numArgs; i++) {
+				final int idxArg = numArgs - 1 - i;
 				Object obj = stack.pop();
 				final Type typeDecl = types[idxArg];
 				obj = convertJvmTypeIntoDeclType(obj, typeDecl);
@@ -2128,9 +2134,9 @@ whileSuperClass:
 			}
 		}
 		else {
-			final Object[] initargs = new Object[anzArgs];
-			int idxArg = anzArgs;
-			for (int i = 0; i < anzArgs; i++) {
+			final Object[] initargs = new Object[numArgs];
+			int idxArg = numArgs;
+			for (int i = 0; i < numArgs; i++) {
 				idxArg--;
 				Object oStack = stack.pop();
 				try {

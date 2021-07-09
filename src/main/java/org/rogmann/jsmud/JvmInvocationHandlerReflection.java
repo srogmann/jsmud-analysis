@@ -1,9 +1,12 @@
 package org.rogmann.jsmud;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -17,6 +20,25 @@ import org.rogmann.jsmud.log.LoggerFactory;
 public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
+
+	/** invocation-handler in {@link Proxy} of JRE 8 or <code>null</code> */
+	private final Field fFieldInvocationHandlerJre8;
+
+	/**
+	 * Constructor
+	 */
+	public JvmInvocationHandlerReflection() {
+		Field fieldInvocationHandlerJre8;
+		try {
+			fieldInvocationHandlerJre8 = Proxy.class.getDeclaredField("h");
+			fieldInvocationHandlerJre8.setAccessible(true);
+		} catch (NoSuchFieldException e) {
+			fieldInvocationHandlerJre8 = null;
+		} catch (SecurityException e) {
+			throw new JvmException(String.format("Analyzing (%s) is not allowed", Proxy.class), e);
+		}
+		fFieldInvocationHandlerJre8 = fieldInvocationHandlerJre8;
+	}
 
 	/** {@inheritDoc} */
 	@Override
@@ -53,7 +75,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 
 	/** {@inheritDoc} */
 	@Override
-	public Boolean preprocessInstanceCall(MethodFrame frame, final MethodInsnNode mi, OperandStack stack) throws Throwable {
+	public Boolean preprocessInstanceCall(MethodFrame frame, final MethodInsnNode mi,
+			final Object objRefStack, final OperandStack stack) throws Throwable {
 		Boolean doContinueWhile = null;
 		if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name) && frame.registry.isSimulateReflection()) {
 			// Emulation of Constructor#newInstance?
@@ -142,6 +165,62 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					stack.push(objReturn);
 				}
 				doContinueWhile = Boolean.FALSE;
+			}
+		}
+		else if (objRefStack instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
+			// proxy-instance
+			final Object oProxy = objRefStack;
+			final Class<? extends Object> proxyClass = oProxy.getClass();
+			if (frame.registry.executionFilter.isClassToBeSimulated(proxyClass) && fFieldInvocationHandlerJre8 != null) {
+				// We are allowed to execute this proxy.
+				final Object ih = fFieldInvocationHandlerJre8.get(oProxy);
+				final SimpleClassExecutor executor = frame.registry.getClassExecutor(ih.getClass());
+				if (executor != null) {
+					// We are allowed to execute the invocation-handler.
+					// We collect the method's arguments from stack.
+					final Type[] origTypes = Type.getArgumentTypes(mi.desc);
+					final int numArgs = origTypes.length;
+					final Object[] oArgs = new Object[numArgs];
+					for (int i = 0; i < numArgs; i++) {
+						oArgs[numArgs - 1 - i] = stack.pop();
+					}
+					// we have to find the method to be called.
+					Method methodIh = null;
+					for (final Method method : proxyClass.getDeclaredMethods()) {
+						if (mi.desc.equals(Type.getMethodDescriptor(method))) {
+							methodIh = method;
+							break;
+						}
+					}
+					if (methodIh == null) {
+						throw new JvmException(String.format("No such method (%s%s) in proxy (%s)", mi.name, mi.desc, proxyClass));
+					}
+					// We call the method in the invocation-handler.
+					final Object[] oIhArgs = { oProxy, methodIh, oArgs };
+					stack.pushAndResize(0, oIhArgs);
+					final Method ihMethod = InvocationHandler.class.getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
+					final String descr = Type.getMethodDescriptor(ihMethod);
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("Execute invocation-handler (%s) of proxy (%s), stack %s",
+								ih, proxyClass, stack));
+					}
+					final Object objReturn;
+					try {
+						objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, ihMethod, descr, stack);
+					}
+					catch (Throwable e) {
+						final boolean doContinueWhileE = frame.handleCatchException(e);
+						if (doContinueWhileE) {
+							return Boolean.TRUE;
+						}
+						// This exception isn't handled here.
+						throw e;
+					}
+					if (!Void.class.equals(methodIh.getReturnType())) {
+						stack.push(objReturn);
+					}
+					doContinueWhile = Boolean.FALSE;
+				}
 			}
 		}
 		return doContinueWhile;

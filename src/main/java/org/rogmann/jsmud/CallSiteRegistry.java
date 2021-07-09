@@ -4,20 +4,28 @@ import java.lang.reflect.Executable;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.rogmann.jsmud.log.Logger;
+import org.rogmann.jsmud.log.LoggerFactory;
 
 /**
  * Generates a CallSite-instance when processing a INVOKEDYNAMIC-instruction. 
  */
 public class CallSiteRegistry {
+	/** logger */
+	private static final Logger LOG = LoggerFactory.getLogger(CallSiteRegistry.class);
 	
 	/** map from INVOKEDYNAMIC-instruction to call-site-simulation */
 	private final ConcurrentMap<InvokedynamicKey, CallSiteSimulation> mapKeys = new ConcurrentHashMap<>();
 	
 	/** map from object (e.g. some proxy) to call-site-simulation */
 	private final ConcurrentMap<Object, CallSiteSimulation> mapProxies = new ConcurrentHashMap<>();
+	
+	/** number of get-errors */
+	private final AtomicInteger numGetErrors = new AtomicInteger();
 
 	/** class-loader */
 	private final ClassLoader classLoader;
@@ -161,11 +169,21 @@ public class CallSiteRegistry {
 
 	/**
 	 * Gets a call-site-simulation or <code>null</code>
-	 * @param objRef known-proxy-instance or unknown object
+	 * @param objRef known proxy-instance or unknown object
 	 * @return call-site or <code>null</code>
 	 */
 	public CallSiteSimulation checkForCallSite(Object objRef) {
-		return mapProxies.get(objRef);
+		try {
+			return mapProxies.get(objRef);
+		} catch (Exception e) {
+			// One reason is a proxy without implementation of hashCode.
+			if (numGetErrors.incrementAndGet() == 1) {
+				// We log the first one.
+				LOG.error(String.format("map-incompatible class (%s), some proxy?",
+						objRef.getClass()), e);
+			}
+			return null;
+		}
 	}
 	
 }
