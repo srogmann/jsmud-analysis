@@ -35,6 +35,15 @@ The execution of a JVM is very complex, this interpreter has different limitatio
 
 ## Getting started
 
+The class JvmHelper contains helper-methods to start the JVM in simple environments.
+
+The following example starts a Runnable and dumps the execution in System.out. The class-execution-filter createNonJavaButJavaUtilExecutionFilter() discards java.*-classes from being interpreted except java.util.*. The interpretation of java.util.* is necessary for the interpretation of lambda-expressions using the stream-API. 
+
+    final ClassExecutionFilter filter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
+    JvmHelper.executeRunnable(runnable, filter, System.out);
+
+JvmHelper's method connectRunnableToDebugger can be used to connect to a waiting debugger ("Remote Java Application" with "Socket Listen" in an IDE).
+
 The following verbose example initializes a simple spring-application.
 
     final PrintStream psOut = System.out;

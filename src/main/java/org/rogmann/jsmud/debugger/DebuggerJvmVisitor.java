@@ -46,7 +46,7 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(DebuggerJvmVisitor.class);
 
-	/** vm-simulator */
+	/** VM-simulator */
 	private ClassRegistry vm;
 
 	/** map from request-id to event-request */
