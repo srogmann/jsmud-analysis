@@ -814,9 +814,19 @@ public class ClassRegistry implements VM {
 			final Object value = MethodFrame.convertJvmTypeIntoFieldType(eTag.getClassTag(), valueJvm);
 			final Tag tagReply;
 			if (LOG.isDebugEnabled()) {
+				String sValue = null;
+				if (value != null) {
+					try {
+						sValue = value.toString();
+					} catch (Exception e) {
+						// e.g. proxy which doesn't implement toString().
+						sValue = String.format("instance of (%s) without toString: %s",
+								value.getClass(), e);
+					}
+				}
 				LOG.debug(String.format("getVariableValues: method=%s, slot=%d, value=%s",
 					methodFrame.getMethod().getName(), Integer.valueOf(slot),
-					value));
+					sValue));
 			}
 			if (value instanceof String) {
 				tagReply = Tag.STRING;
