@@ -32,10 +32,18 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		try {
 			fieldInvocationHandlerJre8 = Proxy.class.getDeclaredField("h");
 			fieldInvocationHandlerJre8.setAccessible(true);
-		} catch (NoSuchFieldException e) {
+		}
+		catch (NoSuchFieldException e) {
 			fieldInvocationHandlerJre8 = null;
-		} catch (SecurityException e) {
-			throw new JvmException(String.format("Analyzing (%s) is not allowed", Proxy.class), e);
+		}
+		catch (SecurityException e) {
+			fieldInvocationHandlerJre8 = null;;
+			LOG.error(String.format("Accessing internals of (%s) is not allowed", Proxy.class), e);
+		}
+		catch (RuntimeException e) {
+			// e.g. java.lang.reflect.InaccessibleObjectException.
+			fieldInvocationHandlerJre8 = null;;
+			LOG.error(String.format("Accessing internals of (%s) was not successful", Proxy.class), e);
 		}
 		fFieldInvocationHandlerJreInternal = fieldInvocationHandlerJre8;
 	}
@@ -171,9 +179,16 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			// proxy-instance
 			final Object oProxy = objRefStack;
 			final Class<? extends Object> proxyClass = oProxy.getClass();
-			if (frame.registry.executionFilter.isClassToBeSimulated(proxyClass) && fFieldInvocationHandlerJreInternal != null) {
+			if (frame.registry.executionFilter.isClassToBeSimulated(proxyClass)) {
 				// We are allowed to execute this proxy.
-				final Object ih = fFieldInvocationHandlerJreInternal.get(oProxy);
+				final InvocationHandler ih;
+				if (fFieldInvocationHandlerJreInternal != null) {
+					// The field is preferred because the class-loaders might be different.
+					ih = (InvocationHandler) fFieldInvocationHandlerJreInternal.get(oProxy);
+				}
+				else {
+					ih = Proxy.getInvocationHandler(oProxy);
+				}
 				final SimpleClassExecutor executor = frame.registry.getClassExecutor(ih.getClass());
 				if (executor != null) {
 					// We are allowed to execute the invocation-handler.
