@@ -21,8 +21,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
-	/** invocation-handler in {@link Proxy} of JRE 8 or <code>null</code> */
-	private final Field fFieldInvocationHandlerJre8;
+	/** invocation-handler in {@link Proxy} of JRE 8 or JRE 11 or <code>null</code> */
+	private final Field fFieldInvocationHandlerJreInternal;
 
 	/**
 	 * Constructor
@@ -37,7 +37,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		} catch (SecurityException e) {
 			throw new JvmException(String.format("Analyzing (%s) is not allowed", Proxy.class), e);
 		}
-		fFieldInvocationHandlerJre8 = fieldInvocationHandlerJre8;
+		fFieldInvocationHandlerJreInternal = fieldInvocationHandlerJre8;
 	}
 
 	/** {@inheritDoc} */
@@ -171,9 +171,9 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			// proxy-instance
 			final Object oProxy = objRefStack;
 			final Class<? extends Object> proxyClass = oProxy.getClass();
-			if (frame.registry.executionFilter.isClassToBeSimulated(proxyClass) && fFieldInvocationHandlerJre8 != null) {
+			if (frame.registry.executionFilter.isClassToBeSimulated(proxyClass) && fFieldInvocationHandlerJreInternal != null) {
 				// We are allowed to execute this proxy.
-				final Object ih = fFieldInvocationHandlerJre8.get(oProxy);
+				final Object ih = fFieldInvocationHandlerJreInternal.get(oProxy);
 				final SimpleClassExecutor executor = frame.registry.getClassExecutor(ih.getClass());
 				if (executor != null) {
 					// We are allowed to execute the invocation-handler.
