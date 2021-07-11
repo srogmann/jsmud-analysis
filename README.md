@@ -110,3 +110,4 @@ I wrote this project in my free time and I like my free time so support is given
 
  ## Changelog
  * V 0.2.0, 2021-07-07: Initial release containing bytecode-interpreter and debugger.
+ * V 0.2.1, 2021-07-11: Added support of java.lang.reflect.Proxy.
