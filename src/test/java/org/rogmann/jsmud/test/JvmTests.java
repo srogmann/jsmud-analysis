@@ -2,8 +2,10 @@ package org.rogmann.jsmud.test;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.time.LocalDateTime;
@@ -77,7 +79,7 @@ public class JvmTests {
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
 //		testsLambdaStreamCollectOnly();
-		testsLambdaStreams();
+//		testsLambdaStreams();
 //		testsLambdaStreamsThis();
 //		testsLambdaBiFunctionAndThen();
 //		testsLambdaCollectingAndThen();
@@ -91,6 +93,7 @@ public class JvmTests {
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
+		testsProxy();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
@@ -433,6 +436,44 @@ public class JvmTests {
 		}
 	}
 
+	public void testsProxy() {
+		final WorkExample worker = createProxy();
+		final String result1 = worker.addA("Beta");
+		final int result2 = worker.add5(37);
+		assertEquals("Proxy: A", "BetaA", result1);
+		assertEquals("Proxy: B", Integer.valueOf(42), Integer.valueOf(result2));
+
+	}
+
+	/**
+	 * Creates a proxy.
+	 * @return proxy-instance
+	 */
+	private static WorkExample createProxy() {
+		final ClassLoader cl = WorkExample.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExample.class };
+		final InvocationHandler ih = new InvocationHandler() {
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+				final String name = method.getName();
+				if ("addA".equals(name)) {
+					final String s = (String) args[0];
+					return s + "A";
+				}
+				else if ("add5".equals(name)) {
+					final int i = ((Integer) args[0]).intValue();
+					return Integer.valueOf(i + 5);
+				}
+				else if ("toString".equals(name)) {
+					
+				}
+				throw new IllegalArgumentException("Unexpected method " + name);
+			}
+		};
+		final WorkExample worker = (WorkExample) Proxy.newProxyInstance(cl, aInterfaces, ih);
+		return worker;
+	}
+
 	public void testsReflection() {
 		final JvmTests jvmTest;
 		try {
@@ -695,5 +736,11 @@ public class JvmTests {
 			return Integer.valueOf("37");
 		}
 	}
-	
+
+	/** Interface used in proxy-tests */
+	interface WorkExample {
+		String addA(String s);
+		int add5(int i);
+	}
+
 }

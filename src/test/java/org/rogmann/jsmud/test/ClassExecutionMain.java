@@ -19,7 +19,7 @@ import org.rogmann.jsmud.visitors.InstructionVisitor;
  * Executes a class.
  */
 public class ClassExecutionMain {
-	static int testNr = 12;
+	static int testNr = 11;
 
 	/**
 	 * Entry point.
