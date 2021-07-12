@@ -4,7 +4,7 @@ JSMUD-analysis (_Java simulator multi-user debugger_) is an embedded interpreter
 
 The interpreter uses reflection to work on the original objects so one can build an object-tree using the underlying JVM and then execute code working on that tree using JSMUD.
 
-The purpose is to support the analysis of given Java classes in development stages only. Most tests I executed under Java 8 (the release published 2014 which introduced lambda expressions). The module system in JDK 9 and later restricts reflective access against JDK-classes so their internal methods can't be called by jsmud. But for example the following code runs in JDK 11.
+The purpose is to support the analysis of given Java classes in development stages only. Most tests I executed under Java 8 (the release published 2014 which introduced lambda expressions). The module system in JDK 16 and later restricts reflective access against JDK-classes so their internal methods can't be called by a jsmud outside java.base, see [JEP 396](https://openjdk.java.net/jeps/396) and [JEP 403](https://openjdk.java.net/jeps/403). But for example the following code runs in JDK 11.
 
     final Runnable runnable = new Runnable() {
         public void run() {
