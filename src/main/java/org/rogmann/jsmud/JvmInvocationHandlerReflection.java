@@ -213,7 +213,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					// We call the method in the invocation-handler.
 					final Object[] oIhArgs = { oProxy, methodIh, oArgs };
 					stack.pushAndResize(0, oIhArgs);
-					final Method ihMethod = InvocationHandler.class.getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
+					final Method ihMethod = ih.getClass().getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
 					final String descr = Type.getMethodDescriptor(ihMethod);
 					if (LOG.isDebugEnabled()) {
 						LOG.debug(String.format("Execute invocation-handler (%s) of proxy (%s), stack %s",
