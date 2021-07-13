@@ -60,13 +60,41 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 
 	/** current method-frame */
 	private MethodFrameDebugContext currFrame;
-	
+
+	/** number of instructions to be logged in detail */
+	private final int maxInstrLogged;
+
+	/** number of method-invocations to be logged in detail */
+	private final int maxMethodsLogged;
+
 	/** number of processed instructions */
 	private final AtomicLong instrCounter = new AtomicLong();
 
+	/** number of processed method-invocations */
+	private final AtomicLong methodCounter = new AtomicLong();
+
 	/** <code>true</code> if the debugger is processing packets */
 	private final AtomicBoolean isProcessingPackets = new AtomicBoolean(false);
-	
+
+	/**
+	 * default-constructor,
+	 * the first 100 instructions will be logged.
+	 */
+	public DebuggerJvmVisitor() {
+		maxInstrLogged = 100;
+		maxMethodsLogged = 500;
+	}
+
+	/**
+	 * Constructor
+	 * @param maxInstrLogged number of instructions to be logged at debug-level
+	 * @param maxMethodsLogged number of method-invocations to be logged at debug-level
+	 */
+	public DebuggerJvmVisitor(final int maxInstrLogged, final int maxMethodsLogged) {
+		this.maxInstrLogged = maxInstrLogged;
+		this.maxMethodsLogged = maxMethodsLogged;
+	}
+
 	/**
 	 * Sets the JVM-simulator.
 	 * @param vm simulator
@@ -252,7 +280,7 @@ loopEvents:
 	@Override
 	public void visitMethodEnter(Class<?> currClass, Executable method, MethodFrame frame) {
 		currFrame = new MethodFrameDebugContext(frame);
-		if (instrCounter.get() < 50000) {
+		if (methodCounter.incrementAndGet() <= maxMethodsLogged) {
 			LOG.debug(String.format("methodEnter lvl %d in frameCtx %s (%s/%s) to %s",
 					Integer.valueOf(stack.size()), currFrame,
 					currFrame.frame, currFrame.frame.getMethod(),
@@ -292,7 +320,7 @@ loopEvents:
 	/** {@inheritDoc} */
 	@Override
 	public void visitMethodExit(final Class<?> currClass, final Executable method, final MethodFrame frame, final Object objReturn) {
-		if (instrCounter.get() < 50000) {
+		if (methodCounter.get() <= maxMethodsLogged) {
 			LOG.debug(String.format("methodExit lvl %d in frame %s (%s/%s) from %s: objReturn.class=%s",
 					Integer.valueOf(stack.size()), currFrame, currFrame.frame, currFrame.frame.getMethod(),
 					method, (objReturn != null) ? objReturn.getClass() : "null"));
@@ -356,7 +384,7 @@ loopEvents:
 			LOG.debug("Bottom of stack and therefore end of debugging-code reached.");
 		}
 		else {
-			if (instrCounter.get() < 50000) {
+			if (methodCounter.get() <= maxMethodsLogged) {
 				LOG.debug(String.format("methodExit to %s", currFrame.frame.getMethod()));
 			}
 			if (evReqStepOut != null) {
@@ -410,9 +438,8 @@ loopEvents:
 	public void visitInstruction(AbstractInsnNode instr, OperandStack opStack, Object[] aLocals) {
 		JdwpEventRequest currStepReq = null;
 		JdwpModifierStep currModStep = null;
-		if (instrCounter.incrementAndGet() < 100) {
-			LOG.debug(String.format("visitInstruction: method=%s, line=%d, index=%d, %s",
-					currFrame.frame.getMethod(),
+		if (instrCounter.incrementAndGet() < maxInstrLogged) {
+			LOG.debug(String.format("visitInstruction: line=%d, index=%d, %s",
 					Integer.valueOf(currFrame.frame.currLineNum),
 					Integer.valueOf(currFrame.frame.instrNum),
 					InstructionVisitor.displayInstruction(instr)));
@@ -605,7 +632,7 @@ stepSearch:
 	/** {@inheritDoc} */
 	@Override
 	public void invokeException(Throwable e) {
-		if (instrCounter.get() < 100) {
+		if (instrCounter.get() < maxInstrLogged) {
 			LOG.debug("invokeException: " + e);
 		}
 	}
