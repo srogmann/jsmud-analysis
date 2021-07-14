@@ -79,7 +79,8 @@ public class SimpleClassExecutor {
 	 * @return reader
 	 */
 	public static ClassReader createClassReader(final ClassLoader classLoader, final Class<?> clazz) {
-		final String resName = clazz.getName().replaceFirst(".*[.]", "") + ".class";
+		// Some OSGi-class-loader depend on an absolute path.
+		final String resName = '/' + clazz.getName().replace('.', '/') + ".class";
 		final InputStream is = clazz.getResourceAsStream(resName);
 		if (is == null) {
 			throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
