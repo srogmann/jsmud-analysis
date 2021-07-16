@@ -94,6 +94,7 @@ public class JvmTests {
 //		testsCatchException();
 //		testsJavaTime();
 		testsProxy();
+		testsProxySuper();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
@@ -437,41 +438,51 @@ public class JvmTests {
 	}
 
 	public void testsProxy() {
-		final WorkExample worker = createProxy();
+		final ClassLoader cl = WorkExample.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExample.class };
+		final InvocationHandler ih = new ProxyInvocationHandler();
+		final WorkExample worker = (WorkExample) Proxy.newProxyInstance(cl, aInterfaces, ih);
+
 		final String result1 = worker.addA("Beta");
 		final int result2 = worker.add5(37);
 		assertEquals("Proxy: A", "BetaA", result1);
 		assertEquals("Proxy: B", Integer.valueOf(42), Integer.valueOf(result2));
-
 	}
 
 	/**
-	 * Creates a proxy.
-	 * @return proxy-instance
+	 * Creates a proxy with invoke-method in a super-class.
 	 */
-	private static WorkExample createProxy() {
+	public void testsProxySuper() {
 		final ClassLoader cl = WorkExample.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExample.class };
-		final InvocationHandler ih = new InvocationHandler() {
-			@Override
-			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-				final String name = method.getName();
-				if ("addA".equals(name)) {
-					final String s = (String) args[0];
-					return s + "A";
-				}
-				else if ("add5".equals(name)) {
-					final int i = ((Integer) args[0]).intValue();
-					return Integer.valueOf(i + 5);
-				}
-				else if ("toString".equals(name)) {
-					
-				}
-				throw new IllegalArgumentException("Unexpected method " + name);
-			}
-		};
+		final InvocationHandler ih = new ProxyInvocationHandlerChild();
 		final WorkExample worker = (WorkExample) Proxy.newProxyInstance(cl, aInterfaces, ih);
-		return worker;
+
+		final String result1 = worker.addA("Super");
+		assertEquals("ProxySuper: A", "SuperA", result1);
+	}
+
+	public static class ProxyInvocationHandler implements InvocationHandler {
+		@Override
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+			final String name = method.getName();
+			if ("addA".equals(name)) {
+				final String s = (String) args[0];
+				return s + "A";
+			}
+			else if ("add5".equals(name)) {
+				final int i = ((Integer) args[0]).intValue();
+				return Integer.valueOf(i + 5);
+			}
+			else if ("toString".equals(name)) {
+				
+			}
+			throw new IllegalArgumentException("Unexpected method " + name);
+		}
+	}
+
+	public static class ProxyInvocationHandlerChild extends ProxyInvocationHandler {
+		// nothing here
 	}
 
 	public void testsReflection() {

@@ -189,7 +189,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				else {
 					ih = Proxy.getInvocationHandler(oProxy);
 				}
-				final SimpleClassExecutor executor = frame.registry.getClassExecutor(ih.getClass());
+				SimpleClassExecutor executor = frame.registry.getClassExecutor(ih.getClass());
 				if (executor != null) {
 					// We are allowed to execute the invocation-handler.
 					// We collect the method's arguments from stack.
@@ -199,7 +199,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					for (int i = 0; i < numArgs; i++) {
 						oArgs[numArgs - 1 - i] = stack.pop();
 					}
-					// we have to find the method to be called.
+					// We have to find the method to be called.
 					Method methodIh = null;
 					for (final Method method : proxyClass.getDeclaredMethods()) {
 						if (mi.desc.equals(Type.getMethodDescriptor(method))) {
@@ -213,7 +213,35 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					// We call the method in the invocation-handler.
 					final Object[] oIhArgs = { oProxy, methodIh, oArgs };
 					stack.pushAndResize(0, oIhArgs);
-					final Method ihMethod = ih.getClass().getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
+					Method ihMethod = null;
+					Class<?> loopIh = ih.getClass();
+					int parentCounter = 0;
+					while (true) {
+						try {
+							ihMethod = loopIh.getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
+							break;
+						} catch (NoSuchMethodException e) {
+							// We try the super-class.
+							// Example in the wild: https://github.com/apache/tomcat/blob/9.0.x/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DisposableConnectionFacade.java
+							final Class<?> loopIhSuper = loopIh.getSuperclass();
+							if (loopIhSuper == null || Object.class.equals(loopIhSuper)) {
+								throw e;
+							}
+							loopIh = loopIhSuper;
+						}
+						parentCounter++;
+						if (parentCounter == 100) {
+							throw new JvmException(String.format("Unexpected parent-super-depth in class %s", ih.getClass()));
+						}
+					}
+					if (!ih.getClass().equals(loopIh)) {
+						// We need the executor of a super-class.
+						executor = frame.registry.getClassExecutor(loopIh);
+						if (executor == null) {
+							throw new JvmException(String.format("Can't get a executor of super-class (%s) of (%s) for executing invoke-method (%s)",
+									loopIh, ih.getClass(), ihMethod));
+						}
+					}
 					final String descr = Type.getMethodDescriptor(ihMethod);
 					if (LOG.isDebugEnabled()) {
 						LOG.debug(String.format("Execute invocation-handler (%s) of proxy (%s), stack %s",
