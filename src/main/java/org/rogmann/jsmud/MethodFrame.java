@@ -2594,5 +2594,12 @@ loopDeclMeth:
 		}
 		return mapLabel;
 	}
-	
+
+	/** {@inheritDoc} */
+	public String toString() {
+		final StringBuilder sb = new StringBuilder(12);
+		sb.append("MF#").append(Integer.toHexString(System.identityHashCode(this)));
+		return sb.toString();
+	}
+
 }

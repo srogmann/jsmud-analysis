@@ -34,4 +34,11 @@ public class MethodFrameDebugContext {
 	public MethodFrameDebugContext(final MethodFrame frame) {
 		this.frame = frame;
 	}
+
+	/** {@inheritDoc} */
+	public String toString() {
+		final StringBuilder sb = new StringBuilder(12);
+		sb.append("MFDC#").append(Integer.toHexString(System.identityHashCode(this)));
+		return sb.toString();
+	}
 }
