@@ -59,7 +59,7 @@ public class JvmHelper {
 			};
 			for (final Class<?> classPreload : classesPreload) {
 				try {
-					vm.loadClass(classPreload.getName());
+					vm.loadClass(classPreload.getName(), classPreload);
 				} catch (ClassNotFoundException e) {
 					throw new RuntimeException("Couldn't preload class " + classPreload, e);
 				}

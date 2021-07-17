@@ -583,7 +583,7 @@ stepSearch:
 		try {
 			final Class<?> frameClass = curMFrame.getFrameClass();
 			try {
-				vm.loadClass(frameClass.getName());
+				vm.loadClass(frameClass.getName(), frameClass);
 			} catch (ClassNotFoundException e) {
 				throw new DebuggerException(String.format("Can't load frame-class (%s)", frameClass));
 			}

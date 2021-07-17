@@ -113,7 +113,7 @@ public class ClassExecutionMain {
 		else if (testNr == 11) {
 			// We use a string-representation of the class to prevent it from being loaded too early.
 			// We want it to be loaded by the JsmudClassLoader.
-			final Class<?> classJvmTests = registry.loadClass("org.rogmann.jsmud.test.JvmTests");
+			final Class<?> classJvmTests = registry.loadClass("org.rogmann.jsmud.test.JvmTests", ClassExecutionMain.class);
 			final Object jvmTests = classJvmTests.getDeclaredConstructor().newInstance();
 			final SimpleClassExecutor executorNC = new SimpleClassExecutor(registry, jvmTests.getClass(), visitor, invocationHandler);
 			final OperandStack stackArgs = new OperandStack(1);

@@ -67,23 +67,23 @@ public class JvmTests {
 
 	/** Executes a simple test-suite */
 	public void tests() {
-//		testsBoolean();
-//		testsByte();
-//		testsChar();
-//		testsShort();
-//		testsLong();
-//		testsFloat();
-//		testsDouble();
-//		testsLambda();
-//		testsLambdaFunction();
-//		testsLambdaNonStatic();
-//		testsLambdaInterface();
-//		testsLambdaStreamCollectOnly();
-//		testsLambdaStreams();
-//		testsLambdaStreamsThis();
-//		testsLambdaBiFunctionAndThen();
-//		testsLambdaCollectingAndThen();
-//		testsLambdaMultipleFunctions();
+		testsBoolean();
+		testsByte();
+		testsChar();
+		testsShort();
+		testsLong();
+		testsFloat();
+		testsDouble();
+		testsLambda();
+		testsLambdaFunction();
+		testsLambdaNonStatic();
+		testsLambdaInterface();
+		testsLambdaStreamCollectOnly();
+		testsLambdaStreams();
+		testsLambdaStreamsThis();
+		testsLambdaBiFunctionAndThen();
+		testsLambdaCollectingAndThen();
+		testsLambdaMultipleFunctions();
 //		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
@@ -93,8 +93,8 @@ public class JvmTests {
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-		testsProxy();
-		testsProxySuper();
+//		testsProxy();
+//		testsProxySuper();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();

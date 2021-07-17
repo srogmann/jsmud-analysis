@@ -88,8 +88,8 @@ public class ClassRegistry implements VM {
 	/** execution-filter */
 	final ClassExecutionFilter executionFilter;
 
-	/** class-loader */
-	private final ClassLoader classLoader;
+	/** class-loader (default) */
+	private final ClassLoader classLoaderDefault;
 	
 	/** <code>true</code> if reflection should be emulated too */
 	private final boolean simulateReflection;
@@ -166,7 +166,7 @@ public class ClassRegistry implements VM {
 	/**
 	 * Constructor
 	 * @param executionFilter determines classes to be simulated
-	 * @param classLoader class-loader to be used
+	 * @param classLoader class-loader to be used as default
 	 * @param simulateReflection <code>true</code> if reflection should be emulated
 	 * @param visitor JVM-visitor
 	 * @param invocationHandler invocation-handler
@@ -176,7 +176,7 @@ public class ClassRegistry implements VM {
 			final boolean simulateReflection,
 			final JvmExecutionVisitor visitor, final JvmInvocationHandler invocationHandler) {
 		this.executionFilter = executionFilter;
-		this.classLoader = classLoader;
+		this.classLoaderDefault = classLoader;
 		this.simulateReflection = simulateReflection;
 		this.visitor = visitor;
 		this.invocationHandler = invocationHandler;
@@ -204,27 +204,61 @@ public class ClassRegistry implements VM {
 	}
 	
 	/**
-	 * Gets the class-loader.
+	 * Gets the default class-loader.
 	 * @return class-loader
 	 */
 	public ClassLoader getClassLoader() {
-		return classLoader;
+		return classLoaderDefault;
 	}
 
 	/**
 	 * Loads a class.
+	 * The context-class is used to determine the class-loader to be used.
 	 * @param className qualified class-name, e.g. "java.lang.String"
+	 * @param ctxClass context-class, i.e. a class which knows the class to be loaded
 	 * @return loaded class
 	 * @throws ClassNotFoundException if the class can't be found
 	 */
-	public Class<?> loadClass(String className) throws ClassNotFoundException {
+	public Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException {
 		Class<?> clazz = mapLoadedClasses.get(className);
 		if (clazz == null) {
-			clazz = classLoader.loadClass(className);
+			final ClassLoader classLoaderClass;
+			final ClassLoader ctxClassLoader = (ctxClass != null) ? ctxClass.getClassLoader() : null;
+			if (ctxClassLoader instanceof JsmudClassLoader) {
+				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) ctxClassLoader;
+				final ClassLoader classLoaderOrig = jsmudClassLoader.getPatchedClassClassLoader(ctxClass.getName());
+				classLoaderClass = (classLoaderOrig != null) ? classLoaderOrig : classLoaderDefault;
+			}
+			else if (ctxClassLoader != null) {
+				classLoaderClass = ctxClassLoader;
+			}
+			else {
+				classLoaderClass = classLoaderDefault;
+			}
+			if (LOG.isDebugEnabled()) {
+				if (ctxClass != null) {
+					LOG.debug(String.format("load class (%s) in context (%s) via (%s)", className, ctxClass, classLoaderClass));
+				}
+				else {
+					LOG.debug(String.format("load class (%s) via (%s)", className, classLoaderClass));
+				}
+			}
+			if (classLoaderDefault instanceof JsmudClassLoader) {
+				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoaderDefault;
+				clazz = jsmudClassLoader.findClass(className, classLoaderClass);
+			}
+			else {
+				try {
+					clazz = classLoaderClass.loadClass(className);
+				} catch (ClassNotFoundException e) {
+					throw new ClassNotFoundException(String.format("Can't load class (%s) via (%s) in context (%s)",
+							className, classLoaderClass, ctxClass), e);
+				}
+			}
 			registerClass(clazz, className);
 			final SimpleClassExecutor executor = getClassExecutor(clazz);
-			if (classLoader instanceof JsmudClassLoader && executor != null) {
-				final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoader;
+			if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
+				final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
 				if (jsmudCl.isStaticInitializerPatched(clazz)) {
 					final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
 					final Executable pMethod;
@@ -292,8 +326,8 @@ public class ClassRegistry implements VM {
 	 */
 	public boolean isClassConstructorJsmudPatched(Class<?> classInit) {
 		boolean isPatched = false;
-		if (classLoader instanceof JsmudClassLoader) {
-			final JsmudClassLoader jsmudCL = (JsmudClassLoader) classLoader;
+		if (classLoaderDefault instanceof JsmudClassLoader) {
+			final JsmudClassLoader jsmudCL = (JsmudClassLoader) classLoaderDefault;
 			isPatched = jsmudCL.isDefaultConstructorPatched(classInit);
 		}
 		return isPatched;
@@ -307,8 +341,8 @@ public class ClassRegistry implements VM {
 	 */
 	public boolean isClassConstructorJsmudAdded(Class<?> classInit) {
 		boolean isPatched = false;
-		if (classLoader instanceof JsmudClassLoader) {
-			final JsmudClassLoader jsmudCL = (JsmudClassLoader) classLoader;
+		if (classLoaderDefault instanceof JsmudClassLoader) {
+			final JsmudClassLoader jsmudCL = (JsmudClassLoader) classLoaderDefault;
 			isPatched = jsmudCL.isDefaultConstructorAdded(classInit);
 		}
 		return isPatched;
@@ -558,7 +592,7 @@ public class ClassRegistry implements VM {
 			else {
 				Class<?> lSuperClass;
 				try {
-					lSuperClass = loadClass(superclass.getName());
+					lSuperClass = loadClass(superclass.getName(), superclass);
 					final RefTypeBean refTypeBean = mapClassRefType.get(lSuperClass);
 					superClassId = new VMClassID(refTypeBean.getTypeID().getValue());
 				} catch (ClassNotFoundException e) {

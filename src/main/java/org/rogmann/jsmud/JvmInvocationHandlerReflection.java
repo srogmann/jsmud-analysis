@@ -66,7 +66,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			final String className = (String) stack.pop();
 			final Class<?> loadedClass;
 			try {
-				loadedClass = frame.registry.loadClass(className);
+				// Class.forName: We use the registry itself as reference-class-loader.
+				loadedClass = frame.registry.loadClass(className, frame.registry.getClass());
 			} catch (Exception e) {
 				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e));
 				if (doContinueWhile.booleanValue()) {

@@ -360,7 +360,7 @@ whileInstr:
 							obj = classArray;
 						}
 						else {
-							final Class<?> liClass = registry.loadClass(type.getClassName());
+							final Class<?> liClass = registry.loadClass(type.getClassName(), clazz);
 							obj = liClass;
 						}
 					}
@@ -1409,7 +1409,7 @@ whileInstr:
 					}
 					else {
 						try {
-							final Class<?> classFieldOwner = registry.loadClass(nameFiOwner);
+							final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
 							final Field field = classFieldOwner.getDeclaredField(fi.name);
 							field.setAccessible(true);
 							objField = field.get(classFieldOwner);
@@ -1428,7 +1428,7 @@ whileInstr:
 					final FieldInsnNode fi = (FieldInsnNode) instr;
 					final String nameFiOwner = fi.owner.replace('/', '.');
 					try {
-						final Class<?> classFieldOwner = registry.loadClass(nameFiOwner);
+						final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
 						final Field field = classFieldOwner.getDeclaredField(fi.name);
 						field.setAccessible(true);
 						if (Modifier.isFinal(field.getModifiers())
@@ -1499,7 +1499,7 @@ whileInstr:
 					Class<?> classFieldOwner = fieldInstance.getClass(); // fi.owner?
 					final String fiOwnerName = fi.owner.replace('/', '.');
 					if (!classFieldOwner.getName().equals(fiOwnerName)) {
-						classFieldOwner = registry.loadClass(fiOwnerName);
+						classFieldOwner = registry.loadClass(fiOwnerName, clazz);
 					}
 					try {
 						Field field = null;
@@ -1608,7 +1608,7 @@ whileInstr:
 					final String nameNew = ti.desc.replace('/', '.');
 					Class<?> classNew;
 					try {
-						classNew = registry.loadClass(nameNew);
+						classNew = registry.loadClass(nameNew, clazz);
 					} catch (ClassNotFoundException e) {
 						throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
 								nameNew, methodName), e);
@@ -1632,7 +1632,7 @@ whileInstr:
 					final String nameNew = ti.desc.replace('/', '.');
 					final Class<?> classArray;
 					try {
-						classArray = registry.loadClass(nameNew);
+						classArray = registry.loadClass(nameNew, clazz);
 					} catch (ClassNotFoundException e) {
 						throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
 								nameNew, methodName), e);
@@ -1900,7 +1900,7 @@ whileInstr:
 				isMethodOverriden = true;
 			}
 			else {
-				classOwner = registry.loadClass(miOwnerName);
+				classOwner = registry.loadClass(miOwnerName, clazz);
 				objRef = classOwner;
 			}
 		}
@@ -1951,7 +1951,7 @@ whileInstr:
 				miOwnerName = lambdaOwner.replace('/', '.');
 				final Class<?> classLambdaOwner;
 				try {
-					classLambdaOwner = registry.loadClass(miOwnerName);
+					classLambdaOwner = registry.loadClass(miOwnerName, clazz);
 				} catch (ClassNotFoundException e) {
 					final boolean doContinueWhileE = handleCatchException(e);
 					if (doContinueWhileE) {
@@ -2074,7 +2074,7 @@ whileInstr:
 		}
 		if (mi.getOpcode() == Opcodes.INVOKESPECIAL && !classOwner.getName().equals(miOwnerName)) {
 			// e.g. StringBuilder#append(int) -> AbstractStringBuilder.append(int).
-			classOwner = registry.loadClass(miOwnerName);
+			classOwner = registry.loadClass(miOwnerName, clazz);
 		}
 		Object returnObj;
 		Method invMethod = null;
@@ -2086,7 +2086,7 @@ whileInstr:
 			try {
 				assert mi != null : "mi";
 				assert mi.owner != null : "mi.owner";
-				classInt = registry.loadClass(miOwnerName);
+				classInt = registry.loadClass(miOwnerName, clazz);
 			} catch (ClassNotFoundException e) {
 				final boolean doContinueWhile = handleCatchException(e);
 				if (doContinueWhile) {
@@ -2187,7 +2187,7 @@ whileSuperClass:
 		final int anzArgs = types.length;
 
 		final UninitializedInstance uninstType;
-		final Class<?> classInit = registry.loadClass(Type.getObjectType(mi.owner).getClassName());
+		final Class<?> classInit = registry.loadClass(Type.getObjectType(mi.owner).getClassName(), clazz);
 		final Object oInstance = stack.peek(anzArgs);
 		if (oInstance instanceof UninitializedInstance) {
 			uninstType = (UninitializedInstance) oInstance;
@@ -2398,7 +2398,7 @@ loopDeclMeth:
 		else {
 			final String nameNew = aType.getClassName().replace("[]", "");
 			try {
-				classArray = registry.loadClass(nameNew);
+				classArray = registry.loadClass(nameNew, clazz);
 			} catch (ClassNotFoundException e) {
 				throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
 						nameNew, methodName), e);
@@ -2448,7 +2448,7 @@ loopDeclMeth:
 			}
 			Class<?> classTcb;
 			try {
-				classTcb = registry.loadClass(tcb.type.replace("/", "."));
+				classTcb = registry.loadClass(tcb.type.replace("/", "."), clazz);
 			} catch (ClassNotFoundException cnfe) {
 				throw new RuntimeException(String.format("Throwable %s in catch-block of %s is unknown",
 						tcb.type, methodName), cnfe);
@@ -2519,7 +2519,7 @@ loopDeclMeth:
 				final String className = desc.substring(2, desc.length() - 1).replace('/', '.');
 				final Class<?> classComp;
 				try {
-					classComp = registry.loadClass(className);
+					classComp = registry.loadClass(className, clazz);
 				} catch (ClassNotFoundException e) {
 					throw new JvmException("Unknown class " + className, e);
 				}
@@ -2532,7 +2532,7 @@ loopDeclMeth:
 		}
 		else {
 			try {
-				classDesc = registry.loadClass(desc.replace('/', '.'));
+				classDesc = registry.loadClass(desc.replace('/', '.'), clazz);
 			} catch (ClassNotFoundException e) {
 				throw new JvmException("Unknown class " + desc, e);
 			}
