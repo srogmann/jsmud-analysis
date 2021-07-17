@@ -4,6 +4,7 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
 
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
@@ -97,7 +98,12 @@ public class CallSiteSimulation {
 						clazz, method, methodCalled));
 			}
 		};
-		proxy = Proxy.newProxyInstance(cl, interfaces, handler);
+		try {
+			proxy = Proxy.newProxyInstance(cl, interfaces, handler);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException(String.format("Can't build proxy with class-loader (%s) and interfaces (%s) for handler (%s)",
+					cl, Arrays.toString(interfaces), handler), e);
+		}
 	}
 	
 	/**
