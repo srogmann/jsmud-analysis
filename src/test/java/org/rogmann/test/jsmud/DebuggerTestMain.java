@@ -1,4 +1,4 @@
-package org.rogmann.jsmud.test;
+package org.rogmann.test.jsmud;
 
 import java.io.IOException;
 import java.lang.reflect.Method;

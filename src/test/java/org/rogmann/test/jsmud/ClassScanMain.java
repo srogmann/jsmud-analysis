@@ -1,4 +1,4 @@
-package org.rogmann.jsmud.test;
+package org.rogmann.test.jsmud;
 
 import java.io.File;
 import java.io.IOException;

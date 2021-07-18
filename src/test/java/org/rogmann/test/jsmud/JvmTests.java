@@ -1,4 +1,4 @@
-package org.rogmann.jsmud.test;
+package org.rogmann.test.jsmud;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -84,21 +84,21 @@ public class JvmTests {
 		testsLambdaBiFunctionAndThen();
 		testsLambdaCollectingAndThen();
 		testsLambdaMultipleFunctions();
-//		testsMethodChoosing();
-//		testsMethodRef();
-//		testsMethodArrayArgs();
-//		testsStaticInitializer();
-//		testsSyntheticMethod();
-//		testsConstructor();
-//		testsConstructorRef();
-//		testsCatchException();
-//		testsJavaTime();
-//		testsProxy();
-//		testsProxySuper();
-//		testsReflection();
-//		testReflectionDeclaredConstructors();
-//		testsClassForName();
-//		testsAccessController();
+		testsMethodChoosing();
+		testsMethodRef();
+		testsMethodArrayArgs();
+		testsStaticInitializer();
+		testsSyntheticMethod();
+		testsConstructor();
+		testsConstructorRef();
+		testsCatchException();
+		testsJavaTime();
+		testsProxy();
+		testsProxySuper();
+		testsReflection();
+		testReflectionDeclaredConstructors();
+		testsClassForName();
+		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}
 
