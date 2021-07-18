@@ -197,8 +197,8 @@ public class ClassRegistry implements VM {
 			if (doSimulation) {
 				executor = new SimpleClassExecutor(this, clazz, visitor, invocationHandler);
 				mapClassExecutors.put(clazz, executor);
+				visitor.visitLoadClass(clazz);
 			}
-			visitor.visitLoadClass(clazz);
 		}
 		return executor;
 	}
