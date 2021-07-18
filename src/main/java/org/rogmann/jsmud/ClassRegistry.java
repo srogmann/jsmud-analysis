@@ -220,6 +220,8 @@ public class ClassRegistry implements VM {
 	 * @throws ClassNotFoundException if the class can't be found
 	 */
 	public Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException {
+		// This implementation discards the used class-loader.
+		// The handling of classes with the same name in different class-loaders is not correct.
 		Class<?> clazz = mapLoadedClasses.get(className);
 		if (clazz == null) {
 			final ClassLoader classLoaderClass;
