@@ -676,6 +676,18 @@ public class ClassRegistry implements VM {
 		return list;
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public RefFieldBean getRefFieldBean(VMFieldID fieldID) {
+		RefFieldBean refFieldBean = null;
+		final Object oField = mapObjects.get(fieldID);
+		if (oField instanceof Field) {
+			final Field field = (Field) oField;
+			refFieldBean = mapRefFieldBean.get(field);
+		}
+		return refFieldBean;
+	}
+
 	/**
 	 * Gets the id of a method.
 	 * @param method method
@@ -751,6 +763,26 @@ public class ClassRegistry implements VM {
 		return values;
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public void setObjectValues(final Object vmObject, final List<RefFieldBean> listFields, final List<VMDataField> listValues) {
+		for (int i = 0; i < listFields.size(); i++) {
+			final RefFieldBean refFieldBean = listFields.get(i);
+			final Field field = (Field) mapObjects.get(refFieldBean.getFieldID());
+			final VMDataField vmValue = listValues.get(i);
+			final String jniSignature = refFieldBean.getSignature();
+			final Object oValue = convertVmValueIntoObject((byte) jniSignature.charAt(0), vmValue);
+			field.setAccessible(true);
+			try {
+				field.set(vmObject, oValue);
+			} catch (IllegalArgumentException | IllegalAccessException e) {
+				LOG.error(String.format("Error while setting field (%s) with signature (%s) to value of type (%s) in class (%s)",
+						field, jniSignature, (oValue != null) ? oValue.getClass() : null,
+						(vmObject != null) ? vmObject.getClass() : null));
+			}
+		}
+	}
+	
 	/** {@inheritDoc} */
 	@Override
 	public VMValue getVMValue(final Class<?> typeValue, final Object oValue) {
@@ -1028,48 +1060,59 @@ public class ClassRegistry implements VM {
 				isOk = false;
 				break;
 			}
-			switch(tag) {
-			case 'B':
-				aLocals[slot] = Byte.valueOf(((VMByte) dfValue).getValue());
-				break;
-			case 'Z':
-				final byte bVal = ((VMByte) dfValue).getValue();
-				aLocals[slot] = Boolean.valueOf(bVal != (byte) 0);
-				break;
-			case 'C':
-				final short sVal = ((VMShort) dfValue).getValue();
-				aLocals[sVal] = Character.valueOf((char) sVal);
-				break;
-			case 'S':
-				aLocals[slot] = Short.valueOf(((VMShort) dfValue).getValue());
-				break;
-			case 'I':
-				aLocals[slot] = Integer.valueOf(((VMInt) dfValue).getValue());
-				break;
-			case 'J':
-				aLocals[slot] = Long.valueOf(((VMLong) dfValue).getValue());
-				break;
-			case 'F':
-				final int iFloat = ((VMInt) dfValue).getValue();
-				aLocals[slot] = Float.valueOf(Float.intBitsToFloat(iFloat));
-				break;
-			case 'D':
-				final long lDouble = ((VMLong) dfValue).getValue();
-				aLocals[slot] = Double.valueOf(Double.longBitsToDouble(lDouble));
-				break;
-			case 'V':
-				// TODO Void.TYPE or null in case of type 'V'?
-				aLocals[slot] = Void.TYPE;
-				break;
-			default:
-				VMObjectID vmObjectID = (VMObjectID) dfValue;
-				final Object oValue = mapObjects.get(vmObjectID);
-				aLocals[slot] = oValue;
-				break;
-			}
-			
+			final Object oValue = convertVmValueIntoObject(tag, dfValue);
+			aLocals[slot] = oValue;
 		}
 		return isOk;
+	}
+
+	/**
+	 * Converts a tag and an untagged-value into an object.
+	 * @param tag tag
+	 * @param dfValue untagged-value
+	 * @return object
+	 */
+	private Object convertVmValueIntoObject(final byte tag, final VMDataField dfValue) {
+		final Object oValue;
+		switch(tag) {
+		case 'B':
+			oValue = Byte.valueOf(((VMByte) dfValue).getValue());
+			break;
+		case 'Z':
+			final byte bVal = ((VMByte) dfValue).getValue();
+			oValue = Boolean.valueOf(bVal != (byte) 0);
+			break;
+		case 'C':
+			final short sVal = ((VMShort) dfValue).getValue();
+			oValue = Character.valueOf((char) sVal);
+			break;
+		case 'S':
+			oValue = Short.valueOf(((VMShort) dfValue).getValue());
+			break;
+		case 'I':
+			oValue = Integer.valueOf(((VMInt) dfValue).getValue());
+			break;
+		case 'J':
+			oValue = Long.valueOf(((VMLong) dfValue).getValue());
+			break;
+		case 'F':
+			final int iFloat = ((VMInt) dfValue).getValue();
+			oValue = Float.valueOf(Float.intBitsToFloat(iFloat));
+			break;
+		case 'D':
+			final long lDouble = ((VMLong) dfValue).getValue();
+			oValue = Double.valueOf(Double.longBitsToDouble(lDouble));
+			break;
+		case 'V':
+			// TODO Void.TYPE or null in case of type 'V'?
+			oValue = Void.TYPE;
+			break;
+		default:
+			VMObjectID vmObjectID = (VMObjectID) dfValue;
+			oValue = mapObjects.get(vmObjectID);
+			break;
+		}
+		return oValue;
 	}
 
 	/** {@inheritDoc} */

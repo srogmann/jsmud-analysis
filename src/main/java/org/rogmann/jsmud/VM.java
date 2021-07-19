@@ -110,6 +110,13 @@ public interface VM {
 	List<RefFieldBean> getFieldsWithGeneric(Class<?> classRef);
 
 	/**
+	 * Gets a field-ref-bean of a given field.
+	 * @param fieldID ref-id of field
+	 * @return field-ref-bean or <code>null</code>
+	 */
+	RefFieldBean getRefFieldBean(VMFieldID fieldID);
+
+	/**
 	 * Gets a list of methods of the given class.
 	 * @param clazz given class
 	 * @return list of method-ref-beans
@@ -124,6 +131,14 @@ public interface VM {
 	 * @return list of values
 	 */
 	List<VMValue> readObjectFieldValues(Object vmObject, List<VMFieldID> listFields);
+
+	/**
+	 * Sets the values of fields of an object.
+	 * @param vmObject object
+	 * @param listFields list of fields to be set
+	 * @param listValues values to be set
+	 */
+	void setObjectValues(Object vmObject, List<RefFieldBean> listFields, List<VMDataField> listValues);
 
 	/**
 	 * Gets a region of an array.

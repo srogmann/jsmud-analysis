@@ -53,7 +53,7 @@ public enum Tag {
 	public Class<?> getClassTag() {
 		return classTag;
 	}
-	
+
 	/**
 	 * Looks for a tag.
 	 * @param tag tag-byte

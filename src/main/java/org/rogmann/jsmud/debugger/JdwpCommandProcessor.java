@@ -16,6 +16,7 @@ import org.objectweb.asm.Type;
 import org.rogmann.jsmud.ClassRegistry;
 import org.rogmann.jsmud.MethodFrame;
 import org.rogmann.jsmud.VM;
+import org.rogmann.jsmud.datatypes.Tag;
 import org.rogmann.jsmud.datatypes.VMArrayID;
 import org.rogmann.jsmud.datatypes.VMArrayRegion;
 import org.rogmann.jsmud.datatypes.VMBoolean;
@@ -430,7 +431,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else if (cmd == JdwpCommand.GET_VALUES) {
 			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
-			LOG.debug("ObjectId in RT/get: " + cObjectId);
+			LOG.debug("ObjectId in OR/get: " + cObjectId);
 			final Object vmObject = vm.getVMObject(cObjectId);
 			if (vmObject == null) {
 				sendError(id, JdwpErrorCode.INVALID_OBJECT);
@@ -452,6 +453,45 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 						dfFields[1 + i] = listValues.get(i);
 					}
 					sendReplyData(id, dfFields);
+				}
+			}
+		}
+		else if (cmd == JdwpCommand.SET_VALUES) {
+			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
+			LOG.debug("ObjectId in OR/set: " + cObjectId);
+			final Object vmObject = vm.getVMObject(cObjectId);
+			if (vmObject == null) {
+				sendError(id, JdwpErrorCode.INVALID_OBJECT);
+			}
+			else {
+				final int numFields = cmdBuf.readInt();
+				final List<RefFieldBean> listFields = new ArrayList<>(numFields);
+				final List<VMDataField> listValues = new ArrayList<>(numFields);
+				for (int i = 0; i < numFields; i++) {
+					final VMFieldID fieldID = new VMFieldID(cmdBuf.readLong());
+					final RefFieldBean refFieldBean = vm.getRefFieldBean(fieldID);
+					if (refFieldBean == null) {
+						LOG.error(String.format("Unknown fieldID (%s)", fieldID));
+						continue;
+					}
+					listFields.add(refFieldBean);
+					final char cTag = refFieldBean.getSignature().charAt(0);
+					final byte bTag = (byte) cTag;
+					final Tag tag = Tag.lookupByTag(bTag);
+					if (tag == null) {
+						LOG.error(String.format("Unexpected type (%s) of field (%s)",
+								refFieldBean.getSignature(), refFieldBean.getName()));
+						continue;
+					}
+					final VMDataField value = readUntaggedValue(cmdBuf, bTag);
+					listValues.add(value);
+				}
+				if (listValues.size() < numFields) {
+					sendError(id, JdwpErrorCode.INVALID_FIELDID);
+				}
+				else {
+					vm.setObjectValues(vmObject, listFields, listValues);
+					sendReplyData(id);
 				}
 			}
 		}
@@ -1380,38 +1420,49 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		for (int i = 0; i < slots; i++) {
 			final int slot = cmdBuf.readInt();
 			final byte tag = cmdBuf.readByte();
-			final VMDataField dfValue;
-			switch(tag) {
-			case 'B':
-				dfValue = new VMByte(cmdBuf.readByte());
-				break;
-			case 'Z':
-				final byte b = cmdBuf.readByte();
-				dfValue = new VMBoolean(b != (byte) 0);
-				break;
-			case 'C':
-			case 'S':
-				final short s = cmdBuf.readShort();
-				dfValue = new VMShort(s);
-				break;
-			case 'I':
-			case 'F':
-				dfValue = new VMInt(cmdBuf.readInt());
-				break;
-			case 'J':
-			case 'D':
-				dfValue = new VMLong(cmdBuf.readLong());
-				break;
-			case 'V':
-				dfValue = new VMVoid();
-				break;
-			default:
-				VMObjectID vmObjectID = new VMObjectID(cmdBuf.readLong());
-				dfValue = vmObjectID;
-				break;
-			}
+			final VMDataField dfValue = readUntaggedValue(cmdBuf, tag);
 			slotVariables.add(new SlotValue(slot, new VMValue(tag, dfValue)));
 		}
+	}
+
+	/**
+	 * Reads an untagged-value in a command-buffer.
+	 * @param cmdBuf request-buffer
+	 * @param tag JDWP-tag
+	 * @return VM-value
+	 */
+	private static VMDataField readUntaggedValue(final CommandBuffer cmdBuf, final byte tag) {
+		final VMDataField dfValue;
+		switch(tag) {
+		case 'B':
+			dfValue = new VMByte(cmdBuf.readByte());
+			break;
+		case 'Z':
+			final byte b = cmdBuf.readByte();
+			dfValue = new VMBoolean(b != (byte) 0);
+			break;
+		case 'C':
+		case 'S':
+			final short s = cmdBuf.readShort();
+			dfValue = new VMShort(s);
+			break;
+		case 'I':
+		case 'F':
+			dfValue = new VMInt(cmdBuf.readInt());
+			break;
+		case 'J':
+		case 'D':
+			dfValue = new VMLong(cmdBuf.readLong());
+			break;
+		case 'V':
+			dfValue = new VMVoid();
+			break;
+		default:
+			VMObjectID vmObjectID = new VMObjectID(cmdBuf.readLong());
+			dfValue = vmObjectID;
+			break;
+		}
+		return dfValue;
 	}
 
 	/**
