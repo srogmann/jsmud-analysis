@@ -63,7 +63,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JdwpCommandProcessor.class);
 	
-	/** Buffer containing Handshake-Eyecatcher "JDWP-Handshake" */
+	/** Buffer containing Handshake-eyecatcher "JDWP-Handshake" */
 	private static final byte[] BUF_HANDSHAKE = "JDWP-Handshake".getBytes(StandardCharsets.US_ASCII);
 	
 	/** length of command-header or reply-header */
@@ -1121,6 +1121,11 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			int numLines = lineTable.size();
 			long start = (numLines > 0) ? start = Integer.MAX_VALUE : 0;
 			long end = 0;
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("sendLineTable: refType=%s, class=%s, method=%s, numLines=%d, start=%d, end=%d",
+						refType, clazz, method, Integer.valueOf(numLines),
+						Long.valueOf(start), Long.valueOf(end)));
+			}
 			final VMDataField[] fields = new VMDataField[3 + numLines * 2];
 			for (int i = 0; i < numLines; i++) {
 				long lci = lineTable.get(i).getLineCodeIndex();
