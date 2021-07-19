@@ -36,6 +36,8 @@ public enum JdwpCommand {
 	CLASS_LOADER(JdwpCommandSet.REFERENCE_TYPE, 2),
 	/** Modifiers Command */
 	MODIFIERS(JdwpCommandSet.REFERENCE_TYPE, 3),
+	/** GetValues Command */
+	REFTYPE_GET_VALUES(JdwpCommandSet.REFERENCE_TYPE, 6),
 	/** SourceFile Command */
 	SOURCE_FILE(JdwpCommandSet.REFERENCE_TYPE, 7),
 	/** Interfaces Command */

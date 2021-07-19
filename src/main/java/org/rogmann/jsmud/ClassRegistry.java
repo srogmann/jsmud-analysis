@@ -727,7 +727,7 @@ public class ClassRegistry implements VM {
 
 	/** {@inheritDoc} */
 	@Override
-	public List<VMValue> readObjectFieldValues(Object vmObject, List<VMFieldID> listFields) {
+	public List<VMValue> readObjectFieldValues(final Object vmObject, final List<VMFieldID> listFields) {
 		final List<VMValue> values = new ArrayList<>(listFields.size());
 		for (int i = 0; i < listFields.size(); i++) {
 			final Object oField = mapObjects.get(listFields.get(i));

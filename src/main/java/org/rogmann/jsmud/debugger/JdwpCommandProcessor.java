@@ -334,6 +334,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else if (cmd == JdwpCommand.MODIFIERS) {
 			sendReferenceTypeModifiers(id, refType);
 		}
+		else if (cmd == JdwpCommand.REFTYPE_GET_VALUES) {
+			sendReferenceTypeGetValues(id, refType, cmdBuf);
+		}
 		else if (cmd == JdwpCommand.SOURCE_FILE) {
 			sendReferenceTypeSourceFile(id, refType);
 		}
@@ -949,6 +952,44 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			final Class<?> classRef = (Class<?>) oClassRef;
 			final int modbits = classRef.getModifiers();
 			sendReplyData(id, new VMInt(modbits));
+		}
+	}
+
+	/**
+	 * Sends the s of a reference-type.
+	 * @param id request-id
+	 * @param refType reference-type-id
+	 * @param cmdBuf command-buffer
+	 * @throws IOException in case of an IO-error
+	 */
+	private void sendReferenceTypeGetValues(int id, VMReferenceTypeID refType,
+			final CommandBuffer cmdBuf) throws IOException {
+		final Object oClassRef = vm.getVMObject(refType);
+		if (oClassRef == null) {
+			sendError(id, JdwpErrorCode.INVALID_OBJECT);
+		}
+		else if (!(oClassRef instanceof Class)) {
+			sendError(id, JdwpErrorCode.INVALID_CLASS);
+		}
+		else {
+			final Class<?> classRef = (Class<?>) oClassRef;
+			final int numFields = cmdBuf.readInt();
+			final List<VMFieldID> fieldIDs = new ArrayList<>(numFields);
+			for (int i = 0; i < numFields; i++) {
+				fieldIDs.add(new VMFieldID(cmdBuf.readLong()));
+			}
+			final List<VMValue> aValues = vm.readObjectFieldValues(classRef, fieldIDs);
+			if (aValues.size() < numFields) {
+				sendError(id, JdwpErrorCode.INVALID_SLOT);
+			}
+			else {
+				VMDataField[] fields = new VMDataField[1 + numFields];
+				fields[0] = new VMInt(numFields);
+				for (int i = 0; i < numFields; i++) {
+					fields[1 + i] = aValues.get(i);
+				}
+				sendReplyData(id, fields);
+			}
 		}
 	}
 
