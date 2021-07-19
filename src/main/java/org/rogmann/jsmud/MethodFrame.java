@@ -1416,8 +1416,8 @@ whileInstr:
 							objField = convertFieldTypeIntoJvmType(field.getType(), objField);
 						} catch (ClassNotFoundException | NoSuchFieldException | SecurityException
 								| IllegalArgumentException | IllegalAccessException e) {
-							throw new JvmException(String.format("Error while reading field (%s) of (%s) in method (%s)",
-									fi.name, nameFiOwner, methodName), e);
+							throw new JvmException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s)",
+									fi.name, nameFiOwner, methodName, clazz), e);
 						}
 					}
 					stack.push(objField);
@@ -1445,8 +1445,8 @@ whileInstr:
 						field.set(classFieldOwner, vField);
 					} catch (ClassNotFoundException | NoSuchFieldException | SecurityException
 							| IllegalArgumentException | IllegalAccessException e) {
-						throw new JvmException(String.format("Error while setting field (%s) of (%s) in method (%s)",
-								fi.name, nameFiOwner, methodName), e);
+						throw new JvmException(String.format("Error while setting field (%s) of (%s) in method (%s) of class (%s)",
+								fi.name, nameFiOwner, methodName, clazz), e);
 					}
 					break;
 				}
