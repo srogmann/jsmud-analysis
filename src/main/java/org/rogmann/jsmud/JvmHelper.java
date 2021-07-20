@@ -140,7 +140,9 @@ public class JvmHelper {
 			@Override
 			public boolean isClassToBeSimulated(Class<?> clazz) {
 				final String className = clazz.getName();
-				return !(className.startsWith("java.") || className.startsWith("sun.")
+				return !(className.startsWith("java.")
+						|| className.startsWith("sun.")
+						|| className.startsWith("com.sun.")
 						|| className.contains("$$Lambda"));
 			}
 		};
@@ -166,7 +168,9 @@ public class JvmHelper {
 					// We simulate java.util.* to support simulation of the stream-API.
 					isSimulation = true;
 				}
-				else if (className.startsWith("java.") || className.startsWith("sun.")) {
+				else if (className.startsWith("java.")
+						|| className.startsWith("com.sun.")
+						|| className.startsWith("sun.")) {
 					// No java.*- or sun.*-classes.
 					isSimulation = false;
 				}
