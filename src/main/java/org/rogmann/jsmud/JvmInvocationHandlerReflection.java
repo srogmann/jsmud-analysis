@@ -200,6 +200,9 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					for (int i = 0; i < numArgs; i++) {
 						oArgs[numArgs - 1 - i] = stack.pop();
 					}
+					// We replace the proxy with the invocation-handler.
+					stack.pop();
+					stack.push(ih);
 					// We have to find the method to be called.
 					Method methodIh = null;
 					for (final Method method : proxyClass.getDeclaredMethods()) {
