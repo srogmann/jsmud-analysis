@@ -67,38 +67,39 @@ public class JvmTests {
 
 	/** Executes a simple test-suite */
 	public void tests() {
-		testsBoolean();
-		testsByte();
-		testsChar();
-		testsShort();
-		testsLong();
-		testsFloat();
-		testsDouble();
-		testsLambda();
-		testsLambdaFunction();
-		testsLambdaNonStatic();
-		testsLambdaInterface();
-		testsLambdaStreamCollectOnly();
-		testsLambdaStreams();
-		testsLambdaStreamsThis();
-		testsLambdaBiFunctionAndThen();
-		testsLambdaCollectingAndThen();
-		testsLambdaMultipleFunctions();
-		testsMethodChoosing();
-		testsMethodRef();
-		testsMethodArrayArgs();
-		testsStaticInitializer();
-		testsSyntheticMethod();
-		testsConstructor();
-		testsConstructorRef();
-		testsCatchException();
-		testsJavaTime();
-		testsProxy();
-		testsProxySuper();
-		testsReflection();
-		testReflectionDeclaredConstructors();
-		testsClassForName();
-		testsAccessController();
+//		testsBoolean();
+//		testsByte();
+//		testsChar();
+//		testsShort();
+//		testsLong();
+//		testsFloat();
+//		testsDouble();
+		testsArray();
+//		testsLambda();
+//		testsLambdaFunction();
+//		testsLambdaNonStatic();
+//		testsLambdaInterface();
+//		testsLambdaStreamCollectOnly();
+//		testsLambdaStreams();
+//		testsLambdaStreamsThis();
+//		testsLambdaBiFunctionAndThen();
+//		testsLambdaCollectingAndThen();
+//		testsLambdaMultipleFunctions();
+//		testsMethodChoosing();
+//		testsMethodRef();
+//		testsMethodArrayArgs();
+//		testsStaticInitializer();
+//		testsSyntheticMethod();
+//		testsConstructor();
+//		testsConstructorRef();
+//		testsCatchException();
+//		testsJavaTime();
+//		testsProxy();
+//		testsProxySuper();
+//		testsReflection();
+//		testReflectionDeclaredConstructors();
+//		testsClassForName();
+//		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}
 
@@ -179,8 +180,9 @@ public class JvmTests {
 		final long m = 10L;
 		final long n = 13L;
 		assertEquals("l << 16", Long.valueOf(1099511627776L), Long.valueOf(l << 16));
-		assertEquals("l >> 4", Long.valueOf(1048576L), Long.valueOf(l >> 4));
-		assertEquals("l >>> 4", Long.valueOf(1048576L), Long.valueOf(l >>> 4));
+		final Long lSHR4Expected = Long.valueOf(1048576L);
+		assertEquals("l >> 4", lSHR4Expected, Long.valueOf(l >> 4));
+		assertEquals("l >>> 4", lSHR4Expected, Long.valueOf(l >>> 4));
 		assertEquals("l | m", Long.valueOf(16777226L), Long.valueOf(l | m));
 		assertEquals("m ^ n", Long.valueOf(7L), Long.valueOf(m ^ n));
 		assertEquals("n % m", Long.valueOf(3L), Long.valueOf(n % m));
@@ -219,7 +221,30 @@ public class JvmTests {
 	public int mult(int a, long b) {
 		return a * (int) b;
 	}
-	
+
+	public void testsArray() {
+		// ANEWARRAY int
+		final int[] i1 = new int[1];
+		// ANEWARRAY class "[I"
+		final int[][] i2 = new int[2][];
+		// ANEWARRAY class "[[I"
+		final int[][][] i3 = new int[3][][];
+		assertEquals("array i1", Integer.valueOf(1), Integer.valueOf(i1.length));
+		assertEquals("array i2", Integer.valueOf(2), Integer.valueOf(i2.length));
+		assertEquals("array i3", Integer.valueOf(3), Integer.valueOf(i3.length));
+		i1[0] = 256;
+		i2[1] = i1;
+		i3[2] = i2;
+		assertEquals("array i3.i2.i1", Integer.valueOf(256), Integer.valueOf(i3[2][1][0]));
+
+		// MULTIANEWARRAY 3, class "[[[J"
+		final long[][][] a123 = new long[1][2][3];
+		a123[0][0][0] = 512;
+		a123[0][1][2] = 1024;
+		assertEquals("array a123.000", Long.valueOf(512), Long.valueOf(a123[0][0][0]));
+		assertEquals("array a123.012", Long.valueOf(1024), Long.valueOf(a123[0][1][2]));
+	}
+
 	/** simple lambda-tests */
 	public void testsLambda() {
 		//linkCallSite org.rogmann.jsmud.test.JvmTests java.lang.invoke.LambdaMetafactory.metafactory(Lookup,String,MethodType,MethodType,MethodHandle,MethodType)CallSite/invokeStatic apply()IntFunction/[(int)Object, MethodHandle(int)Integer, (int)Integer]

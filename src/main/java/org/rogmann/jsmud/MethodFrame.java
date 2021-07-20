@@ -283,9 +283,7 @@ whileInstr:
 			while (true) {
 				final AbstractInsnNode instr = instructions.get(instrNum);
 				final int opcode = instr.getOpcode();
-				if (opcode >= 0) {
-					visitor.visitInstruction(instr, stack, aLocals);
-				}
+				visitor.visitInstruction(instr, stack, aLocals);
 				
 				switch (opcode) {
 				case Opcodes.NOP: // 0x00
@@ -1629,13 +1627,23 @@ whileInstr:
 				case Opcodes.ANEWARRAY: // 0xbd
 				{
 					final TypeInsnNode ti = (TypeInsnNode) instr;
-					final String nameNew = ti.desc.replace('/', '.');
+					final Type type = Type.getObjectType(ti.desc);
 					final Class<?> classArray;
-					try {
-						classArray = registry.loadClass(nameNew, clazz);
-					} catch (ClassNotFoundException e) {
-						throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
-								nameNew, methodName), e);
+					if (type.getSort() == Type.ARRAY) {
+						final int dims = type.getDimensions();
+						final int[] aDims = new int[dims];
+						final Class<?> elClass = getClassArrayViaType(type);
+						final Object oArray = Array.newInstance(elClass, aDims);
+						classArray = oArray.getClass();
+					}
+					else {
+						final String nameNew = ti.desc.replace('/', '.');
+						try {
+							classArray = registry.loadClass(nameNew, clazz);
+						} catch (ClassNotFoundException e) {
+							throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
+									nameNew, methodName), e);
+						}
 					}
 					final int len = ((Integer) stack.pop()).intValue();
 					final Object oArray = Array.newInstance(classArray, len);
