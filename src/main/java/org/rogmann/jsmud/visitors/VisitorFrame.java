@@ -11,5 +11,6 @@ class VisitorFrame {
 	MethodFrame frame;
 	boolean isJreClass;
 	int currLine = -1;
+	int printedLine = -2;
 
 }

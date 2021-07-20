@@ -13,10 +13,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.IincInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MultiANewArrayInsnNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.FrameDisplay;
 import org.rogmann.jsmud.JvmExecutionVisitor;
@@ -138,6 +142,14 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 				final LineNumberNode ln = (LineNumberNode) instr;
 				vFrame.currLine = ln.line;
 			}
+			else if (instr instanceof LabelNode) {
+				final LabelNode label = (LabelNode) instr;
+				psOut.println("  Label: " + label.getLabel());
+			}
+			else if (instr instanceof FrameNode) {
+				final FrameNode fn = (FrameNode) instr;
+				psOut.println(String.format("Frame %d: %s", Integer.valueOf(fn.type), FrameDisplay.lookup(fn.type)));
+			}
 		}
 		else {
 			if (dumpClassStatistic) {
@@ -155,23 +167,11 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		if (vFrame.isJreClass && !dumpJreInstructions) {
 			return;
 		}
-		final String line = (vFrame.currLine > 0) ? "Line " + vFrame.currLine : "";
+		final String line = (vFrame.currLine > 0) ? "L " + vFrame.currLine : "";
 		final String sInstruction = displayInstruction(instr);
-		psOut.println(String.format("%s, Instruction %02x, %s: %s, locals %s",
+		psOut.println(String.format("%s, Instr %02x, %s: %s, locals %s",
 				line, (vFrame.frame != null) ? Integer.valueOf(vFrame.frame.instrNum) : null,
 				sInstruction, stack, OperandStack.toString(aLocals, aLocals.length)));
-		if (instr instanceof LabelNode) {
-			final LabelNode label = (LabelNode) instr;
-			psOut.println("  Label: " + label.getLabel());
-		}
-		else if (instr instanceof LineNumberNode) {
-			final LineNumberNode lnn = (LineNumberNode) instr;
-			psOut.println("  Line: " + lnn.line);
-		}
-		else if (instr instanceof FrameNode) {
-			final FrameNode fn = (FrameNode) instr;
-			psOut.println(String.format("Frame %d: %s", Integer.valueOf(fn.type), FrameDisplay.lookup(fn.type)));
-		}
 	}
 
 	/** {@inheritDoc} */
@@ -235,9 +235,25 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			final LdcInsnNode li = (LdcInsnNode) instr;
 			addition = String.format(" %s", li.cst);
 		}
+		else if (instr instanceof IincInsnNode) {
+			final IincInsnNode ii = (IincInsnNode) instr;
+			addition = String.format(" %d, local[%d]", Integer.valueOf(ii.incr), Integer.valueOf(ii.var));
+		}
+		else if (instr instanceof JumpInsnNode) {
+			final JumpInsnNode ji = (JumpInsnNode) instr;
+			addition = String.format(" %s", ji.label.getLabel());
+		}
 		else if (instr instanceof MethodInsnNode) {
 			final MethodInsnNode mi = (MethodInsnNode) instr;
 			addition = String.format(" %s#%s%s", mi.owner, mi.name, mi.desc);
+		}
+		else if (instr instanceof MultiANewArrayInsnNode) {
+			final MultiANewArrayInsnNode manai = (MultiANewArrayInsnNode) instr;
+			addition = String.format(" %d, %s", Integer.valueOf(manai.dims), manai.desc);
+		}
+		else if (instr instanceof TypeInsnNode) {
+			final TypeInsnNode ti = (TypeInsnNode) instr;
+			addition = String.format(" %s", ti.desc);
 		}
 		final String sInstruction = opcodeDisplay + addition;
 		return sInstruction;
