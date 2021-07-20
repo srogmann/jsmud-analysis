@@ -776,9 +776,10 @@ public class ClassRegistry implements VM {
 			try {
 				field.set(vmObject, oValue);
 			} catch (IllegalArgumentException | IllegalAccessException e) {
-				LOG.error(String.format("Error while setting field (%s) with signature (%s) to value of type (%s) in class (%s)",
+				// We expect setObjectValues to be called without illegal arguments.
+				throw new JvmException(String.format("Error while setting field (%s) with signature (%s) to value of type (%s) in class (%s)",
 						field, jniSignature, (oValue != null) ? oValue.getClass() : null,
-						(vmObject != null) ? vmObject.getClass() : null));
+						(vmObject != null) ? vmObject.getClass() : null), e);
 			}
 		}
 	}
