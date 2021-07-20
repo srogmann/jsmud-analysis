@@ -409,8 +409,10 @@ loopEvents:
 	public void visitMethodExitBack(Class<?> currClass, Executable method, MethodFrame frame, Object objReturn) {
 		if (currFrame != null) {
 			JdwpEventRequest evReqStepOut = null;
-			LOG.debug(String.format("methodExit: currFrame.eventRequestStep=%s, currFrame.modStep=%s",
-					currFrame.eventRequestStep, currFrame.modStep));
+			if (currFrame.eventRequestStep != null || currFrame.modStep != null) {
+				LOG.debug(String.format("methodExit: currFrame.eventRequestStep=%s, currFrame.modStep=%s",
+						currFrame.eventRequestStep, currFrame.modStep));
+			}
 			if (currFrame.eventRequestStep != null && currFrame.modStep.getStepDepth() == JdwpModifierStep.STEP_DEPTH_OUT) {
 				// We leaved the method and should send a step-out-event.
 				evReqStepOut = currFrame.eventRequestStep;
