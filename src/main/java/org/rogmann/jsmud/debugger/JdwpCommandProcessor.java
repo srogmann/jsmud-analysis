@@ -23,6 +23,7 @@ import org.rogmann.jsmud.datatypes.VMBoolean;
 import org.rogmann.jsmud.datatypes.VMByte;
 import org.rogmann.jsmud.datatypes.VMClassID;
 import org.rogmann.jsmud.datatypes.VMClassLoaderID;
+import org.rogmann.jsmud.datatypes.VMClassObjectID;
 import org.rogmann.jsmud.datatypes.VMDataField;
 import org.rogmann.jsmud.datatypes.VMFieldID;
 import org.rogmann.jsmud.datatypes.VMFrameID;
@@ -343,6 +344,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else if (cmd == JdwpCommand.INTERFACES) {
 			sendReferenceTypeInterfaces(id, refType);
+		}
+		else if (cmd == JdwpCommand.CLASS_OBJECT) {
+			sendReferenceTypeClassObject(id, refType);
 		}
 		else if (cmd == JdwpCommand.SIGNATURE_WITH_GENERIC) {
 			sendSignatureWithGeneric(id, refType);
@@ -1084,6 +1088,26 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				fields[fnr++] = interfaceId;
 			}
 			sendReplyData(id, fields);
+		}
+	}
+
+	/**
+	 * Sends the class-object of a class.
+	 * @param id request-id
+	 * @param refType ref-type-id of class-object
+	 * @throws IOException in case of an IO-error
+	 */
+	private void sendReferenceTypeClassObject(final int id, final VMReferenceTypeID refType) throws IOException {
+		final Object oClassRef = vm.getVMObject(refType);
+		if (oClassRef == null) {
+			sendError(id, JdwpErrorCode.INVALID_OBJECT);
+		}
+		else if (!(oClassRef instanceof Class)) {
+			sendError(id, JdwpErrorCode.INVALID_CLASS);
+		}
+		else {
+			// final Class<?> classRef = (Class<?>) oClassRef;
+			sendReplyData(id, new VMClassObjectID(refType.getValue()));
 		}
 	}
 

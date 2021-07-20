@@ -42,6 +42,8 @@ public enum JdwpCommand {
 	SOURCE_FILE(JdwpCommandSet.REFERENCE_TYPE, 7),
 	/** Interfaces Command */
 	INTERFACES(JdwpCommandSet.REFERENCE_TYPE, 10),
+	/** ClassObject Command */
+	CLASS_OBJECT(JdwpCommandSet.REFERENCE_TYPE, 11),
 	/** SourceDebugExtension Command */
 	SOURCE_DEBUG_EXTENSION(JdwpCommandSet.REFERENCE_TYPE, 12),
 	/** SignatureWithGeneric Command */
