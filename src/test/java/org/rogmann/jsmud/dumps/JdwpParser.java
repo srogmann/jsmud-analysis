@@ -113,10 +113,21 @@ public class JdwpParser {
 								signature));
 					}
 					else if (jCmdSet == JdwpCommandSet.REFERENCE_TYPE
-							&& (jCmd == JdwpCommand.SIGNATURE || jCmd == JdwpCommand.SIGNATURE_WITH_GENERIC)) {
+							&& (jCmd == JdwpCommand.SIGNATURE
+								|| jCmd == JdwpCommand.SIGNATURE_WITH_GENERIC
+								|| jCmd == JdwpCommand.METHODS_WITH_GENERIC)) {
 						final VMReferenceTypeID refTypeId = new VMReferenceTypeID(cmdBuf.readLong());
 						psOut.println(String.format("%s%08x: <- refType=%s", indent, Integer.valueOf(offsetStream),
 								refTypeId));
+					}
+					else if (jCmdSet == JdwpCommandSet.CLASS_TYPE && jCmd == JdwpCommand.CLASS_NEW_INSTANCE) {
+						final VMClassID classTypeId = new VMClassID(cmdBuf.readLong());
+						final VMThreadID threadId = new VMThreadID(cmdBuf.readLong());
+						final VMMethodID methodId = new VMMethodID(cmdBuf.readLong());
+						final int args = cmdBuf.readInt();
+						psOut.println(String.format("%s%08x: <- classTypeId=%s, threadId=%s, methodId=%s, args=%d",
+								indent, Integer.valueOf(offsetStream),
+								classTypeId, threadId, methodId, Integer.valueOf(args)));
 					}
 					else if (jCmdSet == JdwpCommandSet.THREAD_REFERENCE && jCmd == JdwpCommand.THREAD_FRAMES) {
 						final VMThreadID threadId = new VMThreadID(cmdBuf.readLong());
@@ -180,6 +191,19 @@ public class JdwpParser {
 						final String genericSignature = cmdBuf.readString(cmdBuf.readInt());
 						psOut.println(String.format("%s%08x: -> signature=%s, genericSignature=%s",
 								indent, Integer.valueOf(offsetStream), signature, genericSignature));
+					}
+					else if (cmdSet == JdwpCommandSet.REFERENCE_TYPE && cmd == JdwpCommand.METHODS_WITH_GENERIC) {
+						final int numDeclared = cmdBuf.readInt();
+						for (int i = 0; i < numDeclared; i++) {
+							final VMMethodID methodID = new VMMethodID(cmdBuf.readLong());
+							final String name = cmdBuf.readString(cmdBuf.readInt());
+							final String signature = cmdBuf.readString(cmdBuf.readInt());
+							final String genericSignature = cmdBuf.readString(cmdBuf.readInt());
+							final int modBits = cmdBuf.readInt();
+							psOut.println(String.format("%s%08x: -> methodID=%s, name=%s, signature=%s, genericSignature=%s, modBits=%d",
+									indent, Integer.valueOf(offsetStream),
+									methodID, name, signature, genericSignature, Integer.valueOf(modBits)));
+						}
 					}
 					else if (cmdSet == JdwpCommandSet.THREAD_REFERENCE && cmd == JdwpCommand.THREAD_FRAME_COUNT) {
 						final int frameCount = cmdBuf.readInt();
