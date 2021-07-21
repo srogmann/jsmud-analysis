@@ -27,6 +27,8 @@ public enum JdwpCommandSet {
 	EVENT_REQUEST(15),
 	/** StackFrame Command Set */
 	STACK_FRAME(16),
+	/** ClassObjectReference Command Set */
+	CLASS_OBJECT_REFERENCE(17),
 	/** Event Command Set */
 	EVENT(64);
 	

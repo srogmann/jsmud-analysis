@@ -55,6 +55,12 @@ public enum JdwpCommand {
 
 	/** Superclass Command */
 	SUPERCLASS(JdwpCommandSet.CLASS_TYPE, 1),
+	/** SetValues Command */
+	CLASS_SET_VALUES(JdwpCommandSet.CLASS_TYPE, 2),
+	/** InvokeMethod Command */
+	CLASS_INVOKE_METHOD(JdwpCommandSet.CLASS_TYPE, 3),
+	/** NewInstance Command */
+	CLASS_NEW_INSTANCE(JdwpCommandSet.CLASS_TYPE, 4),
 
 	/** LineTable Command */
 	LINE_TABLE(JdwpCommandSet.METHOD, 1),
@@ -69,6 +75,10 @@ public enum JdwpCommand {
 	SET_VALUES(JdwpCommandSet.OBJECT_REFERENCE, 3),
 	/** InvokeMethod Command */
 	INVOKE_METHOD(JdwpCommandSet.OBJECT_REFERENCE, 6),
+	/** DisableCollection Command */
+	DISABLE_COLLECTION(JdwpCommandSet.OBJECT_REFERENCE, 7),
+	/** EnableCollection Command */
+	ENABLE_COLLECTION(JdwpCommandSet.OBJECT_REFERENCE, 8),
 	/** IsCollected Command */
 	IS_COLLECTED(JdwpCommandSet.OBJECT_REFERENCE, 9),
 
@@ -123,6 +133,9 @@ public enum JdwpCommand {
 	STACK_FRAME_SET_VALUES(JdwpCommandSet.STACK_FRAME, 2),
 	/** ThisObject Command */
 	STACK_FRAME_THIS_OBJECT(JdwpCommandSet.STACK_FRAME, 3),
+
+	/** ReflectedType Command */
+	REFLECTED_TYPE(JdwpCommandSet.CLASS_OBJECT_REFERENCE, 1),
 
 	/** Composite Command */
 	COMPOSITE(JdwpCommandSet.EVENT, 100);
