@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import org.rogmann.jsmud.datatypes.VMClassID;
+import org.rogmann.jsmud.datatypes.VMClassObjectID;
 import org.rogmann.jsmud.datatypes.VMMethodID;
 import org.rogmann.jsmud.datatypes.VMReferenceTypeID;
 import org.rogmann.jsmud.datatypes.VMThreadID;
@@ -105,7 +106,13 @@ public class JdwpParser {
 					mapReqCmd.put(Integer.valueOf(id), jCmd);
 					psOut.println(String.format("%s%08x: <-request %s/%s, id=0x%04x, len=0x%x", indent, Integer.valueOf(offsetStream),
 							jCmdSet, jCmd, Integer.valueOf(id), Integer.valueOf(packetLen)));
-					if (jCmdSet == JdwpCommandSet.REFERENCE_TYPE
+					if (jCmdSet == JdwpCommandSet.VIRTUAL_MACHINE
+							&& (jCmd == JdwpCommand.CLASSES_BY_SIGNATURE)) {
+						final String signature = cmdBuf.readString(cmdBuf.readInt());
+						psOut.println(String.format("%s%08x: <- signature=%s", indent, Integer.valueOf(offsetStream),
+								signature));
+					}
+					else if (jCmdSet == JdwpCommandSet.REFERENCE_TYPE
 							&& (jCmd == JdwpCommand.SIGNATURE || jCmd == JdwpCommand.SIGNATURE_WITH_GENERIC)) {
 						final VMReferenceTypeID refTypeId = new VMReferenceTypeID(cmdBuf.readLong());
 						psOut.println(String.format("%s%08x: <- refType=%s", indent, Integer.valueOf(offsetStream),
@@ -122,6 +129,11 @@ public class JdwpParser {
 						final VMThreadID threadId = new VMThreadID(cmdBuf.readLong());
 						psOut.println(String.format("%s%08x: <- thread=%s", indent, Integer.valueOf(offsetStream),
 								threadId));
+					}
+					else if (jCmdSet == JdwpCommandSet.CLASS_OBJECT_REFERENCE && jCmd == JdwpCommand.REFLECTED_TYPE) {
+						final VMClassObjectID classObjectID = new VMClassObjectID(cmdBuf.readLong());
+						psOut.println(String.format("%s%08x: <- classObjectID=%s", indent, Integer.valueOf(offsetStream),
+								classObjectID));
 					}
 					else if (jCmdSet == JdwpCommandSet.EVENT_REQUEST && jCmd == JdwpCommand.SET) {
 						displayEventRequestSetCmd(cmdBuf);
@@ -147,7 +159,18 @@ public class JdwpParser {
 							cmdSet, cmd,
 							Integer.valueOf(errorcode),
 							Integer.valueOf(id), Integer.valueOf(packetLen)));
-					if (cmdSet == JdwpCommandSet.REFERENCE_TYPE && cmd == JdwpCommand.SIGNATURE) {
+					if (cmdSet == JdwpCommandSet.VIRTUAL_MACHINE && cmd == JdwpCommand.CLASSES_BY_SIGNATURE) {
+						final int numClasses = cmdBuf.readInt();
+						for (int i = 0; i < numClasses; i++) {
+							final byte refTypeTag = cmdBuf.readByte();
+							final VMReferenceTypeID refTypeID = new VMReferenceTypeID(cmdBuf.readLong());
+							final int status = cmdBuf.readInt();
+							psOut.println(String.format("%s%08x: -> tag=%s, refTypeID=%s, status=%d",
+									indent, Integer.valueOf(offsetStream),
+									TypeTag.lookupByKind(refTypeTag), refTypeID, Integer.valueOf(status)));
+						}
+					}
+					else if (cmdSet == JdwpCommandSet.REFERENCE_TYPE && cmd == JdwpCommand.SIGNATURE) {
 						final String signature = cmdBuf.readString(cmdBuf.readInt());
 						psOut.println(String.format("%s%08x: -> signature=%s",
 								indent, Integer.valueOf(offsetStream), signature));
@@ -162,6 +185,12 @@ public class JdwpParser {
 						final int frameCount = cmdBuf.readInt();
 						psOut.println(String.format("%s%08x: -> frameCount=%d",
 								indent, Integer.valueOf(offsetStream), Integer.valueOf(frameCount)));
+					}
+					else if (cmdSet == JdwpCommandSet.CLASS_OBJECT_REFERENCE && cmd == JdwpCommand.REFLECTED_TYPE) {
+						final byte refTypeTag = cmdBuf.readByte(); 
+						final VMReferenceTypeID refTypeID = new VMReferenceTypeID(cmdBuf.readLong());
+						psOut.println(String.format("%s%08x: -> typeTag=%s, refTypeID=%s",
+								indent, Integer.valueOf(offsetStream), TypeTag.lookupByKind(refTypeTag), refTypeID));
 					}
 					else if (cmdSet == JdwpCommandSet.EVENT_REQUEST && cmd == JdwpCommand.SET) {
 						final int requestId = cmdBuf.readInt();
