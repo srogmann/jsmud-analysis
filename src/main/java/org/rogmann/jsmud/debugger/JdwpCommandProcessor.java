@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
@@ -101,9 +102,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	
 	/**
 	 * Constructor
-	 * @param is Inputstream
-	 * @param os Outputstream
-	 * @param visitor Debugger-Visitor
+	 * @param is Input-stream
+	 * @param os Output-stream
+	 * @param visitor Debugger-visitor
 	 * @param classLoader class-loader
 	 * @throws IOException in case of an IO-error
 	 */
@@ -226,6 +227,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			}
 			else if (cs == JdwpCommandSet.STACK_FRAME) {
 				processCommandStackFrame(id, cmd, cmdBuf, threadId);
+			}
+			else if (cs == JdwpCommandSet.CLASS_OBJECT_REFERENCE) {
+				processCommandClassObjectReference(id, cmd, cmdBuf);
 			}
 			else {
 				sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
@@ -814,6 +818,40 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	}
 
 	/**
+	 * Processes a command in the command-set ClassObjectReference.
+	 * @param id request-id
+	 * @param cmd command
+	 * @param cmdBuf request-buffer
+	 * @throws IOException in case of an IO-error while sending a reply
+	 */
+	private void processCommandClassObjectReference(final int id, final JdwpCommand cmd, final CommandBuffer cmdBuf) throws IOException {
+		if (cmd == JdwpCommand.REFLECTED_TYPE) {
+			final VMClassObjectID vmClassObjectID = new VMClassObjectID(cmdBuf.readLong());
+			final Object oClassObj = vm.getVMObject(vmClassObjectID);
+			if (oClassObj instanceof Class) {
+				final Class<?> classObj = (Class<?>) oClassObj;
+				final RefTypeBean refTypeBean = vm.getClassRefTypeBean(classObj);
+				if (refTypeBean == null) {
+					sendError(id, JdwpErrorCode.INVALID_OBJECT);
+				}
+				else {
+					LOG.debug(String.format("ClassObjectID %s -> class %s, tag %s, refId %s",
+							vmClassObjectID, classObj,
+							refTypeBean.getTypeTag(), refTypeBean.getTypeID()));
+					sendReplyData(id, new VMByte(refTypeBean.getTypeTag().getTag()),
+							refTypeBean.getTypeID());
+				}
+			}
+			else {
+				sendError(id, JdwpErrorCode.INVALID_OBJECT);
+			}
+		}
+		else {
+			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
+		}
+	}
+
+	/**
 	 * Send the debuggers capabilities.
 	 * @param id id
 	 * @throws IOException in case of an iIO-error
@@ -1186,17 +1224,17 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			}
 			final List<RefMethodBean> listRefMethodBeans = vm.getMethodsWithGeneric(classRef);
 			final int declared = listRefMethodBeans.size();
-			VMDataField[] fields = new VMDataField[1 + declared * 5];
+			VMDataField[] methods = new VMDataField[1 + declared * 5];
 			int fnr = 0;
-			fields[fnr++] = new VMInt(declared);
+			methods[fnr++] = new VMInt(declared);
 			for (RefMethodBean refMethod : listRefMethodBeans) {
-				fields[fnr++] = refMethod.getMethodID();
-				fields[fnr++] = new VMString(refMethod.getName());
-				fields[fnr++] = new VMString(refMethod.getSignature());
-				fields[fnr++] = new VMString(refMethod.getGenericSignature());
-				fields[fnr++] = new VMInt(refMethod.getModBits());
+				methods[fnr++] = refMethod.getMethodID();
+				methods[fnr++] = new VMString(refMethod.getName());
+				methods[fnr++] = new VMString(refMethod.getSignature());
+				methods[fnr++] = new VMString(refMethod.getGenericSignature());
+				methods[fnr++] = new VMInt(refMethod.getModBits());
 			}
-			sendReplyData(id, fields);
+			sendReplyData(id, methods);
 		}
 	}
 
@@ -1216,12 +1254,12 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else if (!(oClassRef instanceof Class)) {
 			sendError(id, JdwpErrorCode.INVALID_CLASS);
 		}
-		else if (oMethod == null || !(oMethod instanceof Method)) {
+		else if (oMethod == null || !(oMethod instanceof Executable)) {
 			sendError(id, JdwpErrorCode.INVALID_METHODID);
 		}
 		else {
 			final Class<?> clazz = (Class<?>) oClassRef;
-			final Method method = (Method) oMethod;
+			final Executable method = (Executable) oMethod;
 			final List<LineCodeIndex> lineTable = vm.getLineTable(clazz, method, refType, methodID);
 			int numLines = lineTable.size();
 			long start = (numLines > 0) ? start = Integer.MAX_VALUE : 0;
