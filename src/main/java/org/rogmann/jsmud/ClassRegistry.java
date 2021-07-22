@@ -607,12 +607,23 @@ public class ClassRegistry implements VM {
 
 	/** {@inheritDoc} */
 	@Override
-	public List<LineCodeIndex> getLineTable(Class<?> clazz, Method method, VMReferenceTypeID refType,
+	public List<LineCodeIndex> getLineTable(Class<?> clazz, Executable executable, VMReferenceTypeID refType,
 			VMMethodID methodID) {
 		final List<LineCodeIndex> lineTable = new ArrayList<>();
 		final SimpleClassExecutor classExecutor = getClassExecutor(clazz);
 		if (classExecutor != null) {
-			final MethodNode methodNode = classExecutor.loopkupMethod(method.getName(), Type.getMethodDescriptor(method));
+			final MethodNode methodNode;
+			if (executable instanceof Method) {
+				final Method method = (Method) executable;
+				methodNode = classExecutor.loopkupMethod(executable.getName(), Type.getMethodDescriptor(method));
+			}
+			else if (executable instanceof Constructor) {
+				final Constructor<?> constructor = (Constructor<?>) executable;
+				methodNode = classExecutor.loopkupMethod("<init>", Type.getConstructorDescriptor(constructor));
+			}
+			else {
+				throw new JvmException(String.format("Unexpected executable-type (%s) in class (%s)", executable, clazz));
+			}
 			if (methodNode != null) {
 				final InsnList instructions = methodNode.instructions;
 				final int numInstr = instructions.size();
@@ -706,18 +717,21 @@ public class ClassRegistry implements VM {
 	private RefMethodBean getMethodRefBean(Executable method) {
 		RefMethodBean bean = mapRefMethodBean.computeIfAbsent(method, key -> {
 			final VMMethodID methodId = new VMMethodID(objectIdCounter.incrementAndGet());
+			final String name;
 			final String signature;
 			if (method instanceof Method) {
+				name = method.getName();
 				signature = Type.getMethodDescriptor((Method) method);
 			}
 			else if (method instanceof Constructor<?>) {
+				name = "<init>";
 				signature = Type.getConstructorDescriptor((Constructor<?>) method);
 			}
 			else {
 				throw new JvmException("Unexpected executable " + method);
 			}
 			final String genericSignature = ""; // TODO genericSignature
-			final RefMethodBean methodRefBean = new RefMethodBean(methodId, method.getName(), signature, genericSignature, method.getModifiers());
+			final RefMethodBean methodRefBean = new RefMethodBean(methodId, name, signature, genericSignature, method.getModifiers());
 			mapObjects.put(methodId, method);
 			mapMethods.put(method, methodId);
 			return methodRefBean;
@@ -728,8 +742,15 @@ public class ClassRegistry implements VM {
 	/** {@inheritDoc} */
 	@Override
 	public List<RefMethodBean> getMethodsWithGeneric(final Class<?> clazz) {
+		final List<RefMethodBean> list = new ArrayList<>();
+		// Constructors
+		final Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+		for (Constructor<?> constructor : constructors) {
+			RefMethodBean methodRefBean = getMethodRefBean(constructor);
+			list.add(methodRefBean);
+		}
+		// Methods
 		final Method[] methods = clazz.getDeclaredMethods();
-		final List<RefMethodBean> list = new ArrayList<>(methods.length);
 		for (final Method method : methods) {
 			RefMethodBean methodRefBean = getMethodRefBean(method);
 			list.add(methodRefBean);

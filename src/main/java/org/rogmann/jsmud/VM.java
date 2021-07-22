@@ -1,5 +1,6 @@
 package org.rogmann.jsmud;
 
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -93,7 +94,7 @@ public interface VM {
 	 * @param methodID id of method
 	 * @return line-code-table
 	 */
-	List<LineCodeIndex> getLineTable(Class<?> clazz, Method method, VMReferenceTypeID refType, VMMethodID methodID);
+	List<LineCodeIndex> getLineTable(Class<?> clazz, Executable method, VMReferenceTypeID refType, VMMethodID methodID);
 
 	/**
 	 * Gets a list of interfaces of the given class.
