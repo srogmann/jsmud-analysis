@@ -1,5 +1,6 @@
 package org.rogmann.jsmud;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.rogmann.jsmud.datatypes.VMFieldID;
 import org.rogmann.jsmud.datatypes.VMInterfaceID;
 import org.rogmann.jsmud.datatypes.VMMethodID;
 import org.rogmann.jsmud.datatypes.VMObjectID;
+import org.rogmann.jsmud.datatypes.VMObjectOrExceptionID;
 import org.rogmann.jsmud.datatypes.VMReferenceTypeID;
 import org.rogmann.jsmud.datatypes.VMStringID;
 import org.rogmann.jsmud.datatypes.VMTaggedObjectId;
@@ -177,9 +179,20 @@ public interface VM {
 	 * Sets the values of variables of a method-frame.
 	 * @param methodFrame method-frame
 	 * @param slotVariables slots and new values
-	 * @return <code>true</code> if no error occured
+	 * @return <code>true</code> if no error occurred
 	 */
 	boolean setVariableValues(MethodFrame methodFrame, List<SlotValue> slotVariables);
+
+	/**
+	 * Creates an object-instance.
+	 * @param clazz class of the wanted object
+	 * @param thread thread to be used
+	 * @param constructor constructor to be used
+	 * @param argValues arguments of the constructor
+	 * @return new object or exception
+	 */
+	VMObjectOrExceptionID createNewInstance(Class<?> clazz, Thread thread, Constructor<?> constructor,
+			List<VMValue> argValues);
 
 	/**
 	 * Executes a method on an object.

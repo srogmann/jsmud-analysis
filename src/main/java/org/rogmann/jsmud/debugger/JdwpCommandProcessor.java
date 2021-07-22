@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.net.SocketTimeoutException;
@@ -33,6 +34,7 @@ import org.rogmann.jsmud.datatypes.VMInterfaceID;
 import org.rogmann.jsmud.datatypes.VMLong;
 import org.rogmann.jsmud.datatypes.VMMethodID;
 import org.rogmann.jsmud.datatypes.VMObjectID;
+import org.rogmann.jsmud.datatypes.VMObjectOrExceptionID;
 import org.rogmann.jsmud.datatypes.VMReferenceTypeID;
 import org.rogmann.jsmud.datatypes.VMShort;
 import org.rogmann.jsmud.datatypes.VMString;
@@ -384,6 +386,46 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			}
 			else {
 				sendError(id, JdwpErrorCode.INVALID_OBJECT);
+			}
+		}
+		else if (cmd == JdwpCommand.CLASS_NEW_INSTANCE) {
+			final VMClassID classId = new VMClassID(cmdBuf.readLong());
+			final VMThreadID threadId = new VMThreadID(cmdBuf.readLong());
+			final VMMethodID methodId = new VMMethodID(cmdBuf.readLong());
+			final Object oClass = vm.getVMObject(classId);
+			final Object oThread = vm.getVMObject(threadId);
+			final Object oMethod = vm.getVMObject(methodId);
+			if (oClass == null) {
+				sendError(id, JdwpErrorCode.INVALID_OBJECT);
+			}
+			else if (!(oClass instanceof Class)) {
+				sendError(id, JdwpErrorCode.INVALID_CLASS);
+			}
+			else if (!(oThread instanceof Thread)) {
+				sendError(id, JdwpErrorCode.INVALID_THREAD);
+			}
+			else if (!threadId.equals(vm.getCurrentThreadId())) {
+				// We support the current thread only.
+				sendError(id, JdwpErrorCode.THREAD_NOT_SUSPENDED);
+			}
+			else if (!(oMethod instanceof Constructor)) {
+				sendError(id, JdwpErrorCode.INVALID_METHODID);
+			}
+			else {
+				final Class<?> clazz = (Class<?>) oClass;
+				final Thread thread = (Thread) oThread;
+				final Constructor<?> constructor = (Constructor<?>) oMethod;
+				final int args = cmdBuf.readInt();
+				final List<VMValue> argValues = new ArrayList<>();
+				for (int i = 0; i < args; i++) {
+					final byte tag = cmdBuf.readByte();
+					final VMDataField dfValue = readUntaggedValue(cmdBuf, tag);
+					argValues.add(new VMValue(tag, dfValue));
+				}
+				LOG.debug(String.format("newInstance: class=%s, method=%s, args=%s", clazz, constructor, argValues));
+				final VMObjectOrExceptionID newObjectOrException = vm.createNewInstance(clazz,
+						thread, constructor, argValues);
+				sendReplyData(id, newObjectOrException.getVmObjectID(), newObjectOrException.getVmExceptionID());
 			}
 		}
 		else {

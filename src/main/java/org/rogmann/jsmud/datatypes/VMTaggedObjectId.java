@@ -4,6 +4,9 @@ package org.rogmann.jsmud.datatypes;
  * Tagged Object-id.
  */
 public class VMTaggedObjectId extends VMValue {
+	
+	/** null-object */
+	public static final VMTaggedObjectId NULL = new VMTaggedObjectId(new VMObjectID(0l));
 
 	/**
 	 * Constructor

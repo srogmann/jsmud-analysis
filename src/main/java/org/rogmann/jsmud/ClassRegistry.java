@@ -7,6 +7,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -44,6 +45,7 @@ import org.rogmann.jsmud.datatypes.VMInterfaceID;
 import org.rogmann.jsmud.datatypes.VMLong;
 import org.rogmann.jsmud.datatypes.VMMethodID;
 import org.rogmann.jsmud.datatypes.VMObjectID;
+import org.rogmann.jsmud.datatypes.VMObjectOrExceptionID;
 import org.rogmann.jsmud.datatypes.VMReferenceTypeID;
 import org.rogmann.jsmud.datatypes.VMShort;
 import org.rogmann.jsmud.datatypes.VMStringID;
@@ -1050,6 +1052,7 @@ public class ClassRegistry implements VM {
 
 	/**
 	 * Gets the object-id of a value.
+	 * Creates a new object-id if the value is unknown.
 	 * @param value value
 	 * @return object-id
 	 */
@@ -1137,6 +1140,41 @@ public class ClassRegistry implements VM {
 		return oValue;
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public VMObjectOrExceptionID createNewInstance(final Class<?> clazz, final Thread thread,
+			final Constructor<?> constructor, final List<VMValue> argValues) {
+		// TODO consider the thread wanted
+		final Object[] aArgs = new Object[argValues.size()];
+		for (int i = 0; i < argValues.size(); i++) {
+			final VMValue vmValue = argValues.get(i);
+			aArgs[i] = convertVmValueIntoObject(vmValue.getTag(), vmValue.getValue());
+		}
+		final Object newObject;
+		try {
+			newObject = constructor.newInstance(aArgs);
+		}
+		catch (InstantiationException | IllegalAccessException e) {
+			// An exception occurred while trying to execute the constructor.
+			final VMObjectID eId = getVMObjectId(e);
+			return new VMObjectOrExceptionID(VMTaggedObjectId.NULL, new VMTaggedObjectId(eId));
+		}
+		catch (IllegalArgumentException e) {
+			LOG.error(String.format("createNewInstance: clazz=%s, constructor=%s, args=%s",
+					clazz, constructor, Arrays.toString(aArgs)), e);
+			final VMObjectID eId = getVMObjectId(e);
+			return new VMObjectOrExceptionID(VMTaggedObjectId.NULL, new VMTaggedObjectId(eId));
+		}
+		catch (InvocationTargetException e) {
+			// An exception occurred while executing the constructor.
+			final VMObjectID eId = getVMObjectId(e);
+			return new VMObjectOrExceptionID(VMTaggedObjectId.NULL, new VMTaggedObjectId(eId));
+		}
+		final VMObjectID vmObjectId = getVMObjectId(newObject);
+		final VMTaggedObjectId taggedObjectId = new VMTaggedObjectId(vmObjectId);
+		return new VMObjectOrExceptionID(taggedObjectId, VMTaggedObjectId.NULL);
+	}
+	
 	/** {@inheritDoc} */
 	@Override
 	public VMDataField[] executeMethod(final VMObjectID cObjectId, final VMClassID classId, final VMMethodID methodId,

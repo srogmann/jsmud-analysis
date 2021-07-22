@@ -48,4 +48,10 @@ public class VMValue extends VMDataField {
 		buf[offset] = tag;
 		value.write(buf, offset + 1);
 	}
+
+	public String toString() {
+		return new StringBuilder(20).append(getClass().getSimpleName())
+				.append("(tag:").append(Tag.lookupByTag(tag))
+				.append(", value:").append(value).append(')').toString();
+	}
 }
