@@ -476,6 +476,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				final Class<? extends Object> objClass = vmObject.getClass();
 				// FIXME Get ref-types of JRE-objects
 				final RefTypeBean refType = vm.getClassRefTypeBean(objClass);
+				LOG.debug(String.format("refTypeTag=%s, refType=%s", refType.getTypeTag(), refType.getTypeID()));
 				sendReplyData(id, new VMByte(refType.getTypeTag().getTag()), refType.getTypeID());
 			}
 		}
