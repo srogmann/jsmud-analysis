@@ -1307,11 +1307,6 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			int numLines = lineTable.size();
 			long start = (numLines > 0) ? start = Integer.MAX_VALUE : 0;
 			long end = 0;
-			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("sendLineTable: refType=%s, class=%s, method=%s, numLines=%d, start=%d, end=%d",
-						refType, clazz, method, Integer.valueOf(numLines),
-						Long.valueOf(start), Long.valueOf(end)));
-			}
 			final VMDataField[] fields = new VMDataField[3 + numLines * 2];
 			for (int i = 0; i < numLines; i++) {
 				long lci = lineTable.get(i).getLineCodeIndex();
@@ -1319,6 +1314,11 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				end = Math.max(lci, end);
 				fields[3 + 2 * i] = new VMLong(lci);
 				fields[4 + 2 * i] = new VMInt(lineTable.get(i).getLineNumber());
+			}
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("sendLineTable: refType=%s, class=%s, method=%s, numLines=%d, start=%d, end=%d",
+						refType, clazz, method, Integer.valueOf(numLines),
+						Long.valueOf(start), Long.valueOf(end)));
 			}
 			fields[0] = new VMLong(start);
 			fields[1] = new VMLong(end);
