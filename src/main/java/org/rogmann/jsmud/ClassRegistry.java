@@ -851,6 +851,10 @@ public class ClassRegistry implements VM {
 			tag = Tag.STRING;
 			dfValue = getVMObjectId(oValue);
 		}
+		else if (typeValue.isArray()) {
+			tag = Tag.ARRAY;
+			dfValue = getVMObjectId(oValue);
+		}
 		else {
 			tag = Tag.OBJECT;
 			dfValue = getVMObjectId(oValue);
