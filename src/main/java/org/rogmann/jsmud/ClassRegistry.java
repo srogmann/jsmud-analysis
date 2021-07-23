@@ -629,6 +629,7 @@ public class ClassRegistry implements VM {
 			if (methodNode != null) {
 				final InsnList instructions = methodNode.instructions;
 				final int numInstr = instructions.size();
+				boolean isFirstLine = true;
 				int currLine = 0;
 				int lastDebugLine = 0;
 				for (int i = 0; i < numInstr; i++) {
@@ -641,7 +642,15 @@ public class ClassRegistry implements VM {
 					else if (opcode >= 0) {
 						if (currLine > lastDebugLine) {
 							// We place the line-number-index at the first opcode of a line.
-							final int index = instructions.indexOf(instr);
+							final int index;
+							if (isFirstLine) {
+								// The first line of a method should start at index 0.
+								index = 0;
+								isFirstLine = false;
+							}
+							else {
+								index = instructions.indexOf(instr);
+							}
 							lineTable.add(new LineCodeIndex(index, currLine));
 							lastDebugLine = currLine;
 						}
