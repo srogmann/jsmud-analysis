@@ -167,11 +167,13 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		if (vFrame.isJreClass && !dumpJreInstructions) {
 			return;
 		}
-		final String line = (vFrame.currLine > 0) ? "L " + vFrame.currLine : "";
-		final String sInstruction = displayInstruction(instr);
-		psOut.println(String.format("%s, Instr %02x, %s: %s, locals %s",
-				line, (vFrame.frame != null) ? Integer.valueOf(vFrame.frame.instrNum) : null,
-				sInstruction, stack, OperandStack.toString(aLocals, aLocals.length)));
+		if (opcode != -1) {
+			final String line = (vFrame.currLine > 0) ? "L " + vFrame.currLine : "";
+			final String sInstruction = displayInstruction(instr);
+			psOut.println(String.format("%s, Instr %02x, %s: %s, locals %s",
+					line, (vFrame.frame != null) ? Integer.valueOf(vFrame.frame.instrNum) : null,
+					sInstruction, stack, OperandStack.toString(aLocals, aLocals.length)));
+		}
 	}
 
 	/** {@inheritDoc} */
