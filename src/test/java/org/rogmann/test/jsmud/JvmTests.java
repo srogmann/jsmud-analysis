@@ -90,11 +90,12 @@ public class JvmTests {
 //		testsMethodArrayArgs();
 //		testsStaticInitializer();
 //		testsSyntheticMethod();
+		testsFields();
 //		testsConstructor();
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-		testsProxy();
+//		testsProxy();
 //		testsProxySuper();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
@@ -413,6 +414,12 @@ public class JvmTests {
 		assertEquals("Test singleton 3", Integer.valueOf(0), Integer.valueOf(CLINIT_SINGLETON.executedTests.size()));
 	}
 
+	public void testsFields() {
+		// SETSTATIC and GETSTATIC in super-class.
+		TestConstructor.staticInt = 89;
+		assertEquals("Test super-static", Integer.valueOf(89), Integer.valueOf(TestConstructor.staticInt));
+	}
+
 	public void testsConstructor() {
 		final TestConstructor testConstr = new TestConstructor(21, 34);
 		assertEquals("Constructor", Integer.valueOf(55), Integer.valueOf(testConstr.getSum()));
@@ -710,6 +717,7 @@ public class JvmTests {
 	}
 
 	public static class TestConstructorBase {
+		static int staticInt;
 		private final int sumBase;
 		public TestConstructorBase() {
 			sumBase = -2;

@@ -1408,7 +1408,7 @@ whileInstr:
 					else {
 						try {
 							final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
-							final Field field = classFieldOwner.getDeclaredField(fi.name);
+							final Field field = findDeclaredField(classFieldOwner, fi);
 							field.setAccessible(true);
 							objField = field.get(classFieldOwner);
 							objField = convertFieldTypeIntoJvmType(field.getType(), objField);
@@ -1427,7 +1427,7 @@ whileInstr:
 					final String nameFiOwner = fi.owner.replace('/', '.');
 					try {
 						final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
-						final Field field = classFieldOwner.getDeclaredField(fi.name);
+						final Field field = findDeclaredField(classFieldOwner, fi);
 						field.setAccessible(true);
 						if (Modifier.isFinal(field.getModifiers())
 								&& JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT.equals(methodName)) {
@@ -1457,23 +1457,7 @@ whileInstr:
 					}
 					final Class<?> classFieldOwner = fieldInstance.getClass();
 					try {
-						Field field = null;
-						Class<?> fClass = classFieldOwner;
-						NoSuchFieldException nsfe = null;
-						while (fClass != null) {
-							try {
-								field = fClass.getDeclaredField(fi.name);
-								break;
-							} catch (NoSuchFieldException e) {
-								if (nsfe == null) {
-									nsfe = e;
-								}
-								fClass = fClass.getSuperclass();
-							}
-						}
-						if (field == null && nsfe != null) {
-							throw nsfe;
-						}
+						final Field field = findDeclaredField(classFieldOwner, fi);
 						assert field != null;
 						field.setAccessible(true);
 						Object fieldValue = field.get(fieldInstance);
@@ -1500,20 +1484,7 @@ whileInstr:
 						classFieldOwner = registry.loadClass(fiOwnerName, clazz);
 					}
 					try {
-						Field field = null;
-						Class<?> classField = classFieldOwner;
-						while (true) {
-							try {
-								field = classField.getDeclaredField(fi.name);
-								break;
-							} catch (NoSuchFieldException e) {
-								classField = classField.getSuperclass();
-								if (classField == null) {
-									throw new NoSuchFieldException(String.format("Can't find field (%s) in (%s) or its super-classes",
-											fi.name, classFieldOwner.getName()));
-								}
-							}
-						}
+						final Field field = findDeclaredField(classFieldOwner, fi);
 						field.setAccessible(true);
 						final Object oValueField = convertJvmTypeIntoFieldType(field.getType(), oValue);
 						if (Modifier.isFinal(field.getModifiers()) && pMethod instanceof Constructor<?>) {
@@ -2286,6 +2257,38 @@ whileSuperClass:
 			stack.replaceUninitialized(uninstType, instanceInit);
 		}
 		return false;
+	}
+
+	/**
+	 * Gets a field in the class or one of its super-classes.
+	 * @param classFieldOwner class
+	 * @param fi field wanted
+	 * @return field
+	 * @throws NoSuchFieldException if the field couldn't be found
+	 */
+	private static Field findDeclaredField(final Class<?> classFieldOwner, final FieldInsnNode fi)
+			throws NoSuchFieldException {
+		Class<?> classField = classFieldOwner;
+		Field field = null;
+		NoSuchFieldException nsfe = null;
+		while (true) {
+			try {
+				field = classField.getDeclaredField(fi.name);
+			}
+			catch (NoSuchFieldException e) {
+				if (nsfe == null) {
+					nsfe = e;
+				}
+				if (Object.class.equals(classField)) {
+					// The field couldn't be found.
+					throw nsfe;
+				}
+				classField = classField.getSuperclass();
+				continue;
+			}
+			break;
+		}
+		return field;
 	}
 
 	/**
