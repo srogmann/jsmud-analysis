@@ -193,80 +193,91 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				SimpleClassExecutor executor = frame.registry.getClassExecutor(ih.getClass());
 				if (executor != null) {
 					// We are allowed to execute the invocation-handler.
-					// We collect the method's arguments from stack.
-					final Type[] origTypes = Type.getArgumentTypes(mi.desc);
-					final int numArgs = origTypes.length;
-					final Object[] oArgs = new Object[numArgs];
-					for (int i = 0; i < numArgs; i++) {
-						oArgs[numArgs - 1 - i] = stack.pop();
-					}
-					// We replace the proxy with the invocation-handler.
-					stack.pop();
-					stack.push(ih);
 					// We have to find the method to be called.
 					Method methodIh = null;
-					for (final Method method : proxyClass.getDeclaredMethods()) {
-						if (mi.desc.equals(Type.getMethodDescriptor(method))) {
-							methodIh = method;
-							break;
-						}
-					}
-					if (methodIh == null) {
-						throw new JvmException(String.format("No such method (%s%s) in proxy (%s)", mi.name, mi.desc, proxyClass));
-					}
-					// We call the method in the invocation-handler.
-					final Object[] oIhArgs = { oProxy, methodIh, oArgs };
-					stack.pushAndResize(0, oIhArgs);
-					Method ihMethod = null;
-					Class<?> loopIh = ih.getClass();
-					int parentCounter = 0;
+					boolean isInSuperClass = false;
+					Class<?> classProxy = proxyClass;
+loopClassIh:
 					while (true) {
-						try {
-							ihMethod = loopIh.getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
-							break;
-						} catch (NoSuchMethodException e) {
-							// We try the super-class.
-							// Example in the wild: https://github.com/apache/tomcat/blob/9.0.x/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DisposableConnectionFacade.java
-							final Class<?> loopIhSuper = loopIh.getSuperclass();
-							if (loopIhSuper == null || Object.class.equals(loopIhSuper)) {
-								throw e;
+						for (final Method method : classProxy.getDeclaredMethods()) {
+							if (mi.desc.equals(Type.getMethodDescriptor(method))) {
+								methodIh = method;
+								break loopClassIh;
 							}
-							loopIh = loopIhSuper;
 						}
-						parentCounter++;
-						if (parentCounter == 100) {
-							throw new JvmException(String.format("Unexpected parent-super-depth in class %s", ih.getClass()));
+						if (Object.class.equals(classProxy)) {
+							throw new JvmException(String.format("No such method (%s%s) in proxy (%s)", mi.name, mi.desc, proxyClass));
 						}
+						// If the method searched is in a super-class we will execute the proxy itself,
+						// not the invocation-handler.
+						classProxy = classProxy.getSuperclass();
+						isInSuperClass  = true;
 					}
-					if (!ih.getClass().equals(loopIh)) {
-						// We need the executor of a super-class.
-						executor = frame.registry.getClassExecutor(loopIh);
-						if (executor == null) {
-							throw new JvmException(String.format("Can't get a executor of super-class (%s) of (%s) for executing invoke-method (%s)",
-									loopIh, ih.getClass(), ihMethod));
+					if (!isInSuperClass) {
+						// We collect the method's arguments from stack.
+						final Type[] origTypes = Type.getArgumentTypes(mi.desc);
+						final int numArgs = origTypes.length;
+						final Object[] oArgs = new Object[numArgs];
+						for (int i = 0; i < numArgs; i++) {
+							oArgs[numArgs - 1 - i] = stack.pop();
 						}
-					}
-					final String descr = Type.getMethodDescriptor(ihMethod);
-					if (LOG.isDebugEnabled()) {
-						LOG.debug(String.format("Execute invocation-handler (%s) of proxy (%s), stack %s",
-								ih, proxyClass, stack));
-					}
-					final Object objReturn;
-					try {
-						objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, ihMethod, descr, stack);
-					}
-					catch (Throwable e) {
-						final boolean doContinueWhileE = frame.handleCatchException(e);
-						if (doContinueWhileE) {
-							return Boolean.TRUE;
+						// We replace the proxy with the invocation-handler.
+						stack.pop();
+						stack.push(ih);
+						// We call the method in the invocation-handler.
+						final Object[] oIhArgs = { oProxy, methodIh, oArgs };
+						stack.pushAndResize(0, oIhArgs);
+						Method ihMethod = null;
+						Class<?> loopIh = ih.getClass();
+						int parentCounter = 0;
+						while (true) {
+							try {
+								ihMethod = loopIh.getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
+								break;
+							} catch (NoSuchMethodException e) {
+								// We try the super-class.
+								// Example in the wild: https://github.com/apache/tomcat/blob/9.0.x/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DisposableConnectionFacade.java
+								final Class<?> loopIhSuper = loopIh.getSuperclass();
+								if (loopIhSuper == null || Object.class.equals(loopIhSuper)) {
+									throw e;
+								}
+								loopIh = loopIhSuper;
+							}
+							parentCounter++;
+							if (parentCounter == 100) {
+								throw new JvmException(String.format("Unexpected parent-super-depth in class %s", ih.getClass()));
+							}
 						}
-						// This exception isn't handled here.
-						throw e;
+						if (!ih.getClass().equals(loopIh)) {
+							// We need the executor of a super-class.
+							executor = frame.registry.getClassExecutor(loopIh);
+							if (executor == null) {
+								throw new JvmException(String.format("Can't get a executor of super-class (%s) of (%s) for executing invoke-method (%s)",
+										loopIh, ih.getClass(), ihMethod));
+							}
+						}
+						final String descr = Type.getMethodDescriptor(ihMethod);
+						if (LOG.isDebugEnabled()) {
+							LOG.debug(String.format("Execute invocation-handler (%s) of proxy (%s), stack %s",
+									ih, proxyClass, stack));
+						}
+						final Object objReturn;
+						try {
+							objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, ihMethod, descr, stack);
+						}
+						catch (Throwable e) {
+							final boolean doContinueWhileE = frame.handleCatchException(e);
+							if (doContinueWhileE) {
+								return Boolean.TRUE;
+							}
+							// This exception isn't handled here.
+							throw e;
+						}
+						if (!Void.class.equals(methodIh.getReturnType())) {
+							stack.push(objReturn);
+						}
+						doContinueWhile = Boolean.FALSE;
 					}
-					if (!Void.class.equals(methodIh.getReturnType())) {
-						stack.push(objReturn);
-					}
-					doContinueWhile = Boolean.FALSE;
 				}
 			}
 		}

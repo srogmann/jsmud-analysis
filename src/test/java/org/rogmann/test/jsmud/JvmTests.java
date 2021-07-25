@@ -74,7 +74,7 @@ public class JvmTests {
 //		testsLong();
 //		testsFloat();
 //		testsDouble();
-		testsArray();
+//		testsArray();
 //		testsLambda();
 //		testsLambdaFunction();
 //		testsLambdaNonStatic();
@@ -94,7 +94,7 @@ public class JvmTests {
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-//		testsProxy();
+		testsProxy();
 //		testsProxySuper();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
@@ -472,6 +472,9 @@ public class JvmTests {
 		final int result2 = worker.add5(37);
 		assertEquals("Proxy: A", "BetaA", result1);
 		assertEquals("Proxy: B", Integer.valueOf(42), Integer.valueOf(result2));
+		
+		// Can we invoke a Object-method in the proxy-instance?
+		assertTrue("Proxy getClass", worker.getClass().getName().contains("$Proxy"));
 	}
 
 	/**
