@@ -1419,6 +1419,7 @@ whileInstr:
 							final Field field = findDeclaredField(classFieldOwner, fi);
 							field.setAccessible(true);
 							objField = field.get(classFieldOwner);
+							objField = visitor.visitFieldAccess(opcode, classFieldOwner, field, objField);
 							objField = convertFieldTypeIntoJvmType(field.getType(), objField);
 						} catch (ClassNotFoundException | NoSuchFieldException | SecurityException
 								| IllegalArgumentException | IllegalAccessException e) {
@@ -1448,6 +1449,7 @@ whileInstr:
 						final Object vFieldStack = stack.pop();
 						final Class<?> fieldType = field.getType();
 						Object vField = convertJvmTypeIntoFieldType(fieldType, vFieldStack);
+						vField = visitor.visitFieldAccess(opcode, classFieldOwner, field, vField);
 						field.set(classFieldOwner, vField);
 					} catch (ClassNotFoundException | NoSuchFieldException | SecurityException
 							| IllegalArgumentException | IllegalAccessException e) {
@@ -1469,6 +1471,7 @@ whileInstr:
 						assert field != null;
 						field.setAccessible(true);
 						Object fieldValue = field.get(fieldInstance);
+						fieldValue = visitor.visitFieldAccess(opcode, classFieldOwner, field, fieldValue);
 						fieldValue = convertFieldTypeIntoJvmType(field.getType(), fieldValue);
 						stack.push(fieldValue);
 					} catch (NoSuchFieldException | SecurityException
@@ -1494,7 +1497,8 @@ whileInstr:
 					try {
 						final Field field = findDeclaredField(classFieldOwner, fi);
 						field.setAccessible(true);
-						final Object oValueField = convertJvmTypeIntoFieldType(field.getType(), oValue);
+						Object oValueField = convertJvmTypeIntoFieldType(field.getType(), oValue);
+						oValueField = visitor.visitFieldAccess(opcode, classFieldOwner, field, oValueField);
 						if (Modifier.isFinal(field.getModifiers()) && pMethod instanceof Constructor<?>) {
 							// We want to set a final field while executing a constructor.
 							final Field fieldMods = Field.class.getDeclaredField("modifiers");

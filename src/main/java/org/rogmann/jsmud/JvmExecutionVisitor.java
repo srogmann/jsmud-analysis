@@ -1,6 +1,7 @@
 package org.rogmann.jsmud;
 
 import java.lang.reflect.Executable;
+import java.lang.reflect.Field;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
 
@@ -55,7 +56,18 @@ public interface JvmExecutionVisitor {
 	 */
 	void visitInstruction(final AbstractInsnNode instr,
 			final OperandStack stack, final Object[] aLocals);
-	
+
+	/**
+	 * Called after getting or before putting a field of an instance or class.
+	 * @param opcode opcode
+	 * @param owner instance or owner-class of the field
+	 * @param field field
+	 * @param value value
+	 * @return (modified) value
+	 */
+	Object visitFieldAccess(final int opcode, final Object owner,
+			final Field field, final Object value);
+
 	/**
 	 * Called when a thread wants to enter a monitor.
 	 * @param objMonitor monitor-object

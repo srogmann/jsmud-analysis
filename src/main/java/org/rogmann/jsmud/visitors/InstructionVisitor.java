@@ -2,6 +2,7 @@ package org.rogmann.jsmud.visitors;
 
 import java.io.PrintStream;
 import java.lang.reflect.Executable;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -180,6 +181,12 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 
 	/** {@inheritDoc} */
 	@Override
+	public Object visitFieldAccess(final int opcode, final Object owner, final Field field, final Object value) {
+		return value;
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public void invokeException(Throwable e) {
 		if (showOutput) {
 			psOut.println(String.format("Exception while executing method: %s", e));
@@ -314,4 +321,5 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	public void setShowOutput(final boolean flag) {
 		showOutput = flag;
 	}
+
 }

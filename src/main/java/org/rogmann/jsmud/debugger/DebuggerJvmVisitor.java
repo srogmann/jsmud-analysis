@@ -2,6 +2,7 @@ package org.rogmann.jsmud.debugger;
 
 import java.io.IOException;
 import java.lang.reflect.Executable;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Deque;
 import java.util.List;
@@ -531,6 +532,12 @@ stepSearch:
 				}
 			}
 		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Object visitFieldAccess(final int opcode, final Object owner, final Field field, final Object value) {
+		return value;
 	}
 
 	/**
