@@ -75,7 +75,7 @@ public class JvmTests {
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
-//		testsLambda();
+		testsLambda();
 //		testsLambdaFunction();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
@@ -90,13 +90,13 @@ public class JvmTests {
 //		testsMethodArrayArgs();
 //		testsStaticInitializer();
 //		testsSyntheticMethod();
-		testsFields();
+//		testsFields();
 //		testsConstructor();
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-//		testsProxy();
-//		testsProxySuper();
+		testsProxy();
+		testsProxySuper();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
@@ -267,6 +267,9 @@ public class JvmTests {
 		final IntFunction<Integer> iFkt = (i -> Integer.valueOf(i * i));
 		assertEquals("iFkt 3", Integer.valueOf(9), iFkt.apply(3));
 		assertEquals("iFkt 25", Integer.valueOf(25), iFkt.apply(5));
+
+		// Check if a call of Object#getClass() is successful.
+		assertTrue("iFkt.class", iFkt.getClass().toString().contains("$Proxy"));
 	}
 	
 	/**

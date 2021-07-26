@@ -1904,7 +1904,7 @@ whileInstr:
 			objRef = objRefStack;
 			classOwner = objRefStack.getClass();
 			final CallSiteSimulation callSite;
-			if (objRef instanceof JvmCallSiteMarker) {
+			if (objRef instanceof JvmCallSiteMarker && !"java/lang/Object".equals(mi.owner)) {
 				callSite = registry.getCallSiteRegistry().checkForCallSite(objRefStack);
 			}
 			else {
