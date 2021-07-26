@@ -142,6 +142,14 @@ public class MethodFrame {
 	}
 
 	/**
+	 * Gets the frame's method-node.
+	 * @return method-node
+	 */
+	public MethodNode getMethodNode() {
+		return method;
+	}
+
+	/**
 	 * Converts an object from declared type into an integer -- if neccessary.
 	 * @param curType declared type
 	 * @param stackValue object

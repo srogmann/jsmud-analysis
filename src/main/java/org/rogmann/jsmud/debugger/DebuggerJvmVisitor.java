@@ -444,7 +444,7 @@ loopEvents:
 			LOG.debug(String.format("visitInstruction: line=%d, index=%d, %s",
 					Integer.valueOf(currFrame.frame.currLineNum),
 					Integer.valueOf(currFrame.frame.instrNum),
-					InstructionVisitor.displayInstruction(instr)));
+					InstructionVisitor.displayInstruction(instr, currFrame.frame.getMethodNode())));
 		}
 		if (currFrame.eventRequestStep == null) {
 stepSearch:

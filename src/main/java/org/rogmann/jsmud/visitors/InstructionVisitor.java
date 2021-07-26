@@ -18,7 +18,9 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
@@ -169,7 +171,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		}
 		if (opcode != -1) {
 			final String line = (vFrame.currLine > 0) ? "L " + vFrame.currLine : "";
-			final String sInstruction = displayInstruction(instr);
+			final String sInstruction = displayInstruction(instr, vFrame.frame.getMethodNode());
 			psOut.println(String.format("%s, Instr %02x, %s: %s, locals %s",
 					line, (vFrame.frame != null) ? Integer.valueOf(vFrame.frame.instrNum) : null,
 					sInstruction, stack, OperandStack.toString(aLocals, aLocals.length)));
@@ -220,14 +222,28 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	/**
 	 * Displays an instruction.
 	 * @param instr instruction
+	 * @param methodNode method-node
 	 * @return display-text, e.g. "ASTORE 1"
 	 */
-	public static String displayInstruction(AbstractInsnNode instr) {
+	public static String displayInstruction(final AbstractInsnNode instr, final MethodNode methodNode) {
 		final String opcodeDisplay = OpcodeDisplay.lookup(instr.getOpcode());
 		String addition = "";
 		if (instr instanceof VarInsnNode) {
 			final VarInsnNode vi = (VarInsnNode) instr;
 			addition = String.format(" %d", Integer.valueOf(vi.var));
+			if (methodNode != null && methodNode.localVariables != null) {
+					// && vi.var < methodNode.localVariables.size()) {
+				LocalVariableNode varNode = null;
+				for (LocalVariableNode varNodeLoop : methodNode.localVariables) {
+					if (varNodeLoop.index == vi.var) {
+						varNode = varNodeLoop;
+						break;
+					}
+				}
+				if (varNode != null) {
+					addition += String.format(" (%s)", varNode.name);
+				}
+			}
 		}
 		else if (instr instanceof FieldInsnNode) {
 			final FieldInsnNode fi = (FieldInsnNode) instr;
@@ -235,7 +251,12 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		}
 		else if (instr instanceof LdcInsnNode) {
 			final LdcInsnNode li = (LdcInsnNode) instr;
-			addition = String.format(" %s", li.cst);
+			if (li.cst instanceof String) {
+				addition = String.format(" \"%s\"", li.cst);
+			}
+			else {
+				addition = String.format(" %s", li.cst);
+			}
 		}
 		else if (instr instanceof IincInsnNode) {
 			final IincInsnNode ii = (IincInsnNode) instr;
