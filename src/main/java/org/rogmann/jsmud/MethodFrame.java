@@ -1471,7 +1471,7 @@ whileInstr:
 						assert field != null;
 						field.setAccessible(true);
 						Object fieldValue = field.get(fieldInstance);
-						fieldValue = visitor.visitFieldAccess(opcode, classFieldOwner, field, fieldValue);
+						fieldValue = visitor.visitFieldAccess(opcode, fieldInstance, field, fieldValue);
 						fieldValue = convertFieldTypeIntoJvmType(field.getType(), fieldValue);
 						stack.push(fieldValue);
 					} catch (NoSuchFieldException | SecurityException
@@ -1498,7 +1498,7 @@ whileInstr:
 						final Field field = findDeclaredField(classFieldOwner, fi);
 						field.setAccessible(true);
 						Object oValueField = convertJvmTypeIntoFieldType(field.getType(), oValue);
-						oValueField = visitor.visitFieldAccess(opcode, classFieldOwner, field, oValueField);
+						oValueField = visitor.visitFieldAccess(opcode, fieldInstance, field, oValueField);
 						if (Modifier.isFinal(field.getModifiers()) && pMethod instanceof Constructor<?>) {
 							// We want to set a final field while executing a constructor.
 							final Field fieldMods = Field.class.getDeclaredField("modifiers");
