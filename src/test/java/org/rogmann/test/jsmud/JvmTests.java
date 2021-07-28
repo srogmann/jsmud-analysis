@@ -75,7 +75,7 @@ public class JvmTests {
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
-		testsLambda();
+//		testsLambda();
 //		testsLambdaFunction();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
@@ -85,6 +85,7 @@ public class JvmTests {
 //		testsLambdaBiFunctionAndThen();
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
+		testsLambdaAndSecurity();
 //		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
@@ -95,8 +96,8 @@ public class JvmTests {
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-		testsProxy();
-		testsProxySuper();
+//		testsProxy();
+//		testsProxySuper();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
@@ -380,6 +381,15 @@ public class JvmTests {
 		final Function<String, String> addPrefix = (s -> "0x" + s);
 		final Function<Integer, String> toCHex = toHex.andThen(addPrefix);
 		assertEquals("Test Function#andThen", "0x2a", toCHex.apply(Integer.valueOf(42)));
+	}
+
+	/** lambda-tests with java.security */
+	public void testsLambdaAndSecurity() {
+		final Function<Integer, String> toHex = (i -> Integer.toHexString(i.intValue()));
+		final Integer iInput = Integer.valueOf("83");
+		final PrivilegedAction<String> action = () -> toHex.apply(iInput);
+		final String result = AccessController.doPrivileged(action);
+		assertEquals("AccessController", "53", result);
 	}
 
 	public void testsMethodArrayArgs() {

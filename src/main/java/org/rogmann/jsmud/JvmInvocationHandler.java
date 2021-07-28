@@ -15,7 +15,7 @@ public interface JvmInvocationHandler {
 	 * @return continue-while-flag in case of a execution, else <code>null</code> for normal continuation
 	 * @throws Exception in case of an unhandled exception
 	 */
-	Boolean preprocessStaticCall(MethodFrame methodFrame, MethodInsnNode mi, OperandStack stack) throws Exception;
+	Boolean preprocessStaticCall(MethodFrame methodFrame, MethodInsnNode mi, OperandStack stack) throws Throwable;
 
 	/**
 	 * Called before an invocation of an instance-method (or constructor).

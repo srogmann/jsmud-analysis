@@ -7,6 +7,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.security.AccessController;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,9 @@ import org.rogmann.jsmud.log.LoggerFactory;
 public class MethodFrame {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
+
+	/** <code>true</code>, if {@link AccessController} should be executed by underlying JVM */
+	final boolean executeAccessControllerNative = Boolean.parseBoolean(System.getProperty(MethodFrame.class.getName() + "executeAccessControllerNative", "false")); 
 
 	/** class-registry */
 	public final ClassRegistry registry;
@@ -1880,7 +1884,8 @@ whileInstr:
 			if (doContinueWhile != null) {
 				return doContinueWhile.booleanValue();
 			}
-			if ("java/security/AccessController".equals(mi.owner) && "doPrivileged".equals(mi.name)) {
+			if (executeAccessControllerNative && "java/security/AccessController".equals(mi.owner)
+					&& "doPrivileged".equals(mi.name)) {
 				lMethodName = "run";
 				types = new Type[0];
 				methodDesc = "()Ljava/lang/Object;";

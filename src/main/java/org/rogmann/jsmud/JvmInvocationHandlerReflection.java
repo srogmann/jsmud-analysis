@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.security.PrivilegedAction;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -50,7 +51,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 
 	/** {@inheritDoc} */
 	@Override
-	public Boolean preprocessStaticCall(MethodFrame frame, final MethodInsnNode mi, OperandStack stack) throws Exception {
+	public Boolean preprocessStaticCall(MethodFrame frame, final MethodInsnNode mi, OperandStack stack) throws Throwable {
 		Boolean doContinueWhile = null;
 		if ("java/lang/Class".equals(mi.owner) && "forName".equals(mi.name) && frame.registry.isSimulateReflection()) {
 			// Emulation of Class.forName, we may want to patch the class to be loaded.
@@ -77,6 +78,45 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				throw e;
 			}
 			stack.push(loadedClass);
+			doContinueWhile = Boolean.FALSE;
+		}
+		else if ("java/security/AccessController".equals(mi.owner) && "doPrivileged".equals(mi.name) && !frame.executeAccessControllerNative) {
+			final Type[] argumentTypes = Type.getArgumentTypes(mi.desc);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("Mock method %s%s", mi.name, mi.desc));
+			}
+			// We ignore initialize-flag and class-loader in the arguments.
+			for (int i = 1; i < argumentTypes.length; i++) {
+				stack.pop();
+			}
+			final Object oAction = stack.peek();
+			if (!(oAction instanceof PrivilegedAction<?>)) {
+				throw new JvmException(String.format("Unexpected first argument (%s) for (%s%s) in (%s)",
+						oAction, mi.name, mi.desc, mi.owner));
+			}
+			if (oAction instanceof JvmCallSiteMarker) {
+				LOG.info("CallSite: " + oAction);
+			}
+
+			final SimpleClassExecutor executor = frame.registry.getClassExecutor(MockMethods.class);
+			if (executor == null) {
+				throw new JvmException(String.format("Mock method %s%s but no executor for (%s)", mi.name, mi.desc, oAction.getClass()));
+			}
+
+			final Method methodRun = MockMethods.class.getDeclaredMethod(mi.name, PrivilegedAction.class);
+			final Object objReturn;
+			try {
+				objReturn = executor.executeMethod(Opcodes.INVOKESTATIC, methodRun, "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", stack);
+			}
+			catch (Throwable e) {
+				final boolean doContinueWhileFlag = frame.handleCatchException(e);
+				if (doContinueWhileFlag) {
+					return Boolean.TRUE;
+				}
+				// This exception isn't handled here.
+				throw e;
+			}
+			stack.push(objReturn);
 			doContinueWhile = Boolean.FALSE;
 		}
 		return doContinueWhile;
