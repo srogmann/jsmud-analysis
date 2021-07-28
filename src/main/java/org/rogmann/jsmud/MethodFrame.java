@@ -499,7 +499,7 @@ whileInstr:
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final short[] aPrimitives = (short[]) stack.pop();
-						stack.push(Short.valueOf(aPrimitives[index]));
+						stack.push(Integer.valueOf(aPrimitives[index]));
 					}
 					break;
 				case Opcodes.ISTORE: // 0x36
@@ -625,7 +625,7 @@ whileInstr:
 					break;
 				case Opcodes.SASTORE: // 0x56
 					{
-						final short value = ((Short) stack.pop()).shortValue();
+						final short value = ((Integer) stack.pop()).shortValue();
 						final int index = ((Integer) stack.pop()).intValue();
 						final short[] aPrimitives = (short[]) stack.pop();
 						aPrimitives[index] = value;

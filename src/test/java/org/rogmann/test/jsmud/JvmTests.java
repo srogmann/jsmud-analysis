@@ -70,7 +70,7 @@ public class JvmTests {
 //		testsBoolean();
 //		testsByte();
 //		testsChar();
-//		testsShort();
+		testsShort();
 //		testsLong();
 //		testsFloat();
 //		testsDouble();
@@ -85,7 +85,7 @@ public class JvmTests {
 //		testsLambdaBiFunctionAndThen();
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
-		testsLambdaAndSecurity();
+//		testsLambdaAndSecurity();
 //		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
@@ -167,10 +167,14 @@ public class JvmTests {
 		final short a = (short) 1;
 		final short b = Short.parseShort("-1");
 		final int c = doubleShort(SHORT_20000);
-		assertEquals("Test a + b", Short.valueOf((short) 0), Short.valueOf((short) (a + b)));
-		assertEquals("Test b", Short.valueOf((short) -1), Short.valueOf(b));
-		assertEquals("Test 2 * b", Short.valueOf((short) -2), Short.valueOf(doubleShort(b)));
-		assertEquals("Test 40000 - 65536", Integer.valueOf(-25536), Integer.valueOf(c));
+		assertEquals("short a + b", Short.valueOf((short) 0), Short.valueOf((short) (a + b)));
+		assertEquals("short b", Short.valueOf((short) -1), Short.valueOf(b));
+		assertEquals("short 2 * b", Short.valueOf((short) -2), Short.valueOf(doubleShort(b)));
+		assertEquals("short 40000 - 65536", Integer.valueOf(-25536), Integer.valueOf(c));
+		
+		final short[] aShorts = { a, b, SHORT_20000, 0 }; // SASTORE
+		aShorts[3] = aShorts[1];
+		assertEquals("short[3]", Short.valueOf((short) -1), Short.valueOf(aShorts[3]));
 	}
 	
 	static short doubleShort(short a) {
