@@ -69,14 +69,15 @@ public class JvmTests {
 	public void tests() {
 //		testsBoolean();
 //		testsByte();
-		testsChar();
+//		testsChar();
 //		testsShort();
 //		testsLong();
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
 //		testsLambda();
-//		testsLambdaFunction();
+		testsLambdaClassMethodReferences();
+		testsLambdaObjectMethodReferences();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
 //		testsLambdaStreamCollectOnly();
@@ -291,11 +292,26 @@ public class JvmTests {
 	}
 	
 	/**
-	 * Example of a lambda-function via ::-operator.
+	 * Example of a lambda-function with method-references on a class.
 	 */
-	public void testsLambdaFunction() {
-		Function<String, String> sFkt = String::toUpperCase;
-		assertEquals("lambdaFunction toUpperCase", "UPPER", sFkt.apply("uPPeR"));
+	public void testsLambdaClassMethodReferences() {
+		// ClassName::instanceMethod
+		final Function<String, String> sFkt = String::toUpperCase;
+		assertEquals("String::toUpperCase", "UPPER", sFkt.apply("uPPeR"));
+		
+		// ClassName::staticMethod
+		final IntFunction<String> iFkt = String::valueOf;
+		assertEquals("String::valueOf", "42", iFkt.apply(42));
+	}
+
+	/**
+	 * Example of a lambda-function with method-references on an object-instance.
+	 */
+	public void testsLambdaObjectMethodReferences() {
+		final String s = "catalog";
+		final TestMethodReference tac = new TestMethodReference(s.substring(0, 3));
+		final Supplier<String> supplier = tac::getValue;
+		assertEquals("obj::method", "cat", supplier.get());
 	}
 
 	/**
@@ -407,6 +423,11 @@ public class JvmTests {
 		final PrivilegedAction<String> action = () -> toHex.apply(iInput);
 		final String result = AccessController.doPrivileged(action);
 		assertEquals("AccessController", "53", result);
+		
+		final String s = "catalog";
+		final TestMethodReference tac = new TestMethodReference(s.substring(0, 3));
+		final String sResult = doPrivileged(tac::getValue);
+		assertEquals("AccessController via ::getValue", "cat", sResult);
 	}
 
 	public void testsMethodArrayArgs() {
@@ -820,4 +841,27 @@ public class JvmTests {
 		int add5(int i);
 	}
 
+	/**
+	 * Tests of method-references.
+	 */
+	static class TestMethodReference {
+		final String value;
+		public TestMethodReference(final String value) {
+			this.value = value;
+		}
+		public String getValue() {
+			return value;
+		}
+
+	}
+
+	/**
+	 * Call doPrivileged of AccessController.
+	 * @param action action to be executed
+	 * @return return-value
+	 * @param <T> return-type
+	 */
+	public static <T> T doPrivileged(Supplier<T> action) {
+		return AccessController.doPrivileged((PrivilegedAction<T>) action::get);
+	}
 }

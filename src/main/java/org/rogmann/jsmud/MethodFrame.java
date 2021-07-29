@@ -1914,7 +1914,7 @@ whileInstr:
 			classOwner = objRefStack.getClass();
 			final CallSiteSimulation callSite;
 			if (objRef instanceof JvmCallSiteMarker && !"java/lang/Object".equals(mi.owner)) {
-				callSite = registry.getCallSiteRegistry().checkForCallSite(objRefStack);
+				callSite = registry.getCallSiteRegistry().checkForCallSite(objRef);
 			}
 			else {
 				callSite = null;
@@ -1962,7 +1962,7 @@ whileInstr:
 				numArgs = types.length;
 				final int objOffset;
 				lIsStatic = (callSite.getBsmTag() == Opcodes.H_INVOKESTATIC);
-				if ((classLambdaOwner.isInterface() || callSite.getBsmTag() == Opcodes.H_INVOKESPECIAL) && dynamicArgs.length > 0) {
+				if ((classLambdaOwner.isInterface() || callSite.getBsmTag() == Opcodes.H_INVOKEVIRTUAL || callSite.getBsmTag() == Opcodes.H_INVOKESPECIAL) && dynamicArgs.length > 0) {
 					objRef = dynamicArgs[0];
 					if (callSite.getBsmTag() == Opcodes.H_INVOKEINTERFACE) {
 						// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
