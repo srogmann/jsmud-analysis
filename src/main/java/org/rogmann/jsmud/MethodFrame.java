@@ -2518,7 +2518,6 @@ loopDeclMeth:
 	private boolean handleCheckcast(String desc, Object obj) {
 		final Class<?> classDesc;
 		if (desc.startsWith("[")) {
-			// TODO multi-dimensional arrays?
 			if ("[I".equals(desc)) {
 				classDesc = int[].class;
 			}
@@ -2552,6 +2551,14 @@ loopDeclMeth:
 					throw new JvmException("Unknown class " + className, e);
 				}
 				classDesc = Array.newInstance(classComp, 0).getClass();
+			}
+			else if (desc.startsWith("[")) {
+				final Type type = Type.getType(desc);
+				final int dim = type.getDimensions();
+				final int[] aDims = new int[dim];
+				final Class<?> elClass = getClassArrayViaType(type);
+				final Object oArray = Array.newInstance(elClass, aDims);
+				classDesc = oArray.getClass();
 			}
 			else {
 				throw new JvmException(String.format("Unexpected type in CHECKCAST (%s) to object.class (%s)",

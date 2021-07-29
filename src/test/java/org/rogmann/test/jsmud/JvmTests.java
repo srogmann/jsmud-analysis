@@ -69,8 +69,8 @@ public class JvmTests {
 	public void tests() {
 //		testsBoolean();
 //		testsByte();
-//		testsChar();
-		testsShort();
+		testsChar();
+//		testsShort();
 //		testsLong();
 //		testsFloat();
 //		testsDouble();
@@ -161,8 +161,17 @@ public class JvmTests {
 		assertTrue("i3", aChar[3] == 0x8001);
 		final char cXor = (char) (aChar[0] ^ aChar[2]);
 		assertTrue("cXor", cXor == '\u00dc');
+
+		final char[][][] aDim3 = new char[1][2][2];
+		aDim3[0][0][0] = aChar[0];
+		aDim3[0][0][1] = aChar[1];
+		aDim3[0][1][0] = aChar[2];
+		aDim3[0][1][1] = aChar[3];
+		final Object oDi32 = aDim3.clone();
+		final char[][][] aDim3Cast = (char[][][]) oDi32; // CHECKCAST
+		assertEquals("cast-[[[C", Character.valueOf('ü'), Character.valueOf(aDim3Cast[0][1][0]));
 	}
-	
+
 	public void testsShort() {
 		final short a = (short) 1;
 		final short b = Short.parseShort("-1");
