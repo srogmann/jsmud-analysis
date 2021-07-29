@@ -162,6 +162,10 @@ public class JvmTests {
 		final char cXor = (char) (aChar[0] ^ aChar[2]);
 		assertTrue("cXor", cXor == '\u00dc');
 
+		final short[] aShort = { (short) 0x20, (short) 0x00, (short) 0xf6, (short) 0x8001 };
+		final char cLao = (char) aShort[3]; // SALOAD, I2C
+		assertEquals("s2c/SALOAD", Character.valueOf(aChar[3]), Character.valueOf(cLao));
+
 		final char[][][] aDim3 = new char[1][2][2];
 		aDim3[0][0][0] = aChar[0];
 		aDim3[0][0][1] = aChar[1];
