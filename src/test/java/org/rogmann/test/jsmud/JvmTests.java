@@ -76,7 +76,7 @@ public class JvmTests {
 //		testsDouble();
 //		testsArray();
 //		testsLambda();
-		testsLambdaClassMethodReferences();
+//		testsLambdaClassMethodReferences();
 		testsLambdaObjectMethodReferences();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
@@ -86,7 +86,7 @@ public class JvmTests {
 //		testsLambdaBiFunctionAndThen();
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
-//		testsLambdaAndSecurity();
+		testsLambdaAndSecurity();
 //		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
@@ -312,6 +312,12 @@ public class JvmTests {
 		final TestMethodReference tac = new TestMethodReference(s.substring(0, 3));
 		final Supplier<String> supplier = tac::getValue;
 		assertEquals("obj::method", "cat", supplier.get());
+		
+		final Supplier<String> supplierDoubled = supplier::get;
+		assertEquals("obj::method::method", "cat", supplierDoubled.get());
+
+		final Supplier<String> supplierTriple = supplierDoubled::get;
+		assertEquals("obj::method::method::method", "cat", supplierTriple.get());
 	}
 
 	/**

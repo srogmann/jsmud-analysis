@@ -50,8 +50,11 @@ public class MethodFrame {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
-	/** <code>true</code>, if {@link AccessController} should be executed by underlying JVM */
-	final boolean executeAccessControllerNative = Boolean.parseBoolean(System.getProperty(MethodFrame.class.getName() + "executeAccessControllerNative", "false")); 
+	/** <code>true</code>, if {@link AccessController} should be executed by underlying JVM (default is <code>false</code>) */
+	final boolean executeAccessControllerNative = Boolean.getBoolean(MethodFrame.class.getName() + "executeAccessControllerNative"); 
+
+	/** maximum level of stacked method-references on an object-instance */
+	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20);
 
 	/** class-registry */
 	public final ClassRegistry registry;
@@ -1912,112 +1915,125 @@ whileInstr:
 			}
 			objRef = objRefStack;
 			classOwner = objRefStack.getClass();
-			final CallSiteSimulation callSite;
-			if (objRef instanceof JvmCallSiteMarker && !"java/lang/Object".equals(mi.owner)) {
-				callSite = registry.getCallSiteRegistry().checkForCallSite(objRef);
-			}
-			else {
-				callSite = null;
-			}
-			if (callSite != null && callSite.getName().equals(mi.name)) {
-				if (!callSite.getDesc().equals(mi.desc)) {
-					if (LOG.isDebugEnabled()) {
-						LOG.debug(String.format("call-site: parameter-types? method.name=%s, method.desc=%s but call-site.desc=%s",
-								mi.name, mi.desc, callSite.getDesc()));
-					}
+			CallSiteSimulation callSite = null;
+			int callSiteLevel = 0;
+			while (objRef instanceof JvmCallSiteMarker && !"java/lang/Object".equals(mi.owner)) {
+				callSiteLevel++;
+				if (callSiteLevel > maxCallSiteLevel) {
+					throw new JvmException(String.format("call-site with too depth level (>%s): mi.owner=%s, mi.name=%s, mi.desc=%s, objRefStack.class=%s, callSite=%s",
+							Integer.valueOf(maxCallSiteLevel), mi.owner, mi.name, mi.desc, objRefStack.getClass(), callSite));
 				}
-				// remove proxy-object from stack.
-				stack.pop(numArgs);
-
-				// proxy-result of an previous INVOKEDYNAMIC-call.
-				// We retrieved the stored CallSiteSimulation-object.
-				// This object contains the details of the corresponding INVOKEDYNAMIC-bootstrap-method.
-				// final InvokeDynamicInsnNode idi = callSite.getInstruction();
-				//final Object[] bsmArgs = idi.bsmArgs;
-				//final Handle handle = (Handle) bsmArgs[1];
-				final String lambdaOwner = callSite.getLambdaOwner();
-				final String lambdaName = callSite.getLambdaName();
-				final String lamdaDesc = callSite.getLambdaDesc();
-				final Object[] dynamicArgs = callSite.getArguments();
-				if (LOG.isDebugEnabled()) {
-					LOG.debug(String.format("INVOKEDYNAMIC-result-object: class (%s), bsmTag (%d), method (%s -> %s), desc (%s -> %s), dynamicArgs=%s",
-							callSite.getOwnerClazz(), Integer.valueOf(callSite.getBsmTag()),
-							lMethodName, lambdaName, methodDesc, lamdaDesc, Arrays.toString(dynamicArgs)));
-				}
-				miOwnerName = lambdaOwner.replace('/', '.');
-				final Class<?> classLambdaOwner;
-				try {
-					classLambdaOwner = registry.loadClass(miOwnerName, clazz);
-				} catch (ClassNotFoundException e) {
-					final boolean doContinueWhileE = handleCatchException(e);
-					if (doContinueWhileE) {
-						return true;
-					}
-					throw e;
-				}
-				lMethodName = lambdaName;
-				methodDesc = lamdaDesc;
-				types = Type.getArgumentTypes(lamdaDesc);
-				returnType = Type.getReturnType(lamdaDesc);
-				numArgs = types.length;
-				final int objOffset;
-				lIsStatic = (callSite.getBsmTag() == Opcodes.H_INVOKESTATIC);
-				if ((classLambdaOwner.isInterface() || callSite.getBsmTag() == Opcodes.H_INVOKEVIRTUAL || callSite.getBsmTag() == Opcodes.H_INVOKESPECIAL) && dynamicArgs.length > 0) {
-					objRef = dynamicArgs[0];
-					if (callSite.getBsmTag() == Opcodes.H_INVOKEINTERFACE) {
-						// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
-						classOwner = objRef.getClass();
-					}
-					else {
-						classOwner = classLambdaOwner;
-					}
-					// The object-reference doesn't belong to the dynamic-method-arguments.
-					objOffset = 1;
-				}
-				else if (lIsStatic || callSite.getBsmTag() == Opcodes.H_NEWINVOKESPECIAL) {
-					objRef = callSite.getOwnerClazz();
-					classOwner = classLambdaOwner;
-					objOffset = 0;
+				if (objRef instanceof JvmCallSiteMarker && !"java/lang/Object".equals(mi.owner)) {
+					callSite = registry.getCallSiteRegistry().checkForCallSite(objRef);
 				}
 				else {
-					try {
-						objRef = stack.peek(numArgs - dynamicArgs.length);
-					} catch (ArrayIndexOutOfBoundsException e) {
-						throw new JvmException(String.format("Unexpected stack (%s) and types (%s)", stack, Arrays.toString(types)), e);
+					callSite = null;
+				}
+				if (callSite != null && callSite.getName().equals(lMethodName)) {
+					if (!callSite.getDesc().equals(mi.desc)) {
+						if (LOG.isDebugEnabled()) {
+							LOG.debug(String.format("call-site: parameter-types? method.name=%s, method.desc=%s but call-site.desc=%s",
+									mi.name, mi.desc, callSite.getDesc()));
+						}
 					}
-					if (callSite.getBsmTag() == Opcodes.H_INVOKEINTERFACE) {
-						// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
-						classOwner = objRef.getClass();
+					// remove proxy-object from stack.
+					stack.pop(numArgs);
+	
+					// proxy-result of an previous INVOKEDYNAMIC-call.
+					// We retrieved the stored CallSiteSimulation-object.
+					// This object contains the details of the corresponding INVOKEDYNAMIC-bootstrap-method.
+					// final InvokeDynamicInsnNode idi = callSite.getInstruction();
+					//final Object[] bsmArgs = idi.bsmArgs;
+					//final Handle handle = (Handle) bsmArgs[1];
+					final String lambdaOwner = callSite.getLambdaOwner();
+					final String lambdaName = callSite.getLambdaName();
+					final String lamdaDesc = callSite.getLambdaDesc();
+					final Object[] dynamicArgs = callSite.getArguments();
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("INVOKEDYNAMIC-result-object: class (%s), bsmTag (%d), method (%s -> %s), desc (%s -> %s), dynamicArgs=%s",
+								callSite.getOwnerClazz(), Integer.valueOf(callSite.getBsmTag()),
+								lMethodName, lambdaName, methodDesc, lamdaDesc, Arrays.toString(dynamicArgs)));
+					}
+					miOwnerName = lambdaOwner.replace('/', '.');
+					final Class<?> classLambdaOwner;
+					try {
+						classLambdaOwner = registry.loadClass(miOwnerName, clazz);
+					} catch (ClassNotFoundException e) {
+						final boolean doContinueWhileE = handleCatchException(e);
+						if (doContinueWhileE) {
+							return true;
+						}
+						throw e;
+					}
+					lMethodName = lambdaName;
+					methodDesc = lamdaDesc;
+					types = Type.getArgumentTypes(lamdaDesc);
+					returnType = Type.getReturnType(lamdaDesc);
+					numArgs = types.length;
+					final int objOffset;
+					lIsStatic = (callSite.getBsmTag() == Opcodes.H_INVOKESTATIC);
+					if ((classLambdaOwner.isInterface() || callSite.getBsmTag() == Opcodes.H_INVOKEVIRTUAL || callSite.getBsmTag() == Opcodes.H_INVOKESPECIAL) && dynamicArgs.length > 0) {
+						objRef = dynamicArgs[0];
+						if (callSite.getBsmTag() == Opcodes.H_INVOKEINTERFACE) {
+							// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
+							classOwner = objRef.getClass();
+						}
+						else {
+							classOwner = classLambdaOwner;
+						}
+						// The object-reference doesn't belong to the dynamic-method-arguments.
+						objOffset = 1;
+					}
+					else if (lIsStatic || callSite.getBsmTag() == Opcodes.H_NEWINVOKESPECIAL) {
+						objRef = callSite.getOwnerClazz();
+						classOwner = classLambdaOwner;
+						objOffset = 0;
 					}
 					else {
-						classOwner = classLambdaOwner;
+						try {
+							objRef = stack.peek(numArgs - dynamicArgs.length);
+						} catch (ArrayIndexOutOfBoundsException e) {
+							throw new JvmException(String.format("Unexpected stack (%s) and types (%s)", stack, Arrays.toString(types)), e);
+						}
+						if (callSite.getBsmTag() == Opcodes.H_INVOKEINTERFACE) {
+							// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
+							classOwner = objRef.getClass();
+						}
+						else {
+							classOwner = classLambdaOwner;
+						}
+						objOffset = 0;
 					}
-					objOffset = 0;
+					if (dynamicArgs.length > 0) {
+						// The dynamicArgs had been given the INVOKEDYNAMIC-instruction.
+						// We have to place them before the other method's arguments into the stack.
+						if (LOG.isDebugEnabled()) {
+							LOG.debug(String.format("Stack before inserting dynamic arguments (types.length=%d, dynamicArgs.length=%d): %s",
+									Integer.valueOf(types.length), Integer.valueOf(dynamicArgs.length), stack));
+						}
+						stack.pushAndResize(types.length - dynamicArgs.length + objOffset, dynamicArgs);
+						if (LOG.isDebugEnabled()) {
+							LOG.debug(String.format("Stack after inserting dynamic arguments (types.length=%d, dynamicArgs.length=%d): %s",
+									Integer.valueOf(types.length), Integer.valueOf(dynamicArgs.length), stack));
+						}
+					}
+					isCallSite = true;
 				}
-				if (dynamicArgs.length > 0) {
-					// The dynamicArgs had been given the INVOKEDYNAMIC-instruction.
-					// We have to place them before the other method's arguments into the stack.
+				else if (callSite != null && callSiteLevel > 1) {
+					// We have a call-site which doesn't fit to the method-name requested not on top-level.
+					break;
+				}
+				else if (callSite != null) {
+					// We have a call-site (INVOKEDYNAMIC) but call another interface-method.
 					if (LOG.isDebugEnabled()) {
-						LOG.debug(String.format("Stack before inserting dynamic arguments (types.length=%d, dynamicArgs.length=%d): %s",
-								Integer.valueOf(types.length), Integer.valueOf(dynamicArgs.length), stack));
+						LOG.debug(String.format("  method %s/%s but call-site %s/%s",
+								mi.name, mi.desc, callSite.getName(), callSite.getDesc()));
 					}
-					stack.pushAndResize(types.length - dynamicArgs.length + objOffset, dynamicArgs);
-					if (LOG.isDebugEnabled()) {
-						LOG.debug(String.format("Stack after inserting dynamic arguments (types.length=%d, dynamicArgs.length=%d): %s",
-								Integer.valueOf(types.length), Integer.valueOf(dynamicArgs.length), stack));
-					}
+					isCheckClassMethods = false;
+					objRef = objRefStack;
+					classOwner = objRef.getClass();
+					break;
 				}
-				isCallSite = true;
-			}
-			else if (callSite != null) {
-				// We have a call-site (INVOKEDYNAMIC) but call another interface-method.
-				if (LOG.isDebugEnabled()) {
-					LOG.debug(String.format("  method %s/%s but call-site %s/%s",
-							mi.name, mi.desc, callSite.getName(), callSite.getDesc()));
-				}
-				isCheckClassMethods = false;
-				objRef = objRefStack;
-				classOwner = objRef.getClass();
 			}
 		}
 		if (isCallSite && "<init>".equals(lMethodName)) {
