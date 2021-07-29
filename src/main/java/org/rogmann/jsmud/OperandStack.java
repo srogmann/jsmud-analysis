@@ -14,6 +14,9 @@ public class OperandStack {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
+	/** maximum length of a displayed value */
+	private static final int MAX_LEN_VALUE = Integer.getInteger(OperandStack.class.getName() + ".maxLenValue", 250);
+
 	/** <code>true</code> if the whole stack (including unused values) should be displayed (useful in case of debugging the simulator itself) */
 	private static final boolean SHOW_FULL_STACK = Boolean.getBoolean(OperandStack.class.getName() + ".showFullStack");
 
@@ -182,7 +185,9 @@ public class OperandStack {
 
 	/**
 	 * Dumps an array of objects.
+	 * Long values are shortened.
 	 * Values after the last used index are shortened.
+	 * Backslash, linefeed and carriage-return are escaped.
 	 * @param aObjects array
 	 * @param lastIdx last used index (-1 if none is used)
 	 * @return display-string
@@ -191,7 +196,7 @@ public class OperandStack {
 		final StringBuilder sb = new StringBuilder(50);
 		sb.append('[');
 		final int len = aObjects.length;
-		final int maxLenUnusedValues = SHOW_FULL_STACK ? 999 : 3;
+		final int maxLenUnusedValue = SHOW_FULL_STACK ? MAX_LEN_VALUE : 3;
 		for (int i = 0; i < len; i++) {
 			final Object object = aObjects[i];
 			if (i > 0) {
@@ -199,11 +204,24 @@ public class OperandStack {
 			}
 			try {
 				final String sObject = (object != null) ? object.toString() : "null";
-				if (i <= lastIdx || sObject.length() <= maxLenUnusedValues) {
-					sb.append(sObject);
+				final int maxLen = (i <= lastIdx) ? MAX_LEN_VALUE : maxLenUnusedValue;
+				for (int j = 0; j < Math.min(sObject.length(), maxLen); j++) {
+					final char c = sObject.charAt(j);
+					if (c == '\\') {
+						sb.append("\\\\");
+					}
+					else if (c == '\r') {
+						sb.append("\\r");
+					}
+					else if (c == '\n') {
+						sb.append("\\n");
+					}
+					else {
+						sb.append(c);
+					}
 				}
-				else {
-					sb.append(sObject, 0, maxLenUnusedValues).append("...");
+				if (sObject.length() > maxLen) {
+					sb.append("...");
 				}
 			} catch (Exception e) {
 				sb.append(String.format("%s(0x%x)[%s]", object.getClass(),
