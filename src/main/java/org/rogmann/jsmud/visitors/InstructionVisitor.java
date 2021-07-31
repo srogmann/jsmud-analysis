@@ -5,6 +5,7 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,6 +43,8 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	private final boolean dumpClassStatistic;
 	/** dump class-usage statistics */
 	private final boolean dumpInstructionStatistic;
+	/** dump method-call-trace */
+	private final boolean dumpMethodCallTrace;
 	
 	private boolean showOutput = true;
 
@@ -55,20 +58,34 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	/** Map from opcode to number of calls */
 	private final Map<Integer, AtomicLong> mapInstrCount = new HashMap<>();
 
+	/** Map from method to number of calls */
+	private final Map<String, Long> mapMethodCount = new HashMap<>();
+	/** Map from method to level */
+	private final Map<String, Integer> mapMethodTrace = new LinkedHashMap<>();
+	/** Map from method-call to level */
+	private final Map<String, Integer> mapMethodCallTrace = new LinkedHashMap<>();
+	/** Map from method and called method to number of calls */
+	private final Map<String, Long> mapMethodCallCount = new HashMap<>();
+	/** level of method in call-stack */
+	private int level = 0;
+
 	/**
 	 * Constructor
-	 * @param psOut outout-stream
+	 * @param psOut output-stream
 	 * @param dumpJreInstructions show-instructions flag
 	 * @param dumpClassStatistic dump class-usage statistics
 	 * @param dumpInstructionStatistic dump class-usage statistics
+	 * @param dumpMethodCallTrace dump a method-call-trace
 	 */
 	public InstructionVisitor(final PrintStream psOut,
 			final boolean dumpJreInstructions,
-			final boolean dumpClassStatistic, final boolean dumpInstructionStatistic) {
+			final boolean dumpClassStatistic, final boolean dumpInstructionStatistic,
+			final boolean dumpMethodCallTrace) {
 		this.psOut = psOut;
 		this.dumpJreInstructions = dumpJreInstructions;
 		this.dumpClassStatistic = dumpClassStatistic;
 		this.dumpInstructionStatistic = dumpInstructionStatistic;
+		this.dumpMethodCallTrace = dumpMethodCallTrace;
 	}
 
 	/** {@inheritDoc} */
@@ -90,6 +107,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	/** {@inheritDoc} */
 	@Override
 	public void visitMethodEnter(Class<?> currClass, Executable method, MethodFrame pFrame) {
+		final VisitorFrame parentFrame = (vFrame != null) ? vFrame : null;
 		if (vFrame != null) {
 			stackFrames.add(vFrame);
 		}
@@ -101,6 +119,21 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		}
 		vFrame.frame = pFrame;
 		vFrame.currLine = -1;
+		level++;
+		if (dumpMethodCallTrace) {
+			final String nameMethod = method.toString();
+			mapMethodCount.compute(nameMethod, (key, cnt) -> (cnt == null) ? Long.valueOf(1) : Long.valueOf(cnt.longValue() + 1));
+			mapMethodTrace.putIfAbsent(nameMethod, Integer.valueOf(level));
+			final String keyCallerAndCalled;
+			if (parentFrame != null) {
+				keyCallerAndCalled = parentFrame.frame.getMethod().toString() + "_#_" + nameMethod;
+			}
+			else {
+				keyCallerAndCalled = nameMethod;
+			}
+			mapMethodCallTrace.putIfAbsent(keyCallerAndCalled, Integer.valueOf(level));
+			mapMethodCallCount.compute(keyCallerAndCalled, (key, cnt) -> (cnt == null) ? Long.valueOf(1) : Long.valueOf(cnt.longValue() + 1));
+		}
 	}
 
 	/** {@inheritDoc} */
@@ -115,6 +148,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		else {
 			vFrame = null;
 		}
+		level--;
 	}
 
 	/** {@inheritDoc} */
@@ -306,6 +340,26 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 						opcode, opcodeName, entry.getValue()));
 			}
 		}
+		if (dumpMethodCallTrace) {
+			psOut.println("Method-call-trace:");
+			for (Entry<String, Integer> entry : mapMethodCallTrace.entrySet()) {
+				final String nameCallerAndCalled = entry.getKey();
+				final String nameCalled = nameCallerAndCalled.replaceFirst(".*_#_", "");
+				final int level = entry.getValue().intValue();
+				final StringBuilder sb = new StringBuilder(50);
+				for (int i = 0; i < level; i++) {
+					sb.append(' ').append(' ');
+				}
+				sb.append('+').append(' ');
+				sb.append(nameCalled);
+				sb.append(' ');
+				final Long cntCall = mapMethodCallCount.get(nameCallerAndCalled);
+				sb.append(cntCall);
+				sb.append(" of ");
+				sb.append(mapMethodCount.get(nameCalled));
+				psOut.println(sb);
+			}
+		}
 	}
 	
 	static <K, V> List<Entry<K, AtomicLong>> sortMap(final Map<K, AtomicLong> map) {
@@ -321,5 +375,4 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	public void setShowOutput(final boolean flag) {
 		showOutput = flag;
 	}
-
 }

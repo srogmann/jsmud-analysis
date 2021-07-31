@@ -102,8 +102,9 @@ public class JvmHelper {
 		final boolean dumpJreInstructions = true;
 		final boolean dumpClassStatistic = true;
 		final boolean dumpInstructionStatistic = true;
+		final boolean dumpMethodCallTrace = true;
 		final InstructionVisitor visitor = new InstructionVisitor(psOut, dumpJreInstructions,
-				dumpClassStatistic, dumpInstructionStatistic);
+				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace);
 		visitor.setShowOutput(true);
 
 		final Class<?> classRunnable = runnable.getClass();
