@@ -77,7 +77,7 @@ public class JvmTests {
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
-//		testsLambda();
+		testsLambda();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
 //		testsLambdaNonStatic();
@@ -88,7 +88,7 @@ public class JvmTests {
 //		testsLambdaBiFunctionAndThen();
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
-		testsLambdaAndSecurity();
+//		testsLambdaAndSecurity();
 //		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
@@ -285,7 +285,7 @@ public class JvmTests {
 		// desc: ()Ljava/util/function/IntFunction;
 
 		mult(3, 5000000000L);
-		final IntFunction<Integer> iFkt = (i -> Integer.valueOf(i * i));
+		final IntFunction<Integer> iFkt = (i -> Integer.valueOf(i * i)); // bsmTag H_INVOKESTATIC
 		assertEquals("iFkt 3", Integer.valueOf(9), iFkt.apply(3));
 		assertEquals("iFkt 25", Integer.valueOf(25), iFkt.apply(5));
 
@@ -297,11 +297,11 @@ public class JvmTests {
 	 * Example of a lambda-function with method-references on a class.
 	 */
 	public void testsLambdaClassMethodReferences() {
-		// ClassName::instanceMethod
-		final Function<String, String> sFkt = String::toUpperCase;
+		// ClassName::instanceMethod, bsm_tag H_INVOKEVIRTUAL.
+		final Function<String, String> sFkt = String::toUpperCase; // bsm_tag H_INVOKEVIRTUAL.
 		assertEquals("String::toUpperCase", "UPPER", sFkt.apply("uPPeR"));
 		
-		// ClassName::staticMethod
+		// ClassName::staticMethod, bsm_tag H_INVOKESTATIC.
 		final IntFunction<String> iFkt = String::valueOf;
 		assertEquals("String::valueOf", "42", iFkt.apply(42));
 	}
@@ -310,6 +310,7 @@ public class JvmTests {
 	 * Example of a lambda-function with method-references on an object-instance.
 	 */
 	public void testsLambdaObjectMethodReferences() {
+		// instance::instanceMethod, bsm_tag H_INVOKEVIRTUAL.
 		final String s = "catalog";
 		final TestMethodReference tac = new TestMethodReference(s.substring(0, 3));
 		final Supplier<String> supplier = tac::getValue;
@@ -356,12 +357,12 @@ public class JvmTests {
 	public void testsLambdaNonStatic() {
 		this.testMap.put("A", Integer.valueOf(11));
 		final String key = "A";
-		Predicate<Set<String>> predicate = set -> this.testMap.containsKey(key);
+		Predicate<Set<String>> predicate = set -> this.testMap.containsKey(key); // bsm_tag H_INVOKESPECIAL
 		assertTrue("Key present", predicate.test(Collections.emptySet()));
 	}
 
 	public void testsLambdaInterface() {
-		final Consumer<Map<String, Integer>> consumer = Map::clear;
+		final Consumer<Map<String, Integer>> consumer = Map::clear; // bsm_tag H_INVOKEINTERFACE.
 		testMap.put("a1", Integer.valueOf(1));
 		consumer.accept(testMap);
 		assertEquals("Test lambda-interface", Integer.valueOf(0), Integer.valueOf(testMap.size()));
@@ -506,7 +507,7 @@ public class JvmTests {
 
 	public void testsConstructorRef() {
 		final String[] sValues = { "Gamma", "Alpha", "Beta", "Delta" };
-		final Supplier<Set<String>> setSupplier = HashSet::new;
+		final Supplier<Set<String>> setSupplier = HashSet::new; // bsm_tag H_NEWINVOKESPECIAL.
 		final Set<String> set = setSupplier.get();
 		Arrays.stream(sValues).forEach(s -> set.add(s));
 		assertEquals("set.size", Integer.valueOf(sValues.length), Integer.valueOf(set.size()));

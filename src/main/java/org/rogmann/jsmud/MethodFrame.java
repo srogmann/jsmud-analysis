@@ -1971,10 +1971,14 @@ whileInstr:
 					returnType = Type.getReturnType(lamdaDesc);
 					numArgs = types.length;
 					final int objOffset;
-					lIsStatic = (callSite.getBsmTag() == Opcodes.H_INVOKESTATIC);
-					if ((classLambdaOwner.isInterface() || callSite.getBsmTag() == Opcodes.H_INVOKEVIRTUAL || callSite.getBsmTag() == Opcodes.H_INVOKESPECIAL) && dynamicArgs.length > 0) {
+					final int bsmTag = callSite.getBsmTag();
+					lIsStatic = (bsmTag == Opcodes.H_INVOKESTATIC);
+					if ((bsmTag == Opcodes.H_INVOKEVIRTUAL
+								|| bsmTag == Opcodes.H_INVOKESPECIAL
+								|| bsmTag == Opcodes.H_INVOKEINTERFACE)
+							&& dynamicArgs.length > 0) {
 						objRef = dynamicArgs[0];
-						if (callSite.getBsmTag() == Opcodes.H_INVOKEINTERFACE) {
+						if (bsmTag == Opcodes.H_INVOKEINTERFACE) {
 							// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
 							classOwner = objRef.getClass();
 						}
@@ -1984,18 +1988,19 @@ whileInstr:
 						// The object-reference doesn't belong to the dynamic-method-arguments.
 						objOffset = 1;
 					}
-					else if (lIsStatic || callSite.getBsmTag() == Opcodes.H_NEWINVOKESPECIAL) {
+					else if (lIsStatic || bsmTag == Opcodes.H_NEWINVOKESPECIAL) {
 						objRef = callSite.getOwnerClazz();
 						classOwner = classLambdaOwner;
 						objOffset = 0;
 					}
 					else {
+						// dynamicArgs.length is expected to be 0.
 						try {
 							objRef = stack.peek(numArgs - dynamicArgs.length);
 						} catch (ArrayIndexOutOfBoundsException e) {
 							throw new JvmException(String.format("Unexpected stack (%s) and types (%s)", stack, Arrays.toString(types)), e);
 						}
-						if (callSite.getBsmTag() == Opcodes.H_INVOKEINTERFACE) {
+						if (bsmTag == Opcodes.H_INVOKEINTERFACE) {
 							// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
 							classOwner = objRef.getClass();
 						}
