@@ -158,7 +158,15 @@ public class CallSiteRegistry {
 	private CallSiteSimulation buildCallSite(final InvokedynamicKey cmi, final Object caller,
 			final Handle lambdaHandle, Object[] aArguments) {
 		final InvokeDynamicInsnNode instr = cmi.getInstruction();
-		final CallSiteSimulation callSite = new CallSiteSimulation(classLoader, caller, cmi.getClazz(), cmi.getMethod(),
+		ClassLoader clCaller = null;
+		if (caller instanceof Class) {
+			clCaller = ((Class<?>) caller).getClassLoader();
+		}
+		else if (caller != null) {
+			clCaller = caller.getClass().getClassLoader();
+		}
+		final ClassLoader clCallSite = (clCaller != null) ? clCaller : classLoader;
+		final CallSiteSimulation callSite = new CallSiteSimulation(clCallSite, caller, cmi.getClazz(), cmi.getMethod(),
 				instr, lambdaHandle, aArguments);
 		final Object proxy = callSite.getProxy();
 
