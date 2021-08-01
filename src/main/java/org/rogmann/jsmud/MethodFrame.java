@@ -1955,16 +1955,6 @@ whileInstr:
 								lMethodName, lambdaName, methodDesc, lamdaDesc, Arrays.toString(dynamicArgs)));
 					}
 					miOwnerName = lambdaOwner.replace('/', '.');
-					final Class<?> classLambdaOwner;
-					try {
-						classLambdaOwner = registry.loadClass(miOwnerName, clazz);
-					} catch (ClassNotFoundException e) {
-						final boolean doContinueWhileE = handleCatchException(e);
-						if (doContinueWhileE) {
-							return true;
-						}
-						throw e;
-					}
 					lMethodName = lambdaName;
 					methodDesc = lamdaDesc;
 					types = Type.getArgumentTypes(lamdaDesc);
@@ -1978,19 +1968,11 @@ whileInstr:
 								|| bsmTag == Opcodes.H_INVOKEINTERFACE)
 							&& dynamicArgs.length > 0) {
 						objRef = dynamicArgs[0];
-						if (bsmTag == Opcodes.H_INVOKEINTERFACE) {
-							// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
-							classOwner = objRef.getClass();
-						}
-						else {
-							classOwner = classLambdaOwner;
-						}
 						// The object-reference doesn't belong to the dynamic-method-arguments.
 						objOffset = 1;
 					}
 					else if (lIsStatic || bsmTag == Opcodes.H_NEWINVOKESPECIAL) {
 						objRef = callSite.getOwnerClazz();
-						classOwner = classLambdaOwner;
 						objOffset = 0;
 					}
 					else {
@@ -2000,15 +1982,25 @@ whileInstr:
 						} catch (ArrayIndexOutOfBoundsException e) {
 							throw new JvmException(String.format("Unexpected stack (%s) and types (%s)", stack, Arrays.toString(types)), e);
 						}
-						if (bsmTag == Opcodes.H_INVOKEINTERFACE) {
-							// The lambda-method belongs to an interface. We have to start searching the method to be executed in the obj-ref-class. 
-							classOwner = objRef.getClass();
-						}
-						else {
-							classOwner = classLambdaOwner;
-						}
 						objOffset = 0;
 					}
+					if (bsmTag == Opcodes.H_INVOKEINTERFACE) {
+						classOwner = objRef.getClass();
+					}
+					else {
+						// We should use class miOwnerName.
+						try {
+							// The context-class is important in OSGi-environments to use a knowing class-loader.
+							classOwner = registry.loadClass(miOwnerName, objRef.getClass());
+						} catch (ClassNotFoundException e) {
+							final boolean doContinueWhileE = handleCatchException(e);
+							if (doContinueWhileE) {
+								return true;
+							}
+							throw e;
+						}
+					}
+
 					if (dynamicArgs.length > 0) {
 						// The dynamicArgs had been given the INVOKEDYNAMIC-instruction.
 						// We have to place them before the other method's arguments into the stack.
