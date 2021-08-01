@@ -8,6 +8,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -77,7 +79,7 @@ public class JvmTests {
 //		testsArray();
 //		testsLambda();
 //		testsLambdaClassMethodReferences();
-		testsLambdaObjectMethodReferences();
+//		testsLambdaObjectMethodReferences();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
 //		testsLambdaStreamCollectOnly();
@@ -434,6 +436,16 @@ public class JvmTests {
 		final TestMethodReference tac = new TestMethodReference(s.substring(0, 3));
 		final String sResult = doPrivileged(tac::getValue);
 		assertEquals("AccessController via ::getValue", "cat", sResult);
+
+		final Integer iInput2 = Integer.valueOf("101");
+		final PrivilegedExceptionAction<String> excAction = () -> toHex.apply(iInput2);
+		final String resultExc;
+		try {
+			resultExc = AccessController.doPrivileged(excAction);
+		} catch (PrivilegedActionException e) {
+			throw new RuntimeException("Unexpected PAE", e);
+		}
+		assertEquals("AccessController:PrExAc", "65", resultExc);
 	}
 
 	public void testsMethodArrayArgs() {

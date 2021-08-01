@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -90,7 +91,17 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				stack.pop();
 			}
 			final Object oAction = stack.peek();
-			if (!(oAction instanceof PrivilegedAction<?>)) {
+			final Class<?> classAction;
+			final String descMethDoPrivileged;
+			if (oAction instanceof PrivilegedAction) {
+				classAction = PrivilegedAction.class;
+				descMethDoPrivileged = "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;";
+			}
+			else if (oAction instanceof PrivilegedExceptionAction) {
+				classAction = PrivilegedExceptionAction.class;
+				descMethDoPrivileged = "(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;";
+			}
+			else {
 				throw new JvmException(String.format("Unexpected first argument (%s) for (%s%s) in (%s)",
 						oAction, mi.name, mi.desc, mi.owner));
 			}
@@ -103,10 +114,10 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				throw new JvmException(String.format("Mock method %s%s but no executor for (%s)", mi.name, mi.desc, oAction.getClass()));
 			}
 
-			final Method methodRun = MockMethods.class.getDeclaredMethod(mi.name, PrivilegedAction.class);
+			final Method methodRun = MockMethods.class.getDeclaredMethod(mi.name, classAction);
 			final Object objReturn;
 			try {
-				objReturn = executor.executeMethod(Opcodes.INVOKESTATIC, methodRun, "(Ljava/security/PrivilegedAction;)Ljava/lang/Object;", stack);
+				objReturn = executor.executeMethod(Opcodes.INVOKESTATIC, methodRun, descMethDoPrivileged, stack);
 			}
 			catch (Throwable e) {
 				final boolean doContinueWhileFlag = frame.handleCatchException(e);
