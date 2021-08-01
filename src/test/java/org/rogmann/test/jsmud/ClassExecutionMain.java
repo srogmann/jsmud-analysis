@@ -46,7 +46,7 @@ public class ClassExecutionMain {
 					!name.startsWith("java.") && !name.startsWith("sun."),
 				patchClinit, patchInit);
 		final boolean simulateReflection = true;
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection();
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
 		final ClassRegistry registry = new ClassRegistry(executionFilter, classLoader,
 				simulateReflection, visitor, invocationHandler);
 		registry.registerThread(Thread.currentThread());

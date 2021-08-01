@@ -38,7 +38,7 @@ public class DebuggerTestMain {
 			final ClassLoader classLoader = DebuggerTestMain.class.getClassLoader();
 			final ClassExecutionFilter executionFilter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
 			final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor();
-			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection();
+			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
 			final boolean simulateReflection = true;
 			final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
 					simulateReflection, visitor, invocationHandler);

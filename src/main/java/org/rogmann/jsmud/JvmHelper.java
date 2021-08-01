@@ -47,7 +47,7 @@ public class JvmHelper {
 			socket.setSoTimeout(200);
 			final ClassLoader classLoader = runnable.getClass().getClassLoader();
 			final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor();
-			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection();
+			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
 			final boolean simulateReflection = true;
 			final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
 					simulateReflection, visitor, invocationHandler);
@@ -110,7 +110,7 @@ public class JvmHelper {
 		final Class<?> classRunnable = runnable.getClass();
 		final ClassLoader classLoader = classRunnable.getClassLoader();
 		final boolean simulateReflection = true;
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection();
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
 		final ClassRegistry registry = new ClassRegistry(filter, classLoader,
 				simulateReflection, visitor, invocationHandler);
 		registry.registerThread(Thread.currentThread());

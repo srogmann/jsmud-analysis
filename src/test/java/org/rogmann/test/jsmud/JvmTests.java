@@ -77,7 +77,7 @@ public class JvmTests {
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
-		testsLambda();
+//		testsLambda();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
 //		testsLambdaNonStatic();
@@ -99,9 +99,9 @@ public class JvmTests {
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-//		testsProxy();
-//		testsProxySuper();
-//		testsReflection();
+		testsProxy();
+		testsProxySuper();
+		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
 //		testsAccessController();
