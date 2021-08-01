@@ -76,7 +76,7 @@ public class ClassRegistry implements VM {
 	private static final Logger LOG = LoggerFactory.getLogger(ClassRegistry.class);
 
 	/** version */
-	public static String VERSION = "jsmud 0.2.3 (2021-07-25)";
+	public static String VERSION = "jsmud 0.2.4 (2021-08-01)";
 
 	/** maximal wait-time in a monitor (this would be infinity in a read JVM) */
 	private static final AtomicInteger MONITOR_MAX_MILLIS = new AtomicInteger(60000);

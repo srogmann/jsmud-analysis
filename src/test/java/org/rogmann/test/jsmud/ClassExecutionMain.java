@@ -33,7 +33,7 @@ public class ClassExecutionMain {
 		final boolean dumpJreInstructions = true;
 		final boolean dumpClassStatistic = true;
 		final boolean dumpInstructionStatistic = true;
-		final boolean dumpMethodCallTrace= true;
+		final boolean dumpMethodCallTrace = true;
 		final InstructionVisitor visitor = new InstructionVisitor(psOut, dumpJreInstructions,
 				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace);
 		visitor.setShowOutput(true);

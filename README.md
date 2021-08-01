@@ -44,39 +44,17 @@ The following example starts a Runnable and dumps the execution in System.out. T
 
 JvmHelper's method connectRunnableToDebugger can be used to connect to a waiting debugger ("Remote Java Application" with "Socket Listen" in an IDE).
 
-The following verbose example initializes a simple spring-application.
+### Example of a method-call-trace
+The included class InstructionVisitor can generate a method-call-trace:
 
-    final PrintStream psOut = System.out;
-    final boolean dumpJreInstructions = true;
-    final boolean dumpClassStatistic = true;
-    final boolean dumpInstructionStatistic = true;
-    final InstructionVisitor visitor = new InstructionVisitor(psOut, dumpJreInstructions,
-		dumpClassStatistic, dumpInstructionStatistic);
-    visitor.setShowOutput(true);
-    
-    final String[] simulatedPackages = { "org.rogmann.classscan.test", "de.", "org.", "java.util."};
-    final ClassLoader classLoaderParent = ClassExecutionMain.class.getClassLoader();
-    final boolean patchClinit = true;
-    final boolean patchInit = true;
-    final JsmudClassLoader classLoader = new JsmudClassLoader(classLoaderParent, name -> name.startsWith("org."),
-    		patchClinit, patchInit);
-    final boolean simulateReflection = true;
-    final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection();
-    final ClassRegistry registry = new ClassRegistry(simulatedPackages, classLoader, simulateReflection, visitor, invocationHandler);
-    registry.registerThread(Thread.currentThread());
-    try {
-    	final SimpleClassExecutor executor = new SimpleClassExecutor(registry, SampleClass.class, visitor, invocationHandler);
-    
-    	final Class<?> classMain = registry.loadClass("org.rogmann.test.spring.Spring5ApplicationMain");
-    	final SimpleClassExecutor executorNC = new SimpleClassExecutor(registry, classMain, visitor, invocationHandler);
-    	final OperandStack stackArgs = new OperandStack(1);
-    	stackArgs.push(new String[] { "/tmp/spring5.log" });
-    	executorNC.executeMethod(Opcodes.INVOKEDYNAMIC, lookup(Spring5ApplicationMain.class, "main"), "([Ljava/lang/String;)V", stackArgs);
-    }
-    finally {
-    	registry.unregisterThread(Thread.currentThread());
-    }
-
+      + public void org.rogmann.test.jsmud.JvmTests.assertEquals(java.lang.String,java.lang.Object,java.lang.Object) 2 of 6
+        + public boolean java.util.ArrayList.add(java.lang.Object) 6 of 7
+          + private void java.util.ArrayList.ensureCapacityInternal(int) 7 of 7
+            + private static int java.util.ArrayList.calculateCapacity(java.lang.Object[],int) 7 of 7
+            + private void java.util.ArrayList.ensureExplicitCapacity(int) 7 of 7
+              + private void java.util.ArrayList.grow(int) 1 of 1
+                + public static java.lang.Object[] java.util.Arrays.copyOf(java.lang.Object[],int) 1 of 1
+                  + public static java.lang.Object[] java.util.Arrays.copyOf(java.lang.Object[],int,java.lang.Class) 1 of 1
 
 ## Mode of operation
 JSMUD is written in Java and executes bytecode contained in .class-files by means of [ASM](https://asm.ow2.io/). It operates on classes and instances of objects in the JVM. You can build an object-tree in normal Java and then execute methods with JSMUD using the given object-tree. 
@@ -109,8 +87,9 @@ I wrote this project in my free time and I like my free time so support is given
  * [ASM, the all purpose Java bytecode manipulation and analysis framework](https://asm.ow2.io/)
 
  ## Changelog
- * V 0.2.0, 2021-07-07: Initial release containing bytecode-interpreter and debugger.
- * V 0.2.1, 2021-07-11: Added support of java.lang.reflect.Proxy.
- * V 0.2.2, 2021-07-18: Use the class-loader of a class or class in context when analyzing new classes.
+ * V 0.2.4, 2021-08-01: Optional method-call-trace, mock-support of AccessController, classloader-determination in INVOKEDYNAMIC, bug-fixes (see history).
  * V 0.2.3, 2021-07-25: Support of ClassObject/InvokeMethod command in debugger, several bug-fixes (see history).
+ * V 0.2.2, 2021-07-18: Use the class-loader of a class or class in context when analyzing new classes.
+ * V 0.2.1, 2021-07-11: Added support of java.lang.reflect.Proxy.
+ * V 0.2.0, 2021-07-07: Initial release containing bytecode-interpreter and debugger.
  
