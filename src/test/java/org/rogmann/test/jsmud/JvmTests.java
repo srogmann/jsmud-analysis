@@ -101,6 +101,7 @@ public class JvmTests {
 //		testsJavaTime();
 		testsProxy();
 		testsProxySuper();
+		testsProxyViaReflection();
 		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
@@ -565,6 +566,30 @@ public class JvmTests {
 
 		final String result1 = worker.addA("Super");
 		assertEquals("ProxySuper: A", "SuperA", result1);
+	}
+
+	public void testsProxyViaReflection() {
+		final ClassLoader cl = WorkExample.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExample.class };
+		final InvocationHandler ih = new ProxyInvocationHandler();
+		final WorkExample worker = (WorkExample) Proxy.newProxyInstance(cl, aInterfaces, ih);
+
+		final String result1;
+		final int result2;
+		try {
+			final Method methodAddA = WorkExample.class.getDeclaredMethod("addA", String.class);
+			result1 = (String) methodAddA.invoke(worker, "Gamma");
+			final Method methodAdd5 = WorkExample.class.getDeclaredMethod("add5", int.class);
+			result2 = ((Integer) methodAdd5.invoke(worker, Integer.valueOf(20))).intValue();
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException("Exception while executing proxy via reflection", e);
+		}
+		assertEquals("Proxy: A", "GammaA", result1);
+		assertEquals("Proxy: B", Integer.valueOf(25), Integer.valueOf(result2));
+
+		// Can we invoke a Object-method in the proxy-instance?
+		assertTrue("Proxy getClass", worker.getClass().getName().contains("$Proxy"));
 	}
 
 	public static class ProxyInvocationHandler implements InvocationHandler {
