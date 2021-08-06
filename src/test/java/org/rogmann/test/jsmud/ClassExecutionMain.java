@@ -30,6 +30,7 @@ public class ClassExecutionMain {
 			testNr = Integer.parseInt(args[0]);
 		}
 		final PrintStream psOut = System.out;
+		psOut.println(String.format("JRE: %s, %s", System.getProperty("java.vendor"), System.getProperty("java.version")));
 		final boolean dumpJreInstructions = true;
 		final boolean dumpClassStatistic = true;
 		final boolean dumpInstructionStatistic = true;
@@ -43,7 +44,7 @@ public class ClassExecutionMain {
 		final boolean patchClinit = true;
 		final boolean patchInit = true;
 		final JsmudClassLoader classLoader = new JsmudClassLoader(classLoaderParent, name ->
-					!name.startsWith("java.") && !name.startsWith("sun."),
+					!name.startsWith("java.") && !name.startsWith("com.sun.") && !name.startsWith("sun."),
 				patchClinit, patchInit);
 		final boolean simulateReflection = true;
 		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);

@@ -196,6 +196,38 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			}
 		}
 		else if ("java/lang/reflect/Method".equals(mi.owner) && "invoke".equals(mi.name)
+				&& frame.registry.isSimulateReflection()
+				&& Proxy.class.isAssignableFrom(((Method) stack.peek(2)).getDeclaringClass())
+				&& filterProxy != null) {
+			// Reflection on a proxy.
+			// We have on stack: method, proxy-object, method-arguments.
+			final Method reflMethod = (Method) stack.peek(2);
+			final Proxy oProxy = (Proxy) stack.peek(1);
+			final InvocationHandler ih = getInvocationHandler(oProxy);
+			SimpleClassExecutor executor = null;
+			if (filterProxy.isClassToBeSimulated(ih.getClass())) {
+				executor = frame.registry.getClassExecutor(ih.getClass());
+			}
+			if (executor != null) {
+				// Remove the reflection-call from stack.
+				final Object[] methArgs = (Object[]) stack.pop();
+				stack.pop();
+				stack.pop();
+				// We need on stack: proxy-object, proxy-object, method, method-arguments.
+				final Object[] oIhArgs = { oProxy };
+				stack.pushAndResize(0, oIhArgs);
+				stack.push(oProxy);
+				stack.push(reflMethod);
+				stack.push(methArgs);
+				final Method ihMethod = findMethodInvoke(ih);
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Execute invocation-handler (%s) of proxy-class (%s) called by reflection, %s",
+							ih, oProxy.getClass(), stack));
+				}
+				doContinueWhile = executeInvokeMethod(frame, ih, executor, ihMethod, stack);
+			}
+		}
+		else if ("java/lang/reflect/Method".equals(mi.owner) && "invoke".equals(mi.name)
 				&& frame.registry.isSimulateReflection()) {
 			// Emulation of Method#invoke?
 			final Method reflMethod = (Method) stack.peek(2);
@@ -249,6 +281,31 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		return doContinueWhile;
 	}
 
+	private Method findMethodInvoke(final InvocationHandler ih) throws NoSuchMethodException {
+		Method ihMethod = null;
+		Class<?> classLoopIh = ih.getClass();
+		int parentCounter = 0;
+		while (true) {
+			try {
+				ihMethod = classLoopIh.getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
+				break;
+			} catch (NoSuchMethodException e) {
+				// We try the super-class.
+				// Example in the wild: https://github.com/apache/tomcat/blob/9.0.x/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DisposableConnectionFacade.java
+				final Class<?> loopIhSuper = classLoopIh.getSuperclass();
+				if (loopIhSuper == null || Object.class.equals(loopIhSuper)) {
+					throw e;
+				}
+				classLoopIh = loopIhSuper;
+			}
+			parentCounter++;
+			if (parentCounter == 100) {
+				throw new JvmException(String.format("Unexpected parent-super-depth in class %s", ih.getClass()));
+			}
+		}
+		return ihMethod;
+	}
+
 	/**
 	 * Executes the invoke-method of a proxy.
 	 * @param frame current method-frame
@@ -263,18 +320,10 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	private Boolean executeProxyInvokeMethod(MethodFrame frame, final Object objRefStack, final OperandStack stack,
 			Boolean doContinueWhile, final String miName, final String miDesc)
 			throws IllegalAccessException, NoSuchMethodException, Throwable {
-		{
 		final Object oProxy = objRefStack;
 		final Class<? extends Object> proxyClass = oProxy.getClass();
 		if (filterProxy != null) {
-			final InvocationHandler ih;
-			if (fFieldInvocationHandlerJreInternal != null) {
-				// The field is preferred because the class-loaders might be different.
-				ih = (InvocationHandler) fFieldInvocationHandlerJreInternal.get(oProxy);
-			}
-			else {
-				ih = Proxy.getInvocationHandler(oProxy);
-			}
+			final InvocationHandler ih = getInvocationHandler((Proxy) oProxy);
 			SimpleClassExecutor executor = null;
 			if (filterProxy.isClassToBeSimulated(ih.getClass())) {
 				executor = frame.registry.getClassExecutor(ih.getClass());
@@ -315,61 +364,74 @@ loopClassIh:
 					// We call the method in the invocation-handler.
 					final Object[] oIhArgs = { oProxy, methodIh, oArgs };
 					stack.pushAndResize(0, oIhArgs);
-					Method ihMethod = null;
-					Class<?> loopIh = ih.getClass();
-					int parentCounter = 0;
-					while (true) {
-						try {
-							ihMethod = loopIh.getDeclaredMethod("invoke", Object.class, Method.class, Object[].class);
-							break;
-						} catch (NoSuchMethodException e) {
-							// We try the super-class.
-							// Example in the wild: https://github.com/apache/tomcat/blob/9.0.x/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DisposableConnectionFacade.java
-							final Class<?> loopIhSuper = loopIh.getSuperclass();
-							if (loopIhSuper == null || Object.class.equals(loopIhSuper)) {
-								throw e;
-							}
-							loopIh = loopIhSuper;
-						}
-						parentCounter++;
-						if (parentCounter == 100) {
-							throw new JvmException(String.format("Unexpected parent-super-depth in class %s", ih.getClass()));
-						}
-					}
-					if (!ih.getClass().equals(loopIh)) {
-						// We need the executor of a super-class.
-						executor = frame.registry.getClassExecutor(loopIh);
-						if (executor == null) {
-							throw new JvmException(String.format("Can't get a executor of super-class (%s) of (%s) for executing invoke-method (%s)",
-									loopIh, ih.getClass(), ihMethod));
-						}
-					}
-					final String descr = Type.getMethodDescriptor(ihMethod);
+					final Method ihMethod = findMethodInvoke(ih);
 					if (LOG.isDebugEnabled()) {
 						LOG.debug(String.format("Execute invocation-handler (%s) of proxy (%s), stack %s",
 								ih, proxyClass, stack));
 					}
-					final Object objReturn;
-					try {
-						objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, ihMethod, descr, stack);
-					}
-					catch (Throwable e) {
-						final boolean doContinueWhileE = frame.handleCatchException(e);
-						if (doContinueWhileE) {
-							return Boolean.TRUE;
-						}
-						// This exception isn't handled here.
-						throw e;
-					}
-					if (!Void.class.equals(methodIh.getReturnType())) {
-						stack.push(objReturn);
-					}
-					doContinueWhile = Boolean.FALSE;
+					doContinueWhile = executeInvokeMethod(frame, ih, executor, ihMethod, stack);
 				}
 			}
 		}
-}
 		return doContinueWhile;
+	}
+
+	/**
+	 * Executes an invoke-method of an invocation-handler.
+	 * @param frame current frame
+	 * @param ih invocation-handler to be called
+	 * @param executor default executor
+	 * @param ihMethod method to be called
+	 * @param stack stack
+	 * @return continue-while-flag
+	 * @throws Throwable in case of an exception
+	 */
+	private Boolean executeInvokeMethod(MethodFrame frame, final InvocationHandler ih, SimpleClassExecutor executor,
+			final Method ihMethod, final OperandStack stack) throws Throwable {
+		Boolean doContinueWhile;
+		final Class<?> loopIh = ihMethod.getDeclaringClass();
+		if (!ih.getClass().equals(loopIh)) {
+			// We need the executor of a super-class.
+			executor = frame.registry.getClassExecutor(loopIh);
+			if (executor == null) {
+				throw new JvmException(String.format("Can't get a executor of super-class (%s) of (%s) for executing invoke-method (%s)",
+						loopIh, ih.getClass(), ihMethod));
+			}
+		}
+		final String descr = Type.getMethodDescriptor(ihMethod);
+		final Object objReturn;
+		try {
+			objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, ihMethod, descr, stack);
+		}
+		catch (Throwable e) {
+			final boolean doContinueWhileE = frame.handleCatchException(e);
+			if (doContinueWhileE) {
+				return Boolean.TRUE;
+			}
+			// This exception isn't handled here.
+			throw e;
+		}
+		stack.push(objReturn);
+		doContinueWhile = Boolean.FALSE;
+		return doContinueWhile;
+	}
+
+	/**
+	 * Gets the invocation-handler of a proxy.
+	 * @param oProxy proxy-instance
+	 * @return invocation-handler
+	 * @throws IllegalAccessException if the proxy can't be accessed
+	 */
+	private InvocationHandler getInvocationHandler(final Proxy oProxy) throws IllegalAccessException {
+		final InvocationHandler ih;
+		if (fFieldInvocationHandlerJreInternal != null) {
+			// The field is preferred because the class-loaders might be different.
+			ih = (InvocationHandler) fFieldInvocationHandlerJreInternal.get(oProxy);
+		}
+		else {
+			ih = Proxy.getInvocationHandler(oProxy);
+		}
+		return ih;
 	}
 
 	/** {@inheritDoc} */

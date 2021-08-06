@@ -102,7 +102,10 @@ public class JvmTests {
 		testsProxy();
 		testsProxySuper();
 		testsProxyViaReflection();
-		testsReflection();
+		testsProxyPublicInterface();
+		testsProxyPublicInterfaceViaReflection();
+		testsProxyPublicInterfaceViaReflectionImpl();
+//		testsReflection();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
 //		testsAccessController();
@@ -592,6 +595,76 @@ public class JvmTests {
 		assertTrue("Proxy getClass", worker.getClass().getName().contains("$Proxy"));
 	}
 
+	/**
+	 * Call of a proxy using a public interface.
+	 * Proxies with public interfaces may be placed under "com.sun.*".
+	 */
+	public void testsProxyPublicInterface() {
+		final ClassLoader cl = WorkExamplePublic.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExamplePublic.class };
+		final InvocationHandler ih = new ProxyInvocationHandler();
+		final WorkExamplePublic worker = (WorkExamplePublic) Proxy.newProxyInstance(cl, aInterfaces, ih);
+
+		final String result1 = worker.addA("Beta");
+		final int result2 = worker.add5(37);
+		assertEquals("Proxy: A", "BetaA", result1);
+		assertEquals("Proxy: B", Integer.valueOf(42), Integer.valueOf(result2));
+		
+		// Can we invoke a Object-method in the proxy-instance?
+		assertTrue("Proxy getClass", worker.getClass().getName().contains("$Proxy"));
+	}
+
+	/**
+	 * Call of a proxy using a public interface by reflection.
+	 */
+	public void testsProxyPublicInterfaceViaReflection() {
+		final ClassLoader cl = WorkExamplePublic.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExamplePublic.class };
+		final InvocationHandler ih = new ProxyInvocationHandler();
+		final WorkExamplePublic worker = (WorkExamplePublic) Proxy.newProxyInstance(cl, aInterfaces, ih);
+
+		final String result1;
+		final int result2;
+		try {
+			final Method methodAddA = WorkExamplePublic.class.getDeclaredMethod("addA", String.class);
+			result1 = (String) methodAddA.invoke(worker, "Gamma");
+			final Method methodAdd5 = WorkExamplePublic.class.getDeclaredMethod("add5", int.class);
+			result2 = ((Integer) methodAdd5.invoke(worker, Integer.valueOf(20))).intValue();
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException("Exception while executing proxy via reflection", e);
+		}
+		assertEquals("Proxy: A", "GammaA", result1);
+		assertEquals("Proxy: B", Integer.valueOf(25), Integer.valueOf(result2));
+
+		// Can we invoke a Object-method in the proxy-instance?
+		assertTrue("Proxy getClass", worker.getClass().getName().contains("$Proxy"));
+	}
+
+	public void testsProxyPublicInterfaceViaReflectionImpl() {
+		final ClassLoader cl = WorkExamplePublic.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExamplePublic.class };
+		final InvocationHandler ih = new ProxyInvocationHandler();
+		final WorkExamplePublic worker = (WorkExamplePublic) Proxy.newProxyInstance(cl, aInterfaces, ih);
+
+		final String result1;
+		final int result2;
+		try {
+			final Method methodAddA = worker.getClass().getDeclaredMethod("addA", String.class);
+			result1 = (String) methodAddA.invoke(worker, "Gamma");
+			final Method methodAdd5 = worker.getClass().getDeclaredMethod("add5", int.class);
+			result2 = ((Integer) methodAdd5.invoke(worker, Integer.valueOf(20))).intValue();
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException("Exception while executing proxy via reflection", e);
+		}
+		assertEquals("ProxyImpl: A", "GammaA", result1);
+		assertEquals("ProxyImpl: B", Integer.valueOf(25), Integer.valueOf(result2));
+
+		// Can we invoke a Object-method in the proxy-instance?
+		assertTrue("ProxyImpl getClass", worker.getClass().getName().contains("$Proxy"));
+	}
+
 	public static class ProxyInvocationHandler implements InvocationHandler {
 		@Override
 		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -879,8 +952,14 @@ public class JvmTests {
 		}
 	}
 
-	/** Interface used in proxy-tests */
+	/** non-public interface used in proxy-tests */
 	interface WorkExample {
+		String addA(String s);
+		int add5(int i);
+	}
+
+	/** public Interface used in proxy-tests */
+	public interface WorkExamplePublic {
 		String addA(String s);
 		int add5(int i);
 	}
