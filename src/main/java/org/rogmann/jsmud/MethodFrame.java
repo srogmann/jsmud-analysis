@@ -1484,7 +1484,7 @@ whileInstr:
 					} catch (NoSuchFieldException | SecurityException
 							| IllegalArgumentException | IllegalAccessException e) {
 						throw new JvmException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s)",
-								fi.name, classFieldOwner, methodName, classFieldOwner), e);
+								fi.name, fi.owner, methodName, classFieldOwner), e);
 					}
 					break;
 				}
