@@ -97,11 +97,10 @@ public class SimpleClassExecutor {
 	}
 	
 	/**
-	 * Executes a static method.
+	 * Executes an executable (constructor or method).
 	 * @param objInstance instance-object, <code>null</code> in case of a static method
 	 * @param pMethod method
 	 * @param methodDesc descriptor of the method
-	 * @param isInstanceMethod <code>true</code> if the method belongs to the instance
 	 * @param args stack containing the arguments
 	 * @return return-instance or <code>null</code>
 	 */
