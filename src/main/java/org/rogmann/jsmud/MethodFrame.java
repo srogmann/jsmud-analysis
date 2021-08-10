@@ -276,13 +276,12 @@ public class MethodFrame {
 	/**
 	 * Executes the method.
 	 * <p>This rather monolithic method contains the execution of the different instructions.</p>  
-	 * @param opcode of INVOKE-instruction
 	 * @param args arguments on caller's stack
 	 * @return result or <code>null</code>
 	 */
-	public Object execute(final int invokeOpcode, final OperandStack args) throws Throwable {
+	public Object execute(final OperandStack args) throws Throwable {
 		stack.clear();
-		readArgsIntoLocals(invokeOpcode, args);
+		readArgsIntoLocals(args);
 
 		instrNum = 0;
 		currLineNum = 0;
@@ -2102,20 +2101,7 @@ whileInstr:
 				}
 				throw e;
 			}
-			Class<?> classObj = classOwner;
-whileSuperClass:
-			while (classObj != null && invMethod == null) {
-				final Class<?>[] aInterfaces = classObj.getInterfaces();
-				for (Class<?> classLoop : aInterfaces) {
-					if (isVirtual || classInt.isAssignableFrom(classLoop)) {
-						invMethod = findMethodInInterface(lMethodName, types, classLoop);
-						if (invMethod != null) {
-							break whileSuperClass;
-						}
-					}
-				}
-				classObj = classObj.getSuperclass();
-			}
+			invMethod = findMethodInInterfaces(classOwner, lMethodName, types, isVirtual, classInt);
 		}
 		if (invMethod == null) {
 			if (mi.name.equals(lMethodName)) {
@@ -2183,6 +2169,35 @@ whileSuperClass:
 			stack.push(returnObjStack);
 		}
 		return false;
+	}
+
+	/**
+	 * Finds a method in the interfaces of a class.
+	 * @param classOwner class which interfaces are to be searches
+	 * @param lMethodName name of method
+	 * @param types argument-types of the method
+	 * @param isVirtual <code>true</code> if all interfaces are to be searched
+	 * @param classInt the parent-interface in case of non-virtual mode
+	 * @return method or <code>null</code>
+	 */
+	public static Method findMethodInInterfaces(Class<?> classOwner, String lMethodName, Type[] types, boolean isVirtual,
+			final Class<?> classInt) {
+		Method invMethod = null;
+		Class<?> classObj = classOwner;
+whileSuperClass:
+		while (classObj != null && invMethod == null) {
+			final Class<?>[] aInterfaces = classObj.getInterfaces();
+			for (Class<?> classLoop : aInterfaces) {
+				if (isVirtual || classInt.isAssignableFrom(classLoop)) {
+					invMethod = findMethodInInterface(lMethodName, types, classLoop);
+					if (invMethod != null) {
+						break whileSuperClass;
+					}
+				}
+			}
+			classObj = classObj.getSuperclass();
+		}
+		return invMethod;
 	}
 
 	/**
@@ -2329,7 +2344,7 @@ whileSuperClass:
 	 * @param cClassObj class 
 	 * @return method or <code>null</code>
 	 */
-	static Method findMethodInClass(final String invName, final Type[] types, final Type returnType, final Class<?> cClassObj) {
+	public static Method findMethodInClass(final String invName, final Type[] types, final Type returnType, final Class<?> cClassObj) {
 		//LOG.debug(String.format("  Searching method (%s) in class (%s) ...", invName, cClassObj));
 		Method invMethod = null;
 		Class<?> classObj = cClassObj;
@@ -2372,7 +2387,7 @@ loopDeclMeth:
 	 * @param cInterface class of interface
 	 * @return default-method or <code>null</code>
 	 */
-	private Method findMethodInInterface(final String invName, final Type[] types, final Class<?> cInterface) {
+	private static Method findMethodInInterface(final String invName, final Type[] types, final Class<?> cInterface) {
 		//LOG.debug(String.format("  Searching method (%s) in (%s) ...", invName, cInterface));
 		Method invMethod = null;
 loopDeclMeth:
@@ -2590,10 +2605,9 @@ loopDeclMeth:
 
 	/**
 	 * Reads the methods arguments and removes them from the caller's stack.
-	 * @param invokeOpcode opcode of method-invoker
 	 * @param args stack of the caller
 	 */
-	private void readArgsIntoLocals(final int invokeOpcode, final OperandStack args) {
+	private void readArgsIntoLocals(final OperandStack args) {
 		final int argDefsLen = argDefs.length;
 		int j = 0;
 		final boolean isStatic = Modifier.isStatic(pMethod.getModifiers());

@@ -213,22 +213,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				final Object[] methArgs = (Object[]) stack.pop();
 				stack.pop();
 				stack.pop();
-				Method intfMethod = reflMethod;
-				if (!intfMethod.getDeclaringClass().isInterface()) {
-					// The invocation-handler expects the given method to be an interface-method.
-					// We look for the corresponding interface-method.
-					for (final Class<?> classIntf : oProxy.getClass().getInterfaces()) {
-						try {
-							intfMethod = classIntf.getDeclaredMethod(reflMethod.getName(), reflMethod.getParameterTypes());
-						} catch (NoSuchMethodException e) {
-							continue;
-						} catch (SecurityException e) {
-							throw new JvmException(String.format("The interface (%s) of proxy (%s) isn't allowed to be analyzed",
-									classIntf, oProxy.getClass()), e);
-						}
-						break;
-					}
-				}
+				final Method intfMethod = findInterfaceMethodOfProxy(oProxy, reflMethod);
 				// We need on stack: proxy-object, proxy-object, interface-method, method-arguments.
 				final Object[] oIhArgs = { oProxy };
 				stack.pushAndResize(0, oIhArgs);
@@ -248,7 +233,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			// Emulation of Method#invoke?
 			final Method reflMethod = (Method) stack.peek(2);
 			final Class<?> classMethod = reflMethod.getDeclaringClass();
-			final SimpleClassExecutor executor = frame.registry.getClassExecutor(classMethod);
+			SimpleClassExecutor executor = frame.registry.getClassExecutor(classMethod);
 			if (executor != null) {
 				// We can invoke the method in the patched class.
 				final Object[] oArgs = (Object[]) stack.pop();
@@ -269,11 +254,34 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				}
 				final Object objReturn;
 				if (oObjRef instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
-					doContinueWhile = executeProxyInvokeMethod(frame, oObjRef, stack, doContinueWhile, reflMethod.getName(), descr);
+					doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) oObjRef, stack, doContinueWhile, reflMethod.getName(), descr);
 				}
 				else {
+					Method invMethod = reflMethod;
+					if (invMethod.getDeclaringClass().isInterface()) {
+						if (LOG.isDebugEnabled()) {
+							LOG.debug(String.format("looking for implementation of (%s)", reflMethod));
+						}
+						final String methodName = reflMethod.getName();
+						Type[] paramTypes = Type.getArgumentTypes(reflMethod);
+						Type retType = Type.getReturnType(reflMethod);
+						// We have to look for an implementing method.
+						invMethod = MethodFrame.findMethodInClass(methodName, paramTypes, retType, oObjRef.getClass());
+						if (invMethod == null) {
+							final boolean isVirtual = false;
+							invMethod = MethodFrame.findMethodInInterfaces(oObjRef.getClass(), methodName, paramTypes, isVirtual, oObjRef.getClass());
+						}
+						if (invMethod == null) {
+							throw new JvmException(String.format("No implementing-method for method (%s) in (%s)",
+									reflMethod, oObjRef.getClass()));
+						}
+						if (LOG.isDebugEnabled()) {
+							LOG.debug(String.format("method (%s) -> (%s)", reflMethod, invMethod));
+						}
+						executor = frame.registry.getClassExecutor(invMethod.getDeclaringClass());
+					}
 					try {
-						objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, reflMethod, descr, stack);
+						objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, invMethod, descr, stack);
 					}
 					catch (Throwable e) {
 						final boolean doContinueWhileFlag = frame.handleCatchException(e);
@@ -292,9 +300,36 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		}
 		else if (objRefStack instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
 			// proxy-instance
-			doContinueWhile = executeProxyInvokeMethod(frame, objRefStack, stack, doContinueWhile, mi.name, mi.desc);
+			doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) objRefStack, stack, doContinueWhile, mi.name, mi.desc);
 		}
 		return doContinueWhile;
+	}
+
+	/**
+	 * An invocation-handler expects a method of an interface.
+	 * This method looks for an interface-method of a proxy-method.
+	 * @param oProxy proxy-instance
+	 * @param proxyMethod method of proxy
+	 * @return
+	 */
+	static Method findInterfaceMethodOfProxy(final Proxy oProxy, final Method proxyMethod) {
+		Method intfMethod = proxyMethod;
+		if (!intfMethod.getDeclaringClass().isInterface()) {
+			// The invocation-handler expects the given method to be an interface-method.
+			// We look for the corresponding interface-method.
+			for (final Class<?> classIntf : oProxy.getClass().getInterfaces()) {
+				try {
+					intfMethod = classIntf.getDeclaredMethod(proxyMethod.getName(), proxyMethod.getParameterTypes());
+				} catch (NoSuchMethodException e) {
+					continue;
+				} catch (SecurityException e) {
+					throw new JvmException(String.format("The interface (%s) of proxy (%s) isn't allowed to be analyzed",
+							classIntf, oProxy.getClass()), e);
+				}
+				break;
+			}
+		}
+		return intfMethod;
 	}
 
 	private Method findMethodInvoke(final InvocationHandler ih) throws NoSuchMethodException {
@@ -325,7 +360,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	/**
 	 * Executes the invoke-method of a proxy.
 	 * @param frame current method-frame
-	 * @param objRefStack current instance
+	 * @param proxy current instance
 	 * @param stack current stack
 	 * @param doContinueWhile
 	 * @param miName name of the method to be executed
@@ -333,13 +368,12 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	 * @return continue-while-flag
 	 * @throws Throwable
 	 */
-	private Boolean executeProxyInvokeMethod(MethodFrame frame, final Object objRefStack, final OperandStack stack,
+	private Boolean executeProxyInvokeMethod(MethodFrame frame, final Proxy proxy, final OperandStack stack,
 			Boolean doContinueWhile, final String miName, final String miDesc)
 			throws IllegalAccessException, NoSuchMethodException, Throwable {
-		final Object oProxy = objRefStack;
-		final Class<? extends Object> proxyClass = oProxy.getClass();
+		final Class<? extends Proxy> proxyClass = proxy.getClass();
 		if (filterProxy != null) {
-			final InvocationHandler ih = getInvocationHandler((Proxy) oProxy);
+			final InvocationHandler ih = getInvocationHandler((Proxy) proxy);
 			SimpleClassExecutor executor = null;
 			if (filterProxy.isClassToBeSimulated(ih.getClass())) {
 				executor = frame.registry.getClassExecutor(ih.getClass());
@@ -378,7 +412,8 @@ loopClassIh:
 					stack.pop();
 					stack.push(ih);
 					// We call the method in the invocation-handler.
-					final Object[] oIhArgs = { oProxy, methodIh, oArgs };
+					final Method intfMethod = findInterfaceMethodOfProxy((Proxy) proxy, methodIh);
+					final Object[] oIhArgs = { proxy, intfMethod, oArgs };
 					stack.pushAndResize(0, oIhArgs);
 					final Method ihMethod = findMethodInvoke(ih);
 					if (LOG.isDebugEnabled()) {

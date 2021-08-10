@@ -117,7 +117,7 @@ public class SimpleClassExecutor {
 		final Object methodReturnObj;
 		try {
 			fRegistry.pushMethodFrame(frame);
-			methodReturnObj = frame.execute(invokeOpcode, args);
+			methodReturnObj = frame.execute(args);
 		}
 		finally {
 			fRegistry.popMethodFrame();
