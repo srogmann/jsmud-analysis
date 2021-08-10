@@ -213,11 +213,27 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				final Object[] methArgs = (Object[]) stack.pop();
 				stack.pop();
 				stack.pop();
-				// We need on stack: proxy-object, proxy-object, method, method-arguments.
+				Method intfMethod = reflMethod;
+				if (!intfMethod.getDeclaringClass().isInterface()) {
+					// The invocation-handler expects the given method to be an interface-method.
+					// We look for the corresponding interface-method.
+					for (final Class<?> classIntf : oProxy.getClass().getInterfaces()) {
+						try {
+							intfMethod = classIntf.getDeclaredMethod(reflMethod.getName(), reflMethod.getParameterTypes());
+						} catch (NoSuchMethodException e) {
+							continue;
+						} catch (SecurityException e) {
+							throw new JvmException(String.format("The interface (%s) of proxy (%s) isn't allowed to be analyzed",
+									classIntf, oProxy.getClass()), e);
+						}
+						break;
+					}
+				}
+				// We need on stack: proxy-object, proxy-object, interface-method, method-arguments.
 				final Object[] oIhArgs = { oProxy };
 				stack.pushAndResize(0, oIhArgs);
 				stack.push(oProxy);
-				stack.push(reflMethod);
+				stack.push(intfMethod);
 				stack.push(methArgs);
 				final Method ihMethod = findMethodInvoke(ih);
 				if (LOG.isDebugEnabled()) {

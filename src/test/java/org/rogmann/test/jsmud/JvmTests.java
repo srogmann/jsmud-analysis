@@ -99,11 +99,12 @@ public class JvmTests {
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-		testsProxy();
-		testsProxySuper();
-		testsProxyViaReflection();
-		testsProxyPublicInterface();
-		testsProxyPublicInterfaceViaReflection();
+//		testsProxy();
+//		testsProxySuper();
+//		testsProxyViaReflection();
+//		testsProxyViaReflectionMethod();
+//		testsProxyPublicInterface();
+//		testsProxyPublicInterfaceViaReflection();
 		testsProxyPublicInterfaceViaReflectionImpl();
 //		testsReflection();
 //		testReflectionDeclaredConstructors();
@@ -588,11 +589,52 @@ public class JvmTests {
 				| InvocationTargetException e) {
 			throw new RuntimeException("Exception while executing proxy via reflection", e);
 		}
-		assertEquals("Proxy: A", "GammaA", result1);
-		assertEquals("Proxy: B", Integer.valueOf(25), Integer.valueOf(result2));
+		assertEquals("ProxyRefl: A", "GammaA", result1);
+		assertEquals("ProxyRefl: B", Integer.valueOf(25), Integer.valueOf(result2));
 
 		// Can we invoke a Object-method in the proxy-instance?
-		assertTrue("Proxy getClass", worker.getClass().getName().contains("$Proxy"));
+		assertTrue("ProxyRefl getClass", worker.getClass().getName().contains("$Proxy"));
+
+		// Can we invoke a proxy via a method of the proxy itself?
+		final Method methodProxy;
+		try {
+			methodProxy = worker.getClass().getDeclaredMethod("addA", String.class);
+		} catch (NoSuchMethodException | SecurityException e) {
+			throw new RuntimeException(String.format("Exception while looking for method addA in %s", worker.getClass()), e);
+		}
+		final String resultDelta;
+		try {
+			resultDelta = (String) methodProxy.invoke(worker, "Delta");
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new RuntimeException(String.format("Exception while executing %s", methodProxy), e);
+		}
+		assertEquals("ProxyRefl: Impl", "DeltaA", resultDelta);
+	}
+
+	/**
+	 * Checks if the invocation-handler gets an interface-method as method.
+	 */
+	public void testsProxyViaReflectionMethod() {
+		final ClassLoader cl = WorkExample.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExample.class };
+		final InvocationHandler ih = new ProxyInvocationHandler();
+		final WorkExample worker = (WorkExample) Proxy.newProxyInstance(cl, aInterfaces, ih);
+
+		// getMethod gets the method given the invocation-handler. It should be an interface-method.
+		final Method methodProxy;
+		try {
+			methodProxy = worker.getClass().getDeclaredMethod("getMethod");
+		} catch (NoSuchMethodException | SecurityException e) {
+			throw new RuntimeException(String.format("Exception while looking for method addA in %s", worker.getClass()), e);
+		}
+		final Method methodGet;
+		try {
+			// We expect an interface-method, not the given proxy-method.
+			methodGet = (Method) methodProxy.invoke(worker);
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new RuntimeException(String.format("Exception while executing %s", methodProxy), e);
+		}
+		assertEquals("ProxyReflMethod: IntMethod", WorkExample.class, methodGet.getDeclaringClass());
 	}
 
 	/**
@@ -665,7 +707,14 @@ public class JvmTests {
 		assertTrue("ProxyImpl getClass", worker.getClass().getName().contains("$Proxy"));
 	}
 
-	public static class ProxyInvocationHandler implements InvocationHandler {
+	public class ProxyInvocationHandler implements InvocationHandler {
+		final Object instance;
+		ProxyInvocationHandler() {
+			this.instance = null;
+		}
+		ProxyInvocationHandler(final Object instance) {
+			this.instance = instance;
+		}
 		@Override
 		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 			final String name = method.getName();
@@ -677,14 +726,23 @@ public class JvmTests {
 				final int i = ((Integer) args[0]).intValue();
 				return Integer.valueOf(i + 5);
 			}
+			else if ("getMethod".equals(name)) {
+				return method;
+			}
+			else if ("executeMethod".equals(name)) {
+				if (instance == null) {
+					throw new IllegalStateException("this.instance hasn't been set.");
+				}
+				return method.invoke(instance, args);
+			}
 			else if ("toString".equals(name)) {
-				
+				return "PIH";
 			}
 			throw new IllegalArgumentException("Unexpected method " + name);
 		}
 	}
 
-	public static class ProxyInvocationHandlerChild extends ProxyInvocationHandler {
+	public class ProxyInvocationHandlerChild extends ProxyInvocationHandler {
 		// nothing here
 	}
 
@@ -956,6 +1014,8 @@ public class JvmTests {
 	interface WorkExample {
 		String addA(String s);
 		int add5(int i);
+		Method getMethod();
+		String executeMethod(String a, String b);
 	}
 
 	/** public Interface used in proxy-tests */
