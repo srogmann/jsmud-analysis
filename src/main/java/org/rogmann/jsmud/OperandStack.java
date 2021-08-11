@@ -1,7 +1,6 @@
 package org.rogmann.jsmud;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
@@ -174,12 +173,23 @@ public class OperandStack {
 	/** {@inheritDoc} */
 	@Override
 	public String toString() {
+		final StringBuilder sbTypes = new StringBuilder(20);
+		final int lenTypes = SHOW_FULL_STACK ? stack.length : idx + 1;
+		for (int i = 0; i < lenTypes; i++) {
+			if (i > 0) {
+				sbTypes.append(", ");
+			}
+			final Object so = stack[i];
+			if (so == null) {
+				sbTypes.append(so);
+			}
+			else {
+				sbTypes.append(so.getClass().getSimpleName());
+			}
+		}
 		return String.format("stack: currLen=%d, maxLen=%d, types=[%s], values=%s",
 				Integer.valueOf(idx + 1), Integer.valueOf(stack.length),
-				Arrays.asList(stack).stream()
-					.map(so -> (so != null) ? so.getClass().getSimpleName() : null)
-					.collect(Collectors.joining(", ")),
-				toString(stack, idx)
+				sbTypes, toString(stack, idx)
 		);
 	}
 
@@ -197,7 +207,8 @@ public class OperandStack {
 		sb.append('[');
 		final int len = aObjects.length;
 		final int maxLenUnusedValue = SHOW_FULL_STACK ? MAX_LEN_VALUE : 3;
-		for (int i = 0; i < len; i++) {
+		final int lenShown = SHOW_FULL_STACK ? len : lastIdx + 1;
+		for (int i = 0; i < lenShown; i++) {
 			final Object object = aObjects[i];
 			if (i > 0) {
 				sb.append(", ");

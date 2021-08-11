@@ -209,7 +209,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			final String sInstruction = displayInstruction(instr, vFrame.frame.getMethodNode());
 			psOut.println(String.format("%s, Instr %02x, %s: %s, locals %s",
 					line, (vFrame.frame != null) ? Integer.valueOf(vFrame.frame.instrNum) : null,
-					sInstruction, stack, OperandStack.toString(aLocals, aLocals.length)));
+					sInstruction, stack, OperandStack.toString(aLocals, aLocals.length - 1)));
 		}
 	}
 
