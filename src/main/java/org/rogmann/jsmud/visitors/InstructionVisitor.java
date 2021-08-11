@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FrameNode;
@@ -69,6 +70,9 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	/** level of method in call-stack */
 	private int level = 0;
 
+	/** opcode of previous instruction (-1 if none) */
+	private int prevOpcode;
+
 	/**
 	 * Constructor
 	 * @param psOut output-stream
@@ -120,6 +124,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		vFrame.frame = pFrame;
 		vFrame.currLine = -1;
 		level++;
+		prevOpcode = -1;
 		if (dumpMethodCallTrace) {
 			final String nameMethod = method.toString();
 			mapMethodCount.compute(nameMethod, (key, cnt) -> (cnt == null) ? Long.valueOf(1) : Long.valueOf(cnt.longValue() + 1));
@@ -149,6 +154,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			vFrame = null;
 		}
 		level--;
+		prevOpcode = -1;
 	}
 
 	/** {@inheritDoc} */
@@ -165,6 +171,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			}
 			psOut.println(String.format("Back in %s with %s", method, sObjReturn));
 		}
+		prevOpcode = -1;
 	}
 
 	/** {@inheritDoc} */
@@ -207,9 +214,20 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		if (opcode != -1) {
 			final String line = (vFrame.currLine > 0) ? "L " + vFrame.currLine : "";
 			final String sInstruction = displayInstruction(instr, vFrame.frame.getMethodNode());
-			psOut.println(String.format("%s, Instr %02x, %s: %s, locals %s",
+			final String sLocals;
+			if (prevOpcode == -1 || prevOpcode == Opcodes.ASTORE
+					|| prevOpcode == Opcodes.DSTORE || prevOpcode == Opcodes.FSTORE
+					|| prevOpcode == Opcodes.IINC
+					|| prevOpcode == Opcodes.ISTORE || prevOpcode == Opcodes.LSTORE) {
+				sLocals = ", locals " + OperandStack.toString(aLocals, aLocals.length - 1);
+			}
+			else {
+				sLocals = "";
+			}
+			psOut.println(String.format("%s, Instr %02x, %s: %s%s",
 					line, (vFrame.frame != null) ? Integer.valueOf(vFrame.frame.instrNum) : null,
-					sInstruction, stack, OperandStack.toString(aLocals, aLocals.length - 1)));
+					sInstruction, stack, sLocals));
+			prevOpcode = opcode;
 		}
 	}
 
