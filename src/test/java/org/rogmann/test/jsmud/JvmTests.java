@@ -79,7 +79,8 @@ public class JvmTests {
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
-		testsRegexp();
+		testsExceptionHandling();
+//		testsRegexp();
 //		testsLambda();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
@@ -275,6 +276,34 @@ public class JvmTests {
 		a123[0][1][2] = 1024;
 		assertEquals("array a123.000", Long.valueOf(512), Long.valueOf(a123[0][0][0]));
 		assertEquals("array a123.012", Long.valueOf(1024), Long.valueOf(a123[0][1][2]));
+	}
+
+	public void testsExceptionHandling() {
+		Method method = null;
+		boolean hasException;
+		try {
+			method = searchMethod(WorkExample.class, "notExistent");
+			hasException = false;
+		}
+		catch (NoSuchMethodException e) {
+			hasException = true;
+		}
+		assertTrue("ExceptionHandling-1", hasException);
+
+		try {
+			method = searchMethod(WorkExample.class, "getMethod");
+			hasException = false;
+		}
+		catch (NoSuchMethodException e) {
+			hasException = true;
+		}
+		assertTrue("ExceptionHandling-2a", !hasException);
+		assertEquals("ExceptionHandling-2b", "getMethod", method.getName());
+
+	}
+
+	private Method searchMethod(Class<?> clazz, String name) throws NoSuchMethodException {
+		return clazz.getDeclaredMethod(name);
 	}
 
 	public void testsRegexp() {

@@ -2065,7 +2065,7 @@ whileInstr:
 			catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
 				final Function<Object, String> fktDisp = o -> (o != null) ? o.getClass().toString() : null;
 				final String sInitargs = Arrays.stream(initargs).map(fktDisp).collect(Collectors.joining(", "));
-				throw new RuntimeException(String.format("invokespecial: Error while initializing constructor (%s) with name %s and description %s with args (%s)",
+				throw new JvmException(String.format("invokespecial: Error while initializing constructor (%s) with name %s and description %s with args (%s)",
 						constructor, mi.name, mi.desc, sInitargs), e);	
 			}
 			catch (InvocationTargetException e) {
@@ -2074,8 +2074,8 @@ whileInstr:
 				if (doContinueWhile) {
 					return true;
 				}
-				// TODO Exception handling
-				throw new JvmException("invokespecial: InvocationTargetException at " + mi.name + " with " + mi.desc, e);
+				throw new JvmUncaughtException("invokespecial: InvocationTargetException at " + mi.name + " with " + mi.desc,
+						e.getCause());
 			}
 			stack.push(instanceInit);
 			return false;
@@ -2119,8 +2119,8 @@ whileInstr:
 				returnObj = executor.executeMethod(mi.getOpcode(), invMethod, methodDesc, stack);
 				visitor.visitMethodExitBack(clazz, pMethod, this, returnObj);
 			}
-			catch (Throwable e) {
-				final boolean doContinueWhile = handleCatchException(e);
+			catch (JvmUncaughtException e) {
+				final boolean doContinueWhile = handleCatchException(e.getCause());
 				if (doContinueWhile) {
 					return true;
 				}
@@ -2159,8 +2159,8 @@ whileInstr:
 				if (doContinueWhile) {
 					return true;
 				}
-				// TODO Exception handling
-				throw new RuntimeException("invokevirtual: InvocationTargetException at " + mi.name + " with " + mi.desc, e);
+				throw new JvmUncaughtException("invokevirtual: InvocationTargetException at " + mi.name + " with " + mi.desc,
+						e.getCause());
 			}
 		}
 		final Class<?> classReturnType = invMethod.getReturnType();
@@ -2283,7 +2283,7 @@ whileSuperClass:
 			catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
 				final Function<Object, String> fktDisp = o -> (o != null) ? o.getClass().toString() : null;
 				final String sInitargs = Arrays.stream(initargs).map(fktDisp).collect(Collectors.joining(", "));
-				throw new RuntimeException(String.format("invokespecial: Error while initializing constructor (%s) of class (%s) in class-loader (%s) with name %s and description %s with args (%s)",
+				throw new JvmException(String.format("invokespecial: Error while initializing constructor (%s) of class (%s) in class-loader (%s) with name %s and description %s with args (%s)",
 						constructor, constructor.getDeclaringClass(), constructor.getDeclaringClass().getClassLoader(),
 						mi.name, mi.desc, sInitargs), e);	
 			}
@@ -2293,8 +2293,8 @@ whileSuperClass:
 				if (doContinueWhile) {
 					return true;
 				}
-				// TODO Exception handling
-				throw new RuntimeException("invokespecial: InvocationTargetException at " + mi.name + " with " + mi.desc, e);
+				throw new JvmUncaughtException("invokespecial: InvocationTargetException at " + mi.name + " with " + mi.desc,
+						e.getCause());
 			}
 		}
 
@@ -2490,7 +2490,7 @@ loopDeclMeth:
 	 * Checks if a thrown exception is handled by a try-catch-block.
 	 * In that case the instruction-index will be set to the catch-block.
 	 * @param objRef object-instance
-	 * @param methodClass current methode
+	 * @param methodClass current method
 	 * @param eCause thrown exception
 	 * @return <code>true</code> if the exception will be handled at the current instruction
 	 */

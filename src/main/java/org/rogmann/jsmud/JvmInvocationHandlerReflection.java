@@ -80,7 +80,16 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			try {
 				// Class.forName: We use the registry itself as reference-class-loader.
 				loadedClass = frame.registry.loadClass(className, frame.registry.getClass());
-			} catch (Exception e) {
+			}
+			catch (JvmUncaughtException e) {
+				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e.getCause()));
+				if (doContinueWhile.booleanValue()) {
+					doContinueWhile = Boolean.TRUE;
+				}
+				// This exception isn't handled here.
+				throw e;
+			}
+			catch (Exception e) {
 				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e));
 				if (doContinueWhile.booleanValue()) {
 					doContinueWhile = Boolean.TRUE;
@@ -129,8 +138,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			try {
 				objReturn = executor.executeMethod(Opcodes.INVOKESTATIC, methodRun, descMethDoPrivileged, stack);
 			}
-			catch (Throwable e) {
-				final boolean doContinueWhileFlag = frame.handleCatchException(e);
+			catch (JvmUncaughtException e) {
+				final boolean doContinueWhileFlag = frame.handleCatchException(e.getCause());
 				if (doContinueWhileFlag) {
 					return Boolean.TRUE;
 				}
@@ -183,8 +192,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				try {
 					executor.executeMethod(Opcodes.INVOKEVIRTUAL, constr, descr, stack);
 				}
-				catch (Throwable e) {
-					final boolean doContinueWhileE = frame.handleCatchException(e);
+				catch (JvmUncaughtException e) {
+					final boolean doContinueWhileE = frame.handleCatchException(e.getCause());
 					if (doContinueWhileE) {
 						return Boolean.TRUE;
 					}
@@ -283,8 +292,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					try {
 						objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, invMethod, descr, stack);
 					}
-					catch (Throwable e) {
-						final boolean doContinueWhileFlag = frame.handleCatchException(e);
+					catch (JvmUncaughtException e) {
+						final boolean doContinueWhileFlag = frame.handleCatchException(e.getCause());
 						if (doContinueWhileFlag) {
 							return Boolean.TRUE;
 						}
@@ -454,8 +463,8 @@ loopClassIh:
 		try {
 			objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, ihMethod, descr, stack);
 		}
-		catch (Throwable e) {
-			final boolean doContinueWhileE = frame.handleCatchException(e);
+		catch (JvmUncaughtException e) {
+			final boolean doContinueWhileE = frame.handleCatchException(e.getCause());
 			if (doContinueWhileE) {
 				return Boolean.TRUE;
 			}
