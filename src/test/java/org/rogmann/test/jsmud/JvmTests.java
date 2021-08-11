@@ -28,6 +28,8 @@ import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -77,6 +79,7 @@ public class JvmTests {
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
+		testsRegexp();
 //		testsLambda();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
@@ -99,16 +102,16 @@ public class JvmTests {
 //		testsConstructorRef();
 //		testsCatchException();
 //		testsJavaTime();
-		testsProxy();
-		testsProxySuper();
-		testsProxyViaReflection();
-		testsProxyViaReflectionMethod();
-		testsProxyPublicInterface();
-		testsProxyPublicInterfaceViaReflection();
-		testsProxyPublicInterfaceViaReflectionImpl();
-		testsProxyExecuteInternal();
-		testsReflection();
-		testsReflectionOnInterface();
+//		testsProxy();
+//		testsProxySuper();
+//		testsProxyViaReflection();
+//		testsProxyViaReflectionMethod();
+//		testsProxyPublicInterface();
+//		testsProxyPublicInterfaceViaReflection();
+//		testsProxyPublicInterfaceViaReflectionImpl();
+//		testsProxyExecuteInternal();
+//		testsReflection();
+//		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
 //		testsAccessController();
@@ -274,6 +277,26 @@ public class JvmTests {
 		assertEquals("array a123.012", Long.valueOf(1024), Long.valueOf(a123[0][1][2]));
 	}
 
+	public void testsRegexp() {
+		final Pattern pAlpha = Pattern.compile("[A-Za-z]+");
+		assertTrue("Pattern-a1", pAlpha.matcher("Carrot").matches());
+		assertTrue("Pattern-a2", !pAlpha.matcher("Möhre").matches());
+		
+		final Matcher mFind = pAlpha.matcher("\\_oOo_/");
+		assertTrue("Pattern-f1", mFind.find());
+		assertEquals("Pattern-f2", "oOo", mFind.group());
+
+		final Pattern pExtract = Pattern.compile(".*\\((.*)\\).*");
+		final Matcher mExtract = pExtract.matcher("exp(iπ)?");
+		assertTrue("Pattern-e1", mExtract.matches());
+		assertEquals("Pattern-e2", "iπ", mExtract.group(1));
+
+		final Pattern pMagic = Pattern.compile("(?i)(.*(magic|number):? ?)\\d+");
+		final Matcher mMagic = pMagic.matcher("There is a magic numbEr 691");
+		assertTrue("Pattern-m1", mMagic.matches());
+		assertEquals("Pattern-m2", "numbEr", mMagic.group(2));
+	}
+	
 	/** simple lambda-tests */
 	public void testsLambda() {
 		//linkCallSite org.rogmann.jsmud.test.JvmTests java.lang.invoke.LambdaMetafactory.metafactory(Lookup,String,MethodType,MethodType,MethodHandle,MethodType)CallSite/invokeStatic apply()IntFunction/[(int)Object, MethodHandle(int)Integer, (int)Integer]
