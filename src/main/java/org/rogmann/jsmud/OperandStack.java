@@ -235,7 +235,7 @@ public class OperandStack {
 					sb.append("...");
 				}
 			} catch (Exception e) {
-				sb.append(String.format("%s(0x%x)[%s]", object.getClass(),
+				sb.append(String.format("%s(0x%x)[%s]", (object != null) ? object.getClass() : null,
 						Integer.valueOf(System.identityHashCode(object)), e.toString()));
 			}
 		}

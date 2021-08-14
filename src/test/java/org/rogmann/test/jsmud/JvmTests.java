@@ -298,7 +298,9 @@ public class JvmTests {
 			hasException = true;
 		}
 		assertTrue("ExceptionHandling-2a", !hasException);
-		assertEquals("ExceptionHandling-2b", "getMethod", method.getName());
+		if (method != null) {
+			assertEquals("ExceptionHandling-2b", "getMethod", method.getName());
+		}
 
 	}
 

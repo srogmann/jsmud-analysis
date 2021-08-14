@@ -230,6 +230,7 @@ public class ClassRegistry implements VM {
 			final ClassLoader ctxClassLoader = (ctxClass != null) ? ctxClass.getClassLoader() : null;
 			if (ctxClassLoader instanceof JsmudClassLoader) {
 				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) ctxClassLoader;
+				@SuppressWarnings("null")
 				final ClassLoader classLoaderOrig = jsmudClassLoader.getPatchedClassClassLoader(ctxClass.getName());
 				classLoaderClass = (classLoaderOrig != null) ? classLoaderOrig : classLoaderDefault;
 			}
