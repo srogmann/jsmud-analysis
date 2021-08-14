@@ -263,7 +263,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				}
 				final Object objReturn;
 				if (oObjRef instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
-					doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) oObjRef, stack, doContinueWhile, reflMethod.getName(), descr);
+					doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) oObjRef, stack, reflMethod.getName(), descr);
 				}
 				else {
 					Method invMethod = reflMethod;
@@ -309,7 +309,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		}
 		else if (objRefStack instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
 			// proxy-instance
-			doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) objRefStack, stack, doContinueWhile, mi.name, mi.desc);
+			doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) objRefStack, stack, mi.name, mi.desc);
 		}
 		return doContinueWhile;
 	}
@@ -371,15 +371,15 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	 * @param frame current method-frame
 	 * @param proxy current instance
 	 * @param stack current stack
-	 * @param doContinueWhile
 	 * @param miName name of the method to be executed
 	 * @param miDesc signature of the method to be executed
 	 * @return continue-while-flag
 	 * @throws Throwable
 	 */
 	private Boolean executeProxyInvokeMethod(MethodFrame frame, final Proxy proxy, final OperandStack stack,
-			Boolean doContinueWhile, final String miName, final String miDesc)
+			final String miName, final String miDesc)
 			throws IllegalAccessException, NoSuchMethodException, Throwable {
+		Boolean doContinueWhile = null;
 		final Class<? extends Proxy> proxyClass = proxy.getClass();
 		if (filterProxy != null) {
 			final InvocationHandler ih = getInvocationHandler(proxy);
@@ -440,14 +440,15 @@ loopClassIh:
 	 * Executes an invoke-method of an invocation-handler.
 	 * @param frame current frame
 	 * @param ih invocation-handler to be called
-	 * @param executor default executor
+	 * @param defaultExecutor default executor
 	 * @param ihMethod method to be called
 	 * @param stack stack
 	 * @return continue-while-flag
 	 * @throws Throwable in case of an exception
 	 */
-	private static Boolean executeInvokeMethod(MethodFrame frame, final InvocationHandler ih, SimpleClassExecutor executor,
+	private static Boolean executeInvokeMethod(MethodFrame frame, final InvocationHandler ih, final SimpleClassExecutor defaultExecutor,
 			final Method ihMethod, final OperandStack stack) throws Throwable {
+		SimpleClassExecutor executor = defaultExecutor;
 		Boolean doContinueWhile;
 		final Class<?> loopIh = ihMethod.getDeclaringClass();
 		if (!ih.getClass().equals(loopIh)) {

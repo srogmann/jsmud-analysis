@@ -12,7 +12,7 @@ public interface JvmInvocationHandler {
 	 * @param frame current method-frame
 	 * @param mi method-invocation-instruction
 	 * @param stack current operand-stack
-	 * @return continue-while-flag in case of a execution, else <code>null</code> for normal continuation
+	 * @return continue-while-flat (<code>true</code> for next step in while, <code>false</code> leave switch only (and increment instr-idx)) or <code>null</code> for normal continuation
 	 * @throws Exception in case of an unhandled exception
 	 */
 	Boolean preprocessStaticCall(MethodFrame methodFrame, MethodInsnNode mi, OperandStack stack) throws Throwable;
