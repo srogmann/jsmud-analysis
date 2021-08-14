@@ -2,7 +2,7 @@ package org.rogmann.jsmud.util;
 
 import java.io.PrintStream;
 
-import org.rogmann.jsmud.OpcodeDisplay;
+import org.rogmann.jsmud.vm.OpcodeDisplay;
 
 /**
  * Generates a switch-statement.

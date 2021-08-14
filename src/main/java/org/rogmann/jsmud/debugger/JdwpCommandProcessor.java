@@ -15,9 +15,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.objectweb.asm.Type;
-import org.rogmann.jsmud.ClassRegistry;
-import org.rogmann.jsmud.MethodFrame;
-import org.rogmann.jsmud.VM;
 import org.rogmann.jsmud.datatypes.Tag;
 import org.rogmann.jsmud.datatypes.VMArrayID;
 import org.rogmann.jsmud.datatypes.VMArrayRegion;
@@ -60,6 +57,9 @@ import org.rogmann.jsmud.replydata.RefFrameBean;
 import org.rogmann.jsmud.replydata.RefMethodBean;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.VariableSlot;
+import org.rogmann.jsmud.vm.ClassRegistry;
+import org.rogmann.jsmud.vm.MethodFrame;
+import org.rogmann.jsmud.vm.VM;
 
 /**
  * Processor for receiving and sending jwdp-commands.

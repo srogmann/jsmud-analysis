@@ -15,10 +15,6 @@ import java.util.regex.Matcher;
 
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
-import org.rogmann.jsmud.ClassRegistry;
-import org.rogmann.jsmud.JvmExecutionVisitor;
-import org.rogmann.jsmud.MethodFrame;
-import org.rogmann.jsmud.OperandStack;
 import org.rogmann.jsmud.datatypes.VMByte;
 import org.rogmann.jsmud.datatypes.VMDataField;
 import org.rogmann.jsmud.datatypes.VMInt;
@@ -39,6 +35,10 @@ import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
+import org.rogmann.jsmud.vm.ClassRegistry;
+import org.rogmann.jsmud.vm.JvmExecutionVisitor;
+import org.rogmann.jsmud.vm.MethodFrame;
+import org.rogmann.jsmud.vm.OperandStack;
 
 /**
  * JVM-debugger-visitor.

@@ -1,8 +1,8 @@
 package org.rogmann.jsmud.debugger;
 
-import org.rogmann.jsmud.MethodFrame;
 import org.rogmann.jsmud.events.JdwpEventRequest;
 import org.rogmann.jsmud.events.JdwpModifierStep;
+import org.rogmann.jsmud.vm.MethodFrame;
 
 /**
  * Debugger-context of a method-frame.

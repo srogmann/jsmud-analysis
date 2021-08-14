@@ -1,6 +1,6 @@
 package org.rogmann.jsmud.visitors;
 
-import org.rogmann.jsmud.MethodFrame;
+import org.rogmann.jsmud.vm.MethodFrame;
 
 /**
  * Method-frame in a visitor.

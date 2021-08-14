@@ -47,7 +47,7 @@ JvmHelper's method connectRunnableToDebugger can be used to connect to a waiting
 ### Example of a method-call-trace
 The included class InstructionVisitor can generate a method-call-trace:
 
-      + public void org.rogmann.test.jsmud.JvmTests.assertEquals(java.lang.String,java.lang.Object,java.lang.Object) 2 of 6
+      + public void org.rogmann.jsmud.test.JvmTests.assertEquals(java.lang.String,java.lang.Object,java.lang.Object) 2 of 6
         + public boolean java.util.ArrayList.add(java.lang.Object) 6 of 7
           + private void java.util.ArrayList.ensureCapacityInternal(int) 7 of 7
             + private static int java.util.ArrayList.calculateCapacity(java.lang.Object[],int) 7 of 7

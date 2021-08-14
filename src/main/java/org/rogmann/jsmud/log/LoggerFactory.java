@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.rogmann.jsmud.JvmException;
+import org.rogmann.jsmud.vm.JvmException;
 
 /** logger-factory */
 public class LoggerFactory {

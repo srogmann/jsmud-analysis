@@ -4,9 +4,9 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
-import org.rogmann.jsmud.JvmExecutionVisitor;
-import org.rogmann.jsmud.MethodFrame;
-import org.rogmann.jsmud.OperandStack;
+import org.rogmann.jsmud.vm.JvmExecutionVisitor;
+import org.rogmann.jsmud.vm.MethodFrame;
+import org.rogmann.jsmud.vm.OperandStack;
 
 /**
  * Delegates visitor-calls to an internal visitor.

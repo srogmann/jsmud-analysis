@@ -27,11 +27,11 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
-import org.rogmann.jsmud.FrameDisplay;
-import org.rogmann.jsmud.JvmExecutionVisitor;
-import org.rogmann.jsmud.MethodFrame;
-import org.rogmann.jsmud.OpcodeDisplay;
-import org.rogmann.jsmud.OperandStack;
+import org.rogmann.jsmud.vm.FrameDisplay;
+import org.rogmann.jsmud.vm.JvmExecutionVisitor;
+import org.rogmann.jsmud.vm.MethodFrame;
+import org.rogmann.jsmud.vm.OpcodeDisplay;
+import org.rogmann.jsmud.vm.OperandStack;
 
 public class InstructionVisitor implements JvmExecutionVisitor {
 
