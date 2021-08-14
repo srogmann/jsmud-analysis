@@ -45,12 +45,12 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				fieldInvocationHandlerJre8 = null;
 			}
 			catch (SecurityException e) {
-				fieldInvocationHandlerJre8 = null;;
+				fieldInvocationHandlerJre8 = null;
 				LOG.error(String.format("Accessing internals of (%s) is not allowed", Proxy.class), e);
 			}
 			catch (RuntimeException e) {
 				// e.g. java.lang.reflect.InaccessibleObjectException.
-				fieldInvocationHandlerJre8 = null;;
+				fieldInvocationHandlerJre8 = null;
 				LOG.error(String.format("Accessing internals of (%s) was not successful", Proxy.class), e);
 			}
 			fFieldInvocationHandlerJreInternal = fieldInvocationHandlerJre8;
@@ -382,7 +382,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			throws IllegalAccessException, NoSuchMethodException, Throwable {
 		final Class<? extends Proxy> proxyClass = proxy.getClass();
 		if (filterProxy != null) {
-			final InvocationHandler ih = getInvocationHandler((Proxy) proxy);
+			final InvocationHandler ih = getInvocationHandler(proxy);
 			SimpleClassExecutor executor = null;
 			if (filterProxy.isClassToBeSimulated(ih.getClass())) {
 				executor = frame.registry.getClassExecutor(ih.getClass());
@@ -421,7 +421,7 @@ loopClassIh:
 					stack.pop();
 					stack.push(ih);
 					// We call the method in the invocation-handler.
-					final Method intfMethod = findInterfaceMethodOfProxy((Proxy) proxy, methodIh);
+					final Method intfMethod = findInterfaceMethodOfProxy(proxy, methodIh);
 					final Object[] oIhArgs = { proxy, intfMethod, oArgs };
 					stack.pushAndResize(0, oIhArgs);
 					final Method ihMethod = findMethodInvoke(ih);
