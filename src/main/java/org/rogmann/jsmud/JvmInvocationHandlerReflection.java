@@ -341,7 +341,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		return intfMethod;
 	}
 
-	private Method findMethodInvoke(final InvocationHandler ih) throws NoSuchMethodException {
+	private static Method findMethodInvoke(final InvocationHandler ih) throws NoSuchMethodException {
 		Method ihMethod = null;
 		Class<?> classLoopIh = ih.getClass();
 		int parentCounter = 0;
@@ -446,7 +446,7 @@ loopClassIh:
 	 * @return continue-while-flag
 	 * @throws Throwable in case of an exception
 	 */
-	private Boolean executeInvokeMethod(MethodFrame frame, final InvocationHandler ih, SimpleClassExecutor executor,
+	private static Boolean executeInvokeMethod(MethodFrame frame, final InvocationHandler ih, SimpleClassExecutor executor,
 			final Method ihMethod, final OperandStack stack) throws Throwable {
 		Boolean doContinueWhile;
 		final Class<?> loopIh = ihMethod.getDeclaringClass();
