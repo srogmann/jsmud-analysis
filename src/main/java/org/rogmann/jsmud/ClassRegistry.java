@@ -601,7 +601,10 @@ public class ClassRegistry implements VM {
 					final RefTypeBean refTypeBean = mapClassRefType.get(lSuperClass);
 					superClassId = new VMClassID(refTypeBean.getTypeID().getValue());
 				} catch (ClassNotFoundException e) {
-					superClassId = null;
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("getSuperClass: super-class (%s) of (%s) can't be found",
+								superclass.getName(), classId));
+					}
 				}
 			}
 		}
