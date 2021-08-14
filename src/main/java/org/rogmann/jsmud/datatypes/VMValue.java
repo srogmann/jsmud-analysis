@@ -49,6 +49,8 @@ public class VMValue extends VMDataField {
 		value.write(buf, offset + 1);
 	}
 
+	/** {@inheritDoc} */
+	@Override
 	public String toString() {
 		return new StringBuilder(20).append(getClass().getSimpleName())
 				.append("(tag:").append(Tag.lookupByTag(tag))

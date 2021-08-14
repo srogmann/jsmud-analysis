@@ -36,6 +36,7 @@ public class MethodFrameDebugContext {
 	}
 
 	/** {@inheritDoc} */
+	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder(12);
 		sb.append("MFDC#").append(Integer.toHexString(System.identityHashCode(this)));
