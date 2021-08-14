@@ -32,8 +32,7 @@ public class DebuggerTestMain {
 		}
 		final String host = args[0];
 		final int port = Integer.parseInt(args[1]);
-		try {
-			final Socket socket = SocketFactory.getDefault().createSocket(host, port);
+		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
 			socket.setSoTimeout(200);
 			final ClassLoader classLoader = DebuggerTestMain.class.getClassLoader();
 			final ClassExecutionFilter executionFilter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();

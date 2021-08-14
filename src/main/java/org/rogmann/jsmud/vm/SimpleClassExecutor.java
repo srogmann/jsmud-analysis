@@ -79,17 +79,17 @@ public class SimpleClassExecutor {
 	 * @return reader
 	 */
 	public static ClassReader createClassReader(final ClassLoader classLoader, final Class<?> clazz) {
-		// Some OSGi-class-loader depend on an absolute path.
+		// Some OSGi-class-loaders depend on an absolute path.
 		final String resName = '/' + clazz.getName().replace('.', '/') + ".class";
-		final InputStream is = clazz.getResourceAsStream(resName);
-		if (is == null) {
-			throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
-					resName, clazz.getName(), classLoader));
-		}
 		final ClassReader classReader;
-		try {
+		try (final InputStream is = clazz.getResourceAsStream(resName)) {
+			if (is == null) {
+				throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
+						resName, clazz.getName(), classLoader));
+			}
 			classReader = new ClassReader(is);
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new IllegalArgumentException(String.format("IO-error while reading class (%s) in class-loader (%s)",
 					clazz.getName(), classLoader), e);
 		}
