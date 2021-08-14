@@ -54,7 +54,7 @@ public class MethodFrame {
 	final boolean executeAccessControllerNative = Boolean.getBoolean(MethodFrame.class.getName() + "executeAccessControllerNative"); 
 
 	/** maximum level of stacked method-references on an object-instance */
-	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20);
+	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20).intValue();
 
 	/** class-registry */
 	public final ClassRegistry registry;

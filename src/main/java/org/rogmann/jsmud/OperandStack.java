@@ -14,7 +14,7 @@ public class OperandStack {
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
 	/** maximum length of a displayed value */
-	private static final int MAX_LEN_VALUE = Integer.getInteger(OperandStack.class.getName() + ".maxLenValue", 250);
+	private static final int MAX_LEN_VALUE = Integer.getInteger(OperandStack.class.getName() + ".maxLenValue", 250).intValue();
 
 	/** <code>true</code> if the whole stack (including unused values) should be displayed (useful in case of debugging the simulator itself) */
 	private static final boolean SHOW_FULL_STACK = Boolean.getBoolean(OperandStack.class.getName() + ".showFullStack");

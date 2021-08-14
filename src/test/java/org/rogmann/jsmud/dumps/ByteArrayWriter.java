@@ -49,7 +49,7 @@ public class ByteArrayWriter {
 		final String[] aBytes = sBytes.substring(idxStart + 1, idxEnd).split(",");
 		try (final OutputStream os = new BufferedOutputStream(new FileOutputStream(fileOut))) {
 			for (String sByte : aBytes) {
-				final int b = Integer.valueOf(sByte.trim());
+				final int b = Integer.parseInt(sByte.trim());
 				if (b < -128 || b > 127) {
 					throw new IllegalArgumentException("Unexpected byte: " + sByte);
 				}
