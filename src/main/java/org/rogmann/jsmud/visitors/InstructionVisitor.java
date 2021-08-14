@@ -380,7 +380,13 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		}
 	}
 	
-	static <K, V> List<Entry<K, AtomicLong>> sortMap(final Map<K, AtomicLong> map) {
+	/**
+	 * Gets the entries of a map to AtomicLong sorted by long-value.
+	 * @param map map to be sorted
+	 * @param <K> type of keys
+	 * @return sorted list of entries
+	 */
+	static <K> List<Entry<K, AtomicLong>> sortMap(final Map<K, AtomicLong> map) {
 		final List<Entry<K, AtomicLong>> list = new ArrayList<>(map.entrySet());
 		list.sort((e1, e2) -> (int) (e2.getValue().get() - e1.getValue().get()));
 		return list;
