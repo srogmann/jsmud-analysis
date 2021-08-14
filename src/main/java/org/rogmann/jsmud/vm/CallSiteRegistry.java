@@ -1,4 +1,4 @@
-package org.rogmann.jsmud;
+package org.rogmann.jsmud.vm;
 
 import java.lang.reflect.Executable;
 import java.util.Objects;

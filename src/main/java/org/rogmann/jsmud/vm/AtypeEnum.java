@@ -1,4 +1,4 @@
-package org.rogmann.jsmud;
+package org.rogmann.jsmud.vm;
 
 public enum AtypeEnum {
 	T_BOOLEAN(4, boolean.class),

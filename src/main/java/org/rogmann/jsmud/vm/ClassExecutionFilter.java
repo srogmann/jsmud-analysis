@@ -1,4 +1,4 @@
-package org.rogmann.jsmud;
+package org.rogmann.jsmud.vm;
 
 /**
  * Interface for filtering classes to be simulated by the interpreter.
