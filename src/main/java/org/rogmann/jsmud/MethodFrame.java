@@ -2185,7 +2185,7 @@ whileInstr:
 		Method invMethod = null;
 		Class<?> classObj = classOwner;
 whileSuperClass:
-		while (classObj != null && invMethod == null) {
+		while (classObj != null) {
 			final Class<?>[] aInterfaces = classObj.getInterfaces();
 			for (Class<?> classLoop : aInterfaces) {
 				if (isVirtual || classInt.isAssignableFrom(classLoop)) {
