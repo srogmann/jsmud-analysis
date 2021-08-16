@@ -118,8 +118,16 @@ public class SourceFileWriter {
 			writeLine(bw, "");
 			appendAccessMethod(sb, methodNode.access);
 			final Type type = Type.getMethodType(methodNode.desc);
-			sb.append(type.getReturnType().getClassName());
-			sb.append(' ').append(methodNode.name);
+			if ("<init>".equals(methodNode.name)) {
+				sb.append(classSimpleName);
+			}
+			else if ("<clinit>".equals(methodNode.name)) {
+				// static initializer
+			}
+			else {
+				sb.append(type.getReturnType().getClassName());
+				sb.append(' ').append(methodNode.name);
+			}
 			sb.append('(');
 			final Type[] argTypes = type.getArgumentTypes();
 			for (int i = 0; i < argTypes.length; i++) {
