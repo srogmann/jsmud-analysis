@@ -1,6 +1,8 @@
 package org.rogmann.jsmud.vm;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.Socket;
@@ -65,27 +67,31 @@ public class JvmHelper {
 				}
 			}
 			visitor.setJvmSimulator(vm);
-			final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socket.getInputStream(), socket.getOutputStream(), 
-					vm, visitor);
-			visitor.visitThreadStarted(Thread.currentThread());
-			vm.suspendThread(vm.getCurrentThreadId());
-			debugger.processPackets();
-
-			vm.registerThread(Thread.currentThread());
-			try {
-				final SimpleClassExecutor executor = new SimpleClassExecutor(vm, runnable.getClass(), visitor, invocationHandler);
-				// We have to announce the class to the debugger.
-				visitor.visitLoadClass(runnable.getClass());
-				final OperandStack stackArgs = new OperandStack(1);
-				stackArgs.push(runnable);
-				try {
-					executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
-				} catch (Throwable e) {
-					throw new RuntimeException("Exception while simulating runnable", e);
+			try (final InputStream socketIs = socket.getInputStream()) {
+				try (final OutputStream socketOs = socket.getOutputStream()) {
+					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
+							vm, visitor);
+					visitor.visitThreadStarted(Thread.currentThread());
+					vm.suspendThread(vm.getCurrentThreadId());
+					debugger.processPackets();
+		
+					vm.registerThread(Thread.currentThread());
+					try {
+						final SimpleClassExecutor executor = new SimpleClassExecutor(vm, runnable.getClass(), visitor, invocationHandler);
+						// We have to announce the class to the debugger.
+						visitor.visitLoadClass(runnable.getClass());
+						final OperandStack stackArgs = new OperandStack(1);
+						stackArgs.push(runnable);
+						try {
+							executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
+						} catch (Throwable e) {
+							throw new RuntimeException("Exception while simulating runnable", e);
+						}
+					}
+					finally {
+						vm.unregisterThread(Thread.currentThread());
+					}
 				}
-			}
-			finally {
-				vm.unregisterThread(Thread.currentThread());
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("IO-Exception while speaking to " + host + ':' + port, e);
