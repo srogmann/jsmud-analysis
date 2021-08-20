@@ -173,6 +173,10 @@ public class OperandStack {
 	/** {@inheritDoc} */
 	@Override
 	public String toString() {
+		if (idx + 1 > stack.length) {
+			throw new IllegalStateException(String.format("stack invalid: length=%d, idx=%d",
+					Integer.valueOf(stack.length), Integer.valueOf(idx)));
+		}
 		final StringBuilder sbTypes = new StringBuilder(20);
 		final int lenTypes = SHOW_FULL_STACK ? stack.length : idx + 1;
 		for (int i = 0; i < lenTypes; i++) {
