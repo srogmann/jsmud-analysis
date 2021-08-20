@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -26,7 +25,7 @@ import org.rogmann.jsmud.vm.OperandStack;
 import org.rogmann.jsmud.vm.SimpleClassExecutor;
 
 /**
- * test of jwdp-implementation.
+ * test of jdwp-implementation.
  */
 public class DebuggerTestMain {
 
@@ -137,30 +136,15 @@ public class DebuggerTestMain {
 	}
 
 	public static void debuggerTest4(final ClassRegistry vm) {
-		final SimpleClassExecutor executor = vm.getClassExecutor(DebuggerTestMain.class);
+		final SimpleClassExecutor executor = vm.getClassExecutor(DebuggerTestMethods.class);
 		final OperandStack stackArgs = new OperandStack(1);
-		stackArgs.push(DebuggerTestMain.class);
-		final Method method = JvmHelper.lookup(DebuggerTestMain.class, "stepIntoSSLContext");
+		stackArgs.push(DebuggerTestMethods.class);
+		final Method method = JvmHelper.lookup(DebuggerTestMain.class, "main");
 		try {
-			executor.executeMethod(Opcodes.INVOKEVIRTUAL, method, "()V", stackArgs);
+			executor.executeMethod(Opcodes.INVOKEVIRTUAL, method, "([Ljava/lang/String;)V", stackArgs);
 		} catch (Throwable e) {
 			throw new RuntimeException("Exception while executing method " + method, e);
 		}
 	}
 
-	public static void stepIntoSSLContext() {
-		final Class<?> classDepr;
-		try {
-			classDepr = Class.forName("com.sun.net.ssl.SSLContext");
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException("Can't load deprecated class", e);
-		}
-		try {
-			final Method method = classDepr.getDeclaredMethod("getInstance", String.class);
-			method.invoke(classDepr, "INVALID_TLS");
-		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
-				| InvocationTargetException e) {
-			throw new RuntimeException("Reflection-error while executing getInstance", e);
-		}
-	}
 }

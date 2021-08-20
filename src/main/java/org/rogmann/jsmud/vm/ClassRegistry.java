@@ -917,7 +917,7 @@ public class ClassRegistry implements VM {
 			final String methodDesc = Type.getMethodDescriptor(pMethod);
 			final MethodNode methodNode = executor.loopkupMethod(pMethod.getName(), methodDesc);
 			final List<LocalVariableNode> localVariables = methodNode.localVariables;
-			if (localVariables != null) {
+			if (localVariables != null && localVariables.size() > 0) {
 				for (final LocalVariableNode varNode : localVariables) {
 					final long startIndex = methodNode.instructions.indexOf(varNode.start);
 					final long endIndex = methodNode.instructions.indexOf(varNode.end);
@@ -929,6 +929,24 @@ public class ClassRegistry implements VM {
 					}
 					final VariableSlot slot = new VariableSlot(startIndex, varNode.name, signature,
 							genericSignature, length, varNode.index); 
+					slots.add(slot);
+				}
+			}
+			else {
+				// No debug-information.
+				final int maxLocals = methodNode.maxLocals;
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("getVariableSlots: no debug-information, maxLocals=%d", Integer.valueOf(maxLocals)));
+				}
+				for (int i = 0; i < maxLocals; i++) {
+					final long startIndex = 0;
+					final long endIndex = methodNode.instructions.size();
+					final String genericSignature = "";
+					final int length = (int) (endIndex - startIndex);
+					final String signature = "Ljava/lang/Object;"; // We don't know the type.
+					final String name = "local" + i;
+					final VariableSlot slot = new VariableSlot(startIndex, name, signature,
+							genericSignature, length, i); 
 					slots.add(slot);
 				}
 			}
