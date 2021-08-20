@@ -17,6 +17,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
+import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
@@ -288,6 +289,17 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		final String opcodeDisplay = OpcodeDisplay.lookup(instr.getOpcode());
 		String addition = "";
 		switch (instr.getType()) {
+			case AbstractInsnNode.INSN:
+			{
+				// instruction-node
+				break;
+			}
+			case AbstractInsnNode.INT_INSN:
+			{
+				final IntInsnNode iin = (IntInsnNode) instr;
+				addition = String.format(" %d", Integer.valueOf(iin.operand));
+				break;
+			}
 			case AbstractInsnNode.VAR_INSN:
 			{
 				final VarInsnNode vi = (VarInsnNode) instr;
