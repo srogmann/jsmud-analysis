@@ -287,55 +287,96 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	public static String displayInstruction(final AbstractInsnNode instr, final MethodNode methodNode) {
 		final String opcodeDisplay = OpcodeDisplay.lookup(instr.getOpcode());
 		String addition = "";
-		if (instr instanceof VarInsnNode) {
-			final VarInsnNode vi = (VarInsnNode) instr;
-			addition = String.format(" %d", Integer.valueOf(vi.var));
-			if (methodNode != null && methodNode.localVariables != null) {
-					// && vi.var < methodNode.localVariables.size()) {
-				LocalVariableNode varNode = null;
-				for (LocalVariableNode varNodeLoop : methodNode.localVariables) {
-					if (varNodeLoop.index == vi.var) {
-						varNode = varNodeLoop;
-						break;
+		switch (instr.getType()) {
+			case AbstractInsnNode.VAR_INSN:
+			{
+				final VarInsnNode vi = (VarInsnNode) instr;
+				addition = String.format(" %d", Integer.valueOf(vi.var));
+				if (methodNode != null && methodNode.localVariables != null) {
+						// && vi.var < methodNode.localVariables.size()) {
+					LocalVariableNode varNode = null;
+					for (LocalVariableNode varNodeLoop : methodNode.localVariables) {
+						if (varNodeLoop.index == vi.var) {
+							varNode = varNodeLoop;
+							break;
+						}
+					}
+					if (varNode != null) {
+						addition += String.format(" (%s)", varNode.name);
 					}
 				}
-				if (varNode != null) {
-					addition += String.format(" (%s)", varNode.name);
+				break;
+			}
+			case AbstractInsnNode.FIELD_INSN:
+			{
+				final FieldInsnNode fi = (FieldInsnNode) instr;
+				addition = String.format(" %s.%s(%s)", fi.owner, fi.name, fi.desc);
+				break;
+			}
+			case AbstractInsnNode.LDC_INSN:
+			{
+				final LdcInsnNode li = (LdcInsnNode) instr;
+				if (li.cst instanceof String) {
+					addition = String.format(" \"%s\"", li.cst);
 				}
+				else {
+					addition = String.format(" %s", li.cst);
+				}
+				break;
 			}
-		}
-		else if (instr instanceof FieldInsnNode) {
-			final FieldInsnNode fi = (FieldInsnNode) instr;
-			addition = String.format(" %s.%s(%s)", fi.owner, fi.name, fi.desc);
-		}
-		else if (instr instanceof LdcInsnNode) {
-			final LdcInsnNode li = (LdcInsnNode) instr;
-			if (li.cst instanceof String) {
-				addition = String.format(" \"%s\"", li.cst);
+			case AbstractInsnNode.IINC_INSN:
+			{
+				final IincInsnNode ii = (IincInsnNode) instr;
+				addition = String.format(" %d, local[%d]", Integer.valueOf(ii.incr), Integer.valueOf(ii.var));
+				break;
 			}
-			else {
-				addition = String.format(" %s", li.cst);
+			case AbstractInsnNode.JUMP_INSN:
+			{
+				final JumpInsnNode ji = (JumpInsnNode) instr;
+				addition = String.format(" %s", ji.label.getLabel());
+				break;
 			}
-		}
-		else if (instr instanceof IincInsnNode) {
-			final IincInsnNode ii = (IincInsnNode) instr;
-			addition = String.format(" %d, local[%d]", Integer.valueOf(ii.incr), Integer.valueOf(ii.var));
-		}
-		else if (instr instanceof JumpInsnNode) {
-			final JumpInsnNode ji = (JumpInsnNode) instr;
-			addition = String.format(" %s", ji.label.getLabel());
-		}
-		else if (instr instanceof MethodInsnNode) {
-			final MethodInsnNode mi = (MethodInsnNode) instr;
-			addition = String.format(" %s#%s%s", mi.owner, mi.name, mi.desc);
-		}
-		else if (instr instanceof MultiANewArrayInsnNode) {
-			final MultiANewArrayInsnNode manai = (MultiANewArrayInsnNode) instr;
-			addition = String.format(" %d, %s", Integer.valueOf(manai.dims), manai.desc);
-		}
-		else if (instr instanceof TypeInsnNode) {
-			final TypeInsnNode ti = (TypeInsnNode) instr;
-			addition = String.format(" %s", ti.desc);
+			case AbstractInsnNode.METHOD_INSN:
+			{
+				final MethodInsnNode mi = (MethodInsnNode) instr;
+				addition = String.format(" %s#%s%s", mi.owner, mi.name, mi.desc);
+				break;
+			}
+			case AbstractInsnNode.MULTIANEWARRAY_INSN:
+			{
+				final MultiANewArrayInsnNode manai = (MultiANewArrayInsnNode) instr;
+				addition = String.format(" %d, %s", Integer.valueOf(manai.dims), manai.desc);
+				break;
+			}
+			case AbstractInsnNode.TYPE_INSN:
+			{
+				final TypeInsnNode ti = (TypeInsnNode) instr;
+				addition = String.format(" %s", ti.desc);
+				break;
+			}
+			case AbstractInsnNode.LABEL:
+			{
+				final LabelNode label = (LabelNode) instr;
+				addition = String.format(" Label %s", label.getLabel());
+				break;
+			}
+			case AbstractInsnNode.FRAME:
+			{
+				final FrameNode frame = (FrameNode) instr;
+				addition = String.format(" Frame (locals %s)", frame.local);
+				break;
+			}
+			case AbstractInsnNode.LINE:
+			{
+				final LineNumberNode line = (LineNumberNode) instr;
+				addition = String.format(" LineNumber %s", Integer.valueOf(line.line));
+				break;
+			}
+			default:
+			{
+				addition = String.format(" Type_%02d", Integer.valueOf(instr.getType()));
+				break;
+			}
 		}
 		final String sInstruction = opcodeDisplay + addition;
 		return sInstruction;
