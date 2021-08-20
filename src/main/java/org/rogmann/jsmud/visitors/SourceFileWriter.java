@@ -2,6 +2,7 @@ package org.rogmann.jsmud.visitors;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.rogmann.jsmud.replydata.LineCodeIndex;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmException;
 
@@ -44,6 +46,12 @@ public class SourceFileWriter {
 
 	/** internal-names of processed classes */
 	private final Set<String> setInnerClassesProcessed = new HashSet<>();
+
+	/** map from method-key to first line-number of body */
+	private final Map<String, Integer> mapMethodFirstLine = new HashMap<>();
+
+	/** map from method-key to map from instruction to line-number */
+	private final Map<String, Map<Integer, Integer>> mapMethodInstr = new HashMap<>();
 
 	/**
 	 * Constructor, writes the source-file.
@@ -147,7 +155,7 @@ public class SourceFileWriter {
 			}
 			sb.append(" {"); writeLine(bw, sb);
 			level++;
-			writeMethodBody(bw, sb, methodNode);
+			writeMethodBody(bw, sb, node, methodNode);
 			level--;
 			writeLine(bw, "}");
 		}
@@ -166,7 +174,12 @@ public class SourceFileWriter {
 		writeLine(bw, "}");
 	}
 
-	private void writeMethodBody(final BufferedWriter bw, final StringBuilder sb, MethodNode methodNode) throws IOException {
+	private void writeMethodBody(final BufferedWriter bw, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
+		final String methodKey = buildMethodKey(classNode, methodNode);
+		mapMethodFirstLine.put(methodKey, Integer.valueOf(lineNum));
+		final Map<Integer, Integer> mapInstrLine = new HashMap<>();
+		mapMethodInstr.put(methodKey, mapInstrLine);
+
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
@@ -184,10 +197,11 @@ public class SourceFileWriter {
 				lineNumClass = lnn.line;
 			}
 			else if (opcode >= 0) {
+				final Integer iLineNum = Integer.valueOf(lineNum);
 				final String sInstruction = InstructionVisitor.displayInstruction(instr, methodNode);
 				writeLine(bw, sInstruction);
-				mapLineClassToPseudo.putIfAbsent(Integer.valueOf(lineNumClass),
-						Integer.valueOf(lineNum));
+				mapLineClassToPseudo.putIfAbsent(Integer.valueOf(lineNumClass), iLineNum);
+				mapInstrLine.put(Integer.valueOf(i), iLineNum);
 			}
 		}
 	}
@@ -289,6 +303,56 @@ public class SourceFileWriter {
 		if ((access & Opcodes.ACC_SYNTHETIC) != 0) {
 			sb.append("synthentic ");
 		}
+	}
+
+	/**
+	 * Builds a key consisting of internal class-name and method-signature.
+	 * @param classNode class-node
+	 * @param methodNode method-node
+	 * @return internal lookup-key
+	 */
+	private static String buildMethodKey(ClassNode classNode, MethodNode methodNode) {
+		final String methodKey = classNode.name + '#' + methodNode.name + methodNode.desc;
+		return methodKey;
+	}
+
+	/**
+	 * Gets a map from instruction-index to line-number in the generated source-file
+	 * @param clazz class
+	 * @param methodNode method of class
+	 * @return map from instruction-index to line-number or <code>null</code>
+	 */
+	public Map<Integer, Integer> getMethodMapInstrLine(final Class<?> clazz, final MethodNode methodNode) {
+		final String methodKey = Type.getInternalName(clazz) + '#' + methodNode.name + methodNode.desc;
+		return mapMethodInstr.get(methodKey);
+	}
+
+	public List<LineCodeIndex> computeMethodLines(ClassNode classNode, MethodNode methodNode) {
+		final List<LineCodeIndex> lines = new ArrayList<>();
+		final String methodKey = buildMethodKey(classNode, methodNode);
+		final Integer firstLine = mapMethodFirstLine.get(methodKey);
+		if (firstLine == null) {
+			throw new JvmException(String.format("No first line of method (%s)", methodKey));
+		}
+
+		int lineNo = firstLine.intValue();
+		lines.add(new LineCodeIndex(0, lineNo));
+		
+		final InsnList instructions = methodNode.instructions;
+		for (int i = 0; i < instructions.size(); i++) {
+			final AbstractInsnNode instr = instructions.get(i);
+			final int opcode = instr.getOpcode();
+			final int type = instr.getType();
+			if (type == AbstractInsnNode.LABEL) {
+				lineNo++;
+			}
+			else if (opcode >= 0) {
+				lines.add(new LineCodeIndex(i, lineNo));
+				lineNo++;
+			}
+		}
+
+		return lines;
 	}
 
 	/**

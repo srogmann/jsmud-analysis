@@ -59,6 +59,7 @@ import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.VariableSlot;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.MethodFrame;
+import org.rogmann.jsmud.vm.Utils;
 import org.rogmann.jsmud.vm.VM;
 
 /**
@@ -1134,9 +1135,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else {
 			final Class<?> classRef = (Class<?>) oClassRef;
-			final String className = classRef.getName().replaceFirst(".*[.]", "");
-			final String classNameOuter = className.replaceFirst("[$].*", "");
-			final String sourceFileGuessed = String.format("%s.java", classNameOuter);
+			final String sourceFileGuessed = Utils.guessSourceFile(classRef);
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("sendReferenceTypeSourceFile: %s -> (%s)",
 						classRef, sourceFileGuessed)); 

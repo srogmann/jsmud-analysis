@@ -1,5 +1,7 @@
 package org.rogmann.jsmud.vm;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
@@ -22,10 +24,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.LocalVariableNode;
@@ -57,6 +62,7 @@ import org.rogmann.jsmud.datatypes.VMVoid;
 import org.rogmann.jsmud.debugger.DebuggerException;
 import org.rogmann.jsmud.debugger.SlotRequest;
 import org.rogmann.jsmud.debugger.SlotValue;
+import org.rogmann.jsmud.debugger.SourceFileRequester;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.replydata.LineCodeIndex;
@@ -66,6 +72,7 @@ import org.rogmann.jsmud.replydata.RefMethodBean;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.TypeTag;
 import org.rogmann.jsmud.replydata.VariableSlot;
+import org.rogmann.jsmud.visitors.SourceFileWriter;
 
 /**
  * Registry of classes whose execution should be simulated.
@@ -134,6 +141,11 @@ public class ClassRegistry implements VM {
 
 	/** map containing ref-type-beans of class-signatures */
 	private final ConcurrentMap<String, RefTypeBean> mapClassSignatures = new ConcurrentHashMap<>(100);
+
+	/** map from source-name to source-file (containing bytecode) */
+	private final ConcurrentMap<String, SourceFileWriter> mapSourceSourceFiles = new ConcurrentHashMap<>();
+	/** map from loaded class to source-file (containing bytecode) */
+	private final ConcurrentMap<Class<?>, SourceFileWriter> mapClassSourceFiles = new ConcurrentHashMap<>();
 
 	/** registry of call-site-simulations used by INVOKEDYNAMIC */
 	private final CallSiteRegistry callSiteRegistry;
@@ -351,6 +363,15 @@ public class ClassRegistry implements VM {
 			isPatched = jsmudCL.isDefaultConstructorAdded(classInit);
 		}
 		return isPatched;
+	}
+
+	/**
+	 * Gets the source-file-writer of this class (if present).
+	 * @param clazz class
+	 * @return source-file-writer or <code>null</code>
+	 */
+	public SourceFileWriter getSourceFileWriter(Class<?> clazz) {
+		return mapClassSourceFiles.get(clazz);
 	}
 
 	/**
@@ -613,7 +634,7 @@ public class ClassRegistry implements VM {
 
 	/** {@inheritDoc} */
 	@Override
-	public List<LineCodeIndex> getLineTable(Class<?> clazz, Executable executable, VMReferenceTypeID refType,
+	public List<LineCodeIndex> getLineTable(final Class<?> clazz, final Executable executable, final VMReferenceTypeID refType,
 			VMMethodID methodID) {
 		final List<LineCodeIndex> lineTable = new ArrayList<>();
 		final SimpleClassExecutor classExecutor = getClassExecutor(clazz);
@@ -631,32 +652,43 @@ public class ClassRegistry implements VM {
 				throw new JvmException(String.format("Unexpected executable-type (%s) in class (%s)", executable, clazz));
 			}
 			if (methodNode != null) {
-				final InsnList instructions = methodNode.instructions;
-				final int numInstr = instructions.size();
-				boolean isFirstLine = true;
-				int currLine = 0;
-				int lastDebugLine = 0;
-				for (int i = 0; i < numInstr; i++) {
-					AbstractInsnNode instr = instructions.get(i);
-					final int opcode = instr.getOpcode();
-					if (instr instanceof LineNumberNode) {
-						final LineNumberNode ln = (LineNumberNode) instr;
-						currLine = ln.line;
+				final SourceFileWriter sourceFileWriter = mapClassSourceFiles.get(clazz);
+				if (sourceFileWriter != null) {
+					final List<LineCodeIndex> computedLines = sourceFileWriter.computeMethodLines(classExecutor.getClassNode(), methodNode);
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("getLineTable: executable=%s, #computedLines=%d",
+								executable, Integer.valueOf(computedLines.size())));
 					}
-					else if (opcode >= 0) {
-						if (currLine > lastDebugLine) {
-							// We place the line-number-index at the first opcode of a line.
-							final int index;
-							if (isFirstLine) {
-								// The first line of a method should start at index 0.
-								index = 0;
-								isFirstLine = false;
+					lineTable.addAll(computedLines);
+				}
+				else {
+					final InsnList instructions = methodNode.instructions;
+					final int numInstr = instructions.size();
+					boolean isFirstLine = true;
+					int currLine = 0;
+					int lastDebugLine = 0;
+					for (int i = 0; i < numInstr; i++) {
+						AbstractInsnNode instr = instructions.get(i);
+						final int opcode = instr.getOpcode();
+						if (instr instanceof LineNumberNode) {
+							final LineNumberNode ln = (LineNumberNode) instr;
+							currLine = ln.line;
+						}
+						else if (opcode >= 0) {
+							if (currLine > lastDebugLine) {
+								// We place the line-number-index at the first opcode of a line.
+								final int index;
+								if (isFirstLine) {
+									// The first line of a method should start at index 0.
+									index = 0;
+									isFirstLine = false;
+								}
+								else {
+									index = instructions.indexOf(instr);
+								}
+								lineTable.add(new LineCodeIndex(index, currLine));
+								lastDebugLine = currLine;
 							}
-							else {
-								index = instructions.indexOf(instr);
-							}
-							lineTable.add(new LineCodeIndex(index, currLine));
-							lastDebugLine = currLine;
 						}
 					}
 				}
@@ -1468,6 +1500,42 @@ public class ClassRegistry implements VM {
 	 */
 	public static void setMonitorMaxTries(final int maxTries) {
 		MONITOR_MAX_TRIES.set(maxTries);
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void generateSourceFile(Class<?> clazz, final SourceFileRequester sourceFileRequester) throws IOException {
+		final String sourceFileGuessed = Utils.guessSourceFile(clazz);
+		SourceFileWriter sourceFileWriter = mapSourceSourceFiles.get(sourceFileGuessed);
+		if (sourceFileWriter == null) {
+			final ClassLoader classLoader = (clazz.getClassLoader() != null) ? clazz.getClassLoader() : classLoaderDefault;
+			final ClassReader reader = SimpleClassExecutor.createClassReader(classLoader, clazz);
+			final ClassNode node = new ClassNode();
+			reader.accept(node, 0);
+	
+			final Function<String, ClassNode> innerClassProvider = (internalName -> {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Load inner-class (%s) of (%s)", internalName, clazz));
+				}
+				final Class<?> classInner;
+				try {
+					classInner = loadClass(internalName.replace('/', '.'), clazz);
+				} catch (ClassNotFoundException e) {
+					throw new JvmException(String.format("Can't load inner-class (%s)", internalName), e);
+				}
+				final ClassReader innerReader = SimpleClassExecutor.createClassReader(classLoader, classInner);
+				final ClassNode innerClassNode = new ClassNode();
+				innerReader.accept(innerClassNode, 0);
+				return innerClassNode;
+			});
+	
+			try (final BufferedWriter bw = sourceFileRequester.createBufferedWriter(clazz)) {
+				final String lineBreak = sourceFileRequester.lineBreak();
+				sourceFileWriter = new SourceFileWriter(bw, lineBreak, node, innerClassProvider);
+				mapSourceSourceFiles.put(sourceFileGuessed, sourceFileWriter);
+			}
+		}
+		mapClassSourceFiles.put(clazz, sourceFileWriter);
 	}
 
 }

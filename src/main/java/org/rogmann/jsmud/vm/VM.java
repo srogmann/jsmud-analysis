@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.vm;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
@@ -22,6 +23,7 @@ import org.rogmann.jsmud.datatypes.VMThreadID;
 import org.rogmann.jsmud.datatypes.VMValue;
 import org.rogmann.jsmud.debugger.SlotRequest;
 import org.rogmann.jsmud.debugger.SlotValue;
+import org.rogmann.jsmud.debugger.SourceFileRequester;
 import org.rogmann.jsmud.replydata.LineCodeIndex;
 import org.rogmann.jsmud.replydata.RefFieldBean;
 import org.rogmann.jsmud.replydata.RefFrameBean;
@@ -278,4 +280,12 @@ public interface VM {
 	 */
 	List<VMTaggedObjectId> getOwnedMonitors(Thread thread);
 
+	/**
+	 * Requests the generation of a source-file containing pseudo-bytecode.
+	 * The source-file will be registered for the use of its line-numbers while debugging.
+	 * @param clazz class
+	 * @param sourceFileRequester source-file-requester
+	 * @throws IOException in case of an IOException
+	 */
+	void generateSourceFile(final Class<?> clazz, final SourceFileRequester sourceFileRequester) throws IOException;
 }

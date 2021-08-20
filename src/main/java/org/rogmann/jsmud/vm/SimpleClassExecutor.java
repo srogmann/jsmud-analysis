@@ -19,7 +19,6 @@ import org.objectweb.asm.tree.MethodNode;
  * Simple class for executing methods in .class-files.
  */
 public class SimpleClassExecutor {
-
 	/** class-registry */
 	private final ClassRegistry fRegistry;
 
@@ -95,7 +94,7 @@ public class SimpleClassExecutor {
 		}
 		return classReader;
 	}
-	
+
 	/**
 	 * Executes an executable (constructor or method).
 	 * @param objInstance instance-object, <code>null</code> in case of a static method
@@ -124,6 +123,14 @@ public class SimpleClassExecutor {
 		}
 
 		return methodReturnObj;
+	}
+
+	/**
+	 * Gets the class-node.
+	 * @return class-node
+	 */
+	public ClassNode getClassNode() {
+		return fNode;
 	}
 
 	/**

@@ -40,6 +40,7 @@ import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
+import org.rogmann.jsmud.visitors.SourceFileWriter;
 
 /**
  * Frame of a method at execution time.
@@ -61,6 +62,12 @@ public class MethodFrame {
 
 	/** class-loader of the method's class */
 	public final Class<?> clazz;
+
+	/** source-file-writer or <code>null</code> */
+	private final SourceFileWriter sourceFileWriter;
+
+	/** map from instruction-index to line-number in generated source (or <code>null</code>) */
+	private final Map<Integer, Integer> sourceFileMapInstrLine;
 
 	/** name of the method */
 	private final String methodName;
@@ -95,7 +102,7 @@ public class MethodFrame {
 	/** current instruction number */
 	public int instrNum;
 	/** current line number in source (if known) */
-	public int currLineNum;
+	private int currLineNum;
 
 	/**
 	 * Constructor
@@ -111,9 +118,17 @@ public class MethodFrame {
 			final JvmExecutionVisitor visitor, final JvmInvocationHandler invocationHandler) {
 		this.registry = registry;
 		this.clazz = pMethod.getDeclaringClass();
+		this.sourceFileWriter = registry.getSourceFileWriter(clazz);
 		this.methodName = pMethod.getName();
 		this.pMethod = pMethod;
 		this.method = method;
+		if (sourceFileWriter != null) {
+			sourceFileMapInstrLine = sourceFileWriter.getMethodMapInstrLine(clazz, method);
+			LOG.debug("line-map: " + sourceFileMapInstrLine);
+		}
+		else {
+			sourceFileMapInstrLine = null;
+		}
 		this.argDefs = argsDefs;
 		this.instructions = method.instructions;
 		this.stack = new OperandStack(method.maxStack);
@@ -157,7 +172,23 @@ public class MethodFrame {
 	}
 
 	/**
-	 * Converts an object from declared type into an integer -- if neccessary.
+	 * Gets the current line-number.
+	 * @return line-number
+	 */
+	public int getCurrLineNum() {
+		int lineNum;
+		if (sourceFileMapInstrLine != null) {
+			final Integer iLineNum = sourceFileMapInstrLine.get(Integer.valueOf(instrNum));
+			lineNum = (iLineNum != null) ? iLineNum.intValue() : 0;
+		}
+		else {
+			lineNum = currLineNum;
+		}
+		// In generated source-files the instructions are counted.
+		return lineNum;
+	}
+	/**
+	 * Converts an object from declared type into an integer -- if necessary.
 	 * @param curType declared type
 	 * @param stackValue object
 	 * @return converted object

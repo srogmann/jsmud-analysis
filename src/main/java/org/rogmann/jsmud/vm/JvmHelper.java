@@ -12,6 +12,7 @@ import javax.net.SocketFactory;
 import org.objectweb.asm.Opcodes;
 import org.rogmann.jsmud.debugger.DebuggerJvmVisitor;
 import org.rogmann.jsmud.debugger.JdwpCommandProcessor;
+import org.rogmann.jsmud.debugger.SourceFileRequester;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
@@ -32,7 +33,7 @@ public class JvmHelper {
 	public static void connectRunnableToDebugger(final String host, final int port,
 			final Runnable runnable) {
 		final ClassExecutionFilter executionFilter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
-		connectRunnableToDebugger(host, port, runnable, executionFilter);
+		connectRunnableToDebugger(host, port, runnable, executionFilter, null);
 	}
 
 	/**
@@ -41,14 +42,16 @@ public class JvmHelper {
 	 * @param port remote-port
 	 * @param runnable runnable to be executed
 	 * @param executionFilter execution-filter
+	 * @param sourceFileRequester optional source-file-requester (on-the-fly pseudo-source-generation)
 	 */
 	public static void connectRunnableToDebugger(final String host, final int port,
-			final Runnable runnable, final ClassExecutionFilter executionFilter) {
+			final Runnable runnable, final ClassExecutionFilter executionFilter,
+			final SourceFileRequester sourceFileRequester) {
 		LOG.info(String.format("connectRunnableToDebugger(host=%s, port=%d, version=%s)", host, Integer.valueOf(port), ClassRegistry.VERSION));
 		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
 			socket.setSoTimeout(200);
 			final ClassLoader classLoader = runnable.getClass().getClassLoader();
-			final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor();
+			final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor(sourceFileRequester);
 			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
 			final boolean simulateReflection = true;
 			final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
@@ -171,7 +174,8 @@ public class JvmHelper {
 					// This seems to be a call-site created by the JRE.
 					isSimulation = false;
 				}
-				else if (className.startsWith("java.util.")) {
+				else if (className.startsWith("java.util.")
+						|| className.startsWith("com.sun.net.")) {
 					// We simulate java.util.* to support simulation of the stream-API.
 					isSimulation = true;
 				}

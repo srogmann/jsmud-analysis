@@ -3,7 +3,7 @@ package org.rogmann.jsmud.vm;
 /**
  * Utility-methods.
  */
-class Utils {
+public class Utils {
 
 	/**
 	 * Gets a class-name by signature
@@ -27,6 +27,18 @@ class Utils {
 			className = sb.toString();
 		}
 		return className;
+	}
+
+	/**
+	 * Guesses the name of a source-file.
+	 * @param classRef class
+	 * @return guessed .java-name
+	 */
+	public static String guessSourceFile(final Class<?> classRef) {
+		final String className = classRef.getName().replaceFirst(".*[.]", "");
+		final String classNameOuter = className.replaceFirst("[$].*", "");
+		final String sourceFileGuessed = String.format("%s.java", classNameOuter);
+		return sourceFileGuessed;
 	}
 
 }

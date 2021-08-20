@@ -68,6 +68,9 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	/** number of method-invocations to be logged in detail */
 	private final int maxMethodsLogged;
 
+	/** optional source-file-requester */
+	private final SourceFileRequester sourceFileRequester;
+
 	/** number of processed instructions */
 	private final AtomicLong instrCounter = new AtomicLong();
 
@@ -80,10 +83,12 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	/**
 	 * default-constructor,
 	 * the first 100 instructions will be logged.
+	 * @param sourceFileRequester optional source-file-requester
 	 */
-	public DebuggerJvmVisitor() {
+	public DebuggerJvmVisitor(final SourceFileRequester sourceFileRequester) {
 		maxInstrLogged = 100;
 		maxMethodsLogged = 500;
+		this.sourceFileRequester = sourceFileRequester;
 	}
 
 	/**
@@ -91,9 +96,11 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	 * @param maxInstrLogged number of instructions to be logged at debug-level
 	 * @param maxMethodsLogged number of method-invocations to be logged at debug-level
 	 */
-	public DebuggerJvmVisitor(final int maxInstrLogged, final int maxMethodsLogged) {
+	public DebuggerJvmVisitor(final int maxInstrLogged, final int maxMethodsLogged,
+			final SourceFileRequester sourceFileRequester) {
 		this.maxInstrLogged = maxInstrLogged;
 		this.maxMethodsLogged = maxMethodsLogged;
+		this.sourceFileRequester = sourceFileRequester;
 	}
 
 	/**
@@ -157,7 +164,7 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 						else {
 							currFrame.eventRequestStep = evReq;
 							currFrame.modStep = modStep;
-							currFrame.stepLine = currFrame.frame.currLineNum;
+							currFrame.stepLine = currFrame.frame.getCurrLineNum();
 						}
 						if (LOG.isDebugEnabled()) {
 							LOG.debug(String.format("STEP-start (req-id %d, method %s): size=%d, depth=%d, startLine=%d",
@@ -226,6 +233,14 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitLoadClass(Class<?> loadedClass) {
 		LOG.debug("visitLoadClass: " + loadedClass.getName());
+		
+		if (sourceFileRequester != null && sourceFileRequester.isSourceRequested(loadedClass)) {
+			try {
+				vm.generateSourceFile(loadedClass, sourceFileRequester);
+			} catch (IOException e) {
+				throw new DebuggerException(String.format("IO-error while writing source-file of (%s)", loadedClass), e);
+			}
+		}
 loopEvents:
 		for (final JdwpEventRequest evReq : eventRequests.values()) {
 			if (evReq.getEventType() != VMEventType.CLASS_PREPARE) {
@@ -427,7 +442,7 @@ loopEvents:
 				LOG.debug(String.format("Step-Event: method=%s, instr=%d, line=%d",
 						curMFrame.getMethod().getName(),
 						Long.valueOf(curMFrame.instrNum),
-						Integer.valueOf(curMFrame.currLineNum)));
+						Integer.valueOf(curMFrame.getCurrLineNum())));
 				sendThreadLocEvent(evReq.getSuspendPolicy(), evReq, threadId, curMFrame);
 	
 				// Gives control to the debugger.
@@ -443,7 +458,7 @@ loopEvents:
 		JdwpModifierStep currModStep = null;
 		if (instrCounter.incrementAndGet() < maxInstrLogged) {
 			LOG.debug(String.format("visitInstruction: line=%d, index=%d, %s",
-					Integer.valueOf(currFrame.frame.currLineNum),
+					Integer.valueOf(currFrame.frame.getCurrLineNum()),
 					Integer.valueOf(currFrame.frame.instrNum),
 					InstructionVisitor.displayInstruction(instr, currFrame.frame.getMethodNode())));
 		}
@@ -476,7 +491,7 @@ stepSearch:
 			}
 			
 			if ((modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_MIN && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
-					|| (modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_LINE && currFrame.frame.currLineNum > currFrame.stepLine && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
+					|| (modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_LINE && currFrame.frame.getCurrLineNum() > currFrame.stepLine && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
 					|| (currStepReq != null && modStep.getStepDepth() == JdwpModifierStep.STEP_DEPTH_INTO)) {
 				final VMThreadID threadId = vm.getCurrentThreadId();
 				final MethodFrame curMFrame = currFrame.frame;
@@ -484,13 +499,13 @@ stepSearch:
 						Integer.valueOf(evReq.getRequestId()),
 						curMFrame.getMethod().getName(),
 						Long.valueOf(curMFrame.instrNum),
-						Integer.valueOf(curMFrame.currLineNum)));
+						Integer.valueOf(curMFrame.getCurrLineNum())));
 				final JdwpSuspendPolicy suspendPolicy = evReq.getSuspendPolicy();
 				sendThreadLocEvent(suspendPolicy, evReq, threadId, curMFrame);
 				// Remove the event.
 				currFrame.eventRequestStep = null;
 				currFrame.modStep = null;
-				//currFrame.stepLine = curMFrame.currLineNum;
+				//currFrame.stepLine = curMFrame.getCurrLineNum();
 
 				// Gives control to the debugger.
 				giveDebuggerControl(threadId, suspendPolicy);
@@ -514,7 +529,7 @@ stepSearch:
 							// We are at the wanted index.
 							LOG.debug(String.format("Breakpoint reached: method=%s, instrNum=%d, line=%d",
 									currMethod.getName(),
-									Long.valueOf(bp.getIndex()), Integer.valueOf(currFrame.frame.currLineNum)));
+									Long.valueOf(bp.getIndex()), Integer.valueOf(currFrame.frame.getCurrLineNum())));
 							final VMThreadID threadId = vm.getCurrentThreadId();
 							final VMByte typeTag = new VMByte(bp.getTypeTag());
 							final VMLong vIndex = new VMLong(bp.getIndex());
@@ -607,7 +622,7 @@ stepSearch:
 			final VMDataField methodId = vm.getMethodId(curMFrame.getMethod());
 			if (methodId == null) {
 				throw new DebuggerException(String.format("Unknown method (%s) of class (%s) in line %d",
-						curMFrame.getMethod(), frameClass, Integer.valueOf(curMFrame.currLineNum)));
+						curMFrame.getMethod(), frameClass, Integer.valueOf(curMFrame.getCurrLineNum())));
 			}
 			final VMDataField vIndex = new VMLong(curMFrame.instrNum);
 			if (hasReturnObj && currFrame.frame.getMethod() instanceof Method) {
