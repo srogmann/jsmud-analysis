@@ -11,7 +11,10 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 
 /**
- * Generates a CallSite-instance when processing a INVOKEDYNAMIC-instruction. 
+ * Generates a CallSite-instance when processing a INVOKEDYNAMIC-instruction
+ * by using reflection-proxies.
+ * 
+ * @see CallSiteGenerator
  */
 public class CallSiteSimulation {
 	

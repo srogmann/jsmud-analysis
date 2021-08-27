@@ -57,6 +57,9 @@ public class MethodFrame {
 	/** maximum level of stacked method-references on an object-instance */
 	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20).intValue();
 
+	/** <code>true</code> if a call-site should be simulated via proxy, <code>false</code> if a call-site should get a generated class */
+	private final boolean callsiteViaProxy = Boolean.getBoolean(MethodFrame.class.getName() + "executeAccessControllerNative");
+
 	/** class-registry */
 	public final ClassRegistry registry;
 
@@ -1616,8 +1619,16 @@ whileInstr:
 				}
 				case Opcodes.INVOKEDYNAMIC: // 0xba
 				{
-					final CallSiteSimulation jvmCallSite = executeInvokeDynamic((InvokeDynamicInsnNode) instr);
-					stack.push(jvmCallSite.getProxy());
+					final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) instr;
+					final Object callSiteInstance;
+					if (callsiteViaProxy) {
+						final CallSiteSimulation jvmCallSite = executeInvokeDynamic(idin);
+						callSiteInstance = jvmCallSite.getProxy();
+					}
+					else {
+						callSiteInstance = registry.getCallSiteGenerator().createCallSite(clazz, idin, stack);
+					}
+					stack.push(callSiteInstance);
 					break;
 				}
 				case Opcodes.NEW: // 0xbb
@@ -2423,7 +2434,8 @@ loopDeclMeth:
 		Method invMethod = null;
 loopDeclMeth:
 		for (Method methodLoop : cInterface.getDeclaredMethods()) {
-			if (!methodLoop.isDefault()) {
+			// synthetic: e.g. lambda$0 of a INVOKEDYNAMIC of a default-method in an interface.
+			if (!methodLoop.isDefault() && !methodLoop.isSynthetic()) {
 				continue;
 			}
 			if (!methodLoop.getName().equals(invName)) {

@@ -32,6 +32,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.rogmann.jsmud.gen.JsmudGeneratedClasses;
+
 /**
  * Some simple JVM-tests.
  */
@@ -79,19 +81,20 @@ public class JvmTests {
 //		testsFloat();
 //		testsDouble();
 //		testsArray();
-		testsExceptionHandling();
+//		testsExceptionHandling();
 //		testsRegexp();
-//		testsLambda();
-//		testsLambdaClassMethodReferences();
-//		testsLambdaObjectMethodReferences();
-//		testsLambdaNonStatic();
-//		testsLambdaInterface();
-//		testsLambdaStreamCollectOnly();
-//		testsLambdaStreams();
-//		testsLambdaStreamsThis();
-//		testsLambdaBiFunctionAndThen();
-//		testsLambdaCollectingAndThen();
-//		testsLambdaMultipleFunctions();
+		testsLambda();
+		testsLambdaClassMethodReferences();
+		testsLambdaObjectMethodReferences();
+		testsLambdaNonStatic();
+		testsLambdaInterface();
+		testsLambdaSpecialAndThen();
+		testsLambdaStreamCollectOnly();
+		testsLambdaStreams();
+		testsLambdaStreamsThis();
+		testsLambdaBiFunctionAndThen();
+		testsLambdaCollectingAndThen();
+		testsLambdaMultipleFunctions();
 //		testsLambdaAndSecurity();
 //		testsMethodChoosing();
 //		testsMethodRef();
@@ -351,7 +354,9 @@ public class JvmTests {
 		assertEquals("iFkt 25", Integer.valueOf(25), iFkt.apply(5));
 
 		// Check if a call of Object#getClass() is successful.
-		assertTrue("iFkt.class", iFkt.getClass().toString().contains("$Proxy"));
+		final String packageGen = JsmudGeneratedClasses.class.getName().replaceFirst("[.][^.]*$", "");
+		final String iFtkClass = iFkt.getClass().getName();
+		assertTrue("iFkt.class", iFtkClass.contains("$Proxy") || iFtkClass.startsWith(packageGen));
 	}
 	
 	/**
@@ -427,6 +432,19 @@ public class JvmTests {
 		testMap.put("a1", Integer.valueOf(1));
 		consumer.accept(testMap);
 		assertEquals("Test lambda-interface", Integer.valueOf(0), Integer.valueOf(testMap.size()));
+	}
+
+	public interface FunctionWithDefault {
+		String addPrefix(int i);
+		default IntFunction<String> andThen(String suffix) {
+			return i -> addPrefix(i) + suffix;
+		}
+	}
+
+	public void testsLambdaSpecialAndThen() {
+		final FunctionWithDefault prefixA = (i -> "A" + i);
+		final IntFunction<String> prefixASuffixB = prefixA.andThen("B"); // bsm_tag H_INVOKESPECIAL (interface)
+		assertEquals("Test function-andThen", "A3B", prefixASuffixB.apply(3));
 	}
 
 	/** lambda-stream-tests with collect only*/

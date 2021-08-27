@@ -147,6 +147,9 @@ public class ClassRegistry implements VM {
 	/** map from loaded class to source-file (containing bytecode) */
 	private final ConcurrentMap<Class<?>, SourceFileWriter> mapClassSourceFiles = new ConcurrentHashMap<>();
 
+	/** class-based call-site-generator */
+	private final CallSiteGenerator callSiteGenerator;
+
 	/** registry of call-site-simulations used by INVOKEDYNAMIC */
 	private final CallSiteRegistry callSiteRegistry;
 
@@ -195,6 +198,14 @@ public class ClassRegistry implements VM {
 		this.visitor = visitor;
 		this.invocationHandler = invocationHandler;
 		callSiteRegistry = new CallSiteRegistry(classLoader);
+		final JsmudClassLoader jsmudClassLoader;
+		if (classLoader instanceof JsmudClassLoader) {
+			jsmudClassLoader = (JsmudClassLoader) classLoader;
+		}
+		else {
+			jsmudClassLoader = new JsmudClassLoader(classLoader, name -> false, false, false);
+		}
+		callSiteGenerator = new CallSiteGenerator(jsmudClassLoader);
 	}
 	
 	/**
@@ -363,6 +374,14 @@ public class ClassRegistry implements VM {
 			isPatched = jsmudCL.isDefaultConstructorAdded(classInit);
 		}
 		return isPatched;
+	}
+
+	/**
+	 * Gets the call-site-generator.
+	 * @return call-site-generator
+	 */
+	public CallSiteGenerator getCallSiteGenerator() {
+		return callSiteGenerator;
 	}
 
 	/**
@@ -1527,7 +1546,7 @@ public class ClassRegistry implements VM {
 		SourceFileWriter sourceFileWriter = mapSourceSourceFiles.get(sourceFileGuessed);
 		if (sourceFileWriter == null) {
 			final ClassLoader classLoader = (clazz.getClassLoader() != null) ? clazz.getClassLoader() : classLoaderDefault;
-			final ClassReader reader = SimpleClassExecutor.createClassReader(classLoader, clazz);
+			final ClassReader reader = SimpleClassExecutor.createClassReader(this, classLoader, clazz);
 			final ClassNode node = new ClassNode();
 			reader.accept(node, 0);
 	
@@ -1541,7 +1560,7 @@ public class ClassRegistry implements VM {
 				} catch (ClassNotFoundException e) {
 					throw new JvmException(String.format("Can't load inner-class (%s)", internalName), e);
 				}
-				final ClassReader innerReader = SimpleClassExecutor.createClassReader(classLoader, classInner);
+				final ClassReader innerReader = SimpleClassExecutor.createClassReader(this, classLoader, classInner);
 				final ClassNode innerClassNode = new ClassNode();
 				innerReader.accept(innerClassNode, 0);
 				return innerClassNode;

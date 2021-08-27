@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.vm;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -53,7 +54,7 @@ public class SimpleClassExecutor {
 		fRegistry = registry;
 		fClass = clazz;
 		fClassLoader = clazz.getClassLoader();
-		fReader = createClassReader(fClassLoader, clazz);
+		fReader = createClassReader(registry, fClassLoader, clazz);
 		fNode = new ClassNode();
 		fReader.accept(fNode, 0);
 		fMethods = new HashMap<>(fNode.methods.size());
@@ -73,20 +74,27 @@ public class SimpleClassExecutor {
 
 	/**
 	 * Creates a class-reader.
+	 * @param registry class-registry
 	 * @param classLoader class-loader
 	 * @param clazz class to be read
 	 * @return reader
 	 */
-	public static ClassReader createClassReader(final ClassLoader classLoader, final Class<?> clazz) {
+	public static ClassReader createClassReader(final ClassRegistry registry, final ClassLoader classLoader, final Class<?> clazz) {
 		// Some OSGi-class-loaders depend on an absolute path.
 		final String resName = '/' + clazz.getName().replace('.', '/') + ".class";
 		final ClassReader classReader;
 		try (final InputStream is = clazz.getResourceAsStream(resName)) {
 			if (is == null) {
-				throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
-						resName, clazz.getName(), classLoader));
+				final byte[] bufBytecode = registry.getCallSiteGenerator().getBytecode(clazz);
+				if (bufBytecode == null) {
+					throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
+							resName, clazz.getName(), classLoader));
+				}
+				classReader = new ClassReader(new ByteArrayInputStream(bufBytecode));
 			}
-			classReader = new ClassReader(is);
+			else {
+				classReader = new ClassReader(is);
+			}
 		}
 		catch (IOException e) {
 			throw new IllegalArgumentException(String.format("IO-error while reading class (%s) in class-loader (%s)",

@@ -104,6 +104,17 @@ public class JsmudClassLoader extends ClassLoader {
 		return parentClassLoader.loadClass(name);
 	}
 
+	/**
+	 * Defines a new class.
+	 * @param name name of the new class
+	 * @param bufBytecode bytecode
+	 * @return
+	 */
+	public Class<?> defineJsmudClass(final String name, final byte[] bufBytecode) {
+		Class<?> clazz = defineClass(name, bufBytecode, 0, bufBytecode.length);
+		return clazz;
+	}
+	
 	/** {@inheritDoc} */
 	@Override
 	public Class<?> findClass(String name) throws ClassNotFoundException {
