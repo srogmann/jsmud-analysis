@@ -23,6 +23,9 @@ import org.rogmann.jsmud.log.LoggerFactory;
 /**
  * Generates a call-site-class whose instances are used to build the result
  * of an INVOKEDYNAMIC-instruction.
+ * 
+ * <p>This class is a partial replacement of java.lang.invoke.LambdaMetafactory.</p>
+ * @see CallSiteSimulation
  */
 public class CallSiteGenerator {
 	/** logger */
