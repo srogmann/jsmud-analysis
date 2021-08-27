@@ -196,17 +196,17 @@ public class JvmHelper {
 
 	/**
 	 * Gets the first non-synthetic method of a class with a given name.
-	 * @param sampleClass class
+	 * @param clazz class
 	 * @param methodName name of a method in the class
 	 * @return method
 	 */
-	public static Method lookup(final Class<?> sampleClass, final String methodName) {
-		for (Method method : sampleClass.getDeclaredMethods()) {
+	public static Method lookup(final Class<?> clazz, final String methodName) {
+		for (Method method : clazz.getDeclaredMethods()) {
 			if (methodName.equals(method.getName()) && !method.isSynthetic()) {
 				return method;
 			}
 		}
-		throw new RuntimeException(String.format("Unknown method (%s)", methodName));
+		throw new RuntimeException(String.format("Unknown method (%s) in (%s)", methodName, clazz));
 	}
 
 }
