@@ -1626,7 +1626,7 @@ whileInstr:
 						callSiteInstance = jvmCallSite.getProxy();
 					}
 					else {
-						callSiteInstance = registry.getCallSiteGenerator().createCallSite(clazz, idin, stack);
+						callSiteInstance = registry.getCallSiteGenerator().createCallSite(registry, clazz, idin, stack);
 					}
 					stack.push(callSiteInstance);
 					break;
@@ -2185,7 +2185,7 @@ whileInstr:
 				initargs[idxArg] = oStack;
 			}
 			if (!lIsStatic || isMethodOverriden) {
-				stack.pop(); // remove objectref
+				stack.pop(); // remove object-reference
 			}
 			try {
 				invMethod.setAccessible(true);

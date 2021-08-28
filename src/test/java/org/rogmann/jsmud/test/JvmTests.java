@@ -83,18 +83,19 @@ public class JvmTests {
 //		testsArray();
 //		testsExceptionHandling();
 //		testsRegexp();
-		testsLambda();
-		testsLambdaClassMethodReferences();
-		testsLambdaObjectMethodReferences();
-		testsLambdaNonStatic();
-		testsLambdaInterface();
-		testsLambdaSpecialAndThen();
-		testsLambdaStreamCollectOnly();
-		testsLambdaStreams();
-		testsLambdaStreamsThis();
-		testsLambdaBiFunctionAndThen();
-		testsLambdaCollectingAndThen();
-		testsLambdaMultipleFunctions();
+//		testsLambda();
+//		testsLambdaClassMethodReferences();
+//		testsLambdaObjectMethodReferences();
+//		testsLambdaNonStatic();
+//		testsLambdaInterface();
+//		testsLambdaSpecialAndThen();
+//		testsLambdaStreamCollectOnly();
+		testsLambdaFunctionAndThen();
+//		testsLambdaStreams();
+//		testsLambdaStreamsThis();
+//		testsLambdaBiFunctionAndThen();
+//		testsLambdaCollectingAndThen();
+//		testsLambdaMultipleFunctions();
 //		testsLambdaAndSecurity();
 //		testsMethodChoosing();
 //		testsMethodRef();
@@ -444,7 +445,15 @@ public class JvmTests {
 	public void testsLambdaSpecialAndThen() {
 		final FunctionWithDefault prefixA = (i -> "A" + i);
 		final IntFunction<String> prefixASuffixB = prefixA.andThen("B"); // bsm_tag H_INVOKESPECIAL (interface)
-		assertEquals("Test function-andThen", "A3B", prefixASuffixB.apply(3));
+		assertEquals("Test functionWithDefault-andThen", "A3B", prefixASuffixB.apply(3));
+	}
+
+	public void testsLambdaFunctionAndThen() {
+		final Function<Long, String> fctPrefixA = (i -> "A" + i);
+		final Function<String, Integer> fctLen = (s -> Integer.valueOf(s.length()));
+		final Function<Long, Integer> fctPreLen = fctPrefixA.andThen(fctLen);
+		final Integer lenA12345678901234 =  fctPreLen.apply(Long.valueOf(12345678901234L));
+		assertEquals("Test functionAndThen", Integer.valueOf(15), lenA12345678901234);
 	}
 
 	/** lambda-stream-tests with collect only*/
