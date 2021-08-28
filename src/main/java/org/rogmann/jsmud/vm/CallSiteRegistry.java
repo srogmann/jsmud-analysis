@@ -12,7 +12,9 @@ import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
 
 /**
- * Generates a CallSite-instance when processing a INVOKEDYNAMIC-instruction. 
+ * Generates a proxy-based CallSite-instance when processing a INVOKEDYNAMIC-instruction.
+ * 
+ * @see CallSiteGenerator
  */
 public class CallSiteRegistry {
 	/** logger */
