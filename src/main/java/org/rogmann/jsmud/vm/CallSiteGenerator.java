@@ -232,10 +232,10 @@ public class CallSiteGenerator {
 		constr.visitVarInsn(Opcodes.ALOAD, 1);
 		constr.visitFieldInsn(Opcodes.PUTFIELD, callSiteNameInt, FIELD_CALL_SITE_CONTEXT, contextAndConstrArgs[0].getDescriptor());
 		// Load the INVOKEDYNAMIC-arguments
+		int indexInLocals = 2;
 		for (int i = 0; i < callSiteConstrArgs.length; i++) {
 			constr.visitVarInsn(Opcodes.ALOAD, 0);
 			final Type arg = callSiteConstrArgs[i];
-			final int indexInLocals = 2 + i;
 			try {
 				loadLocalVariable(constr, indexInLocals, arg, null);
 			}
@@ -244,6 +244,7 @@ public class CallSiteGenerator {
 						callSiteName, callSiteMethodDescRuntime, classOwner, e.getMessage()));
 			}
 			constr.visitFieldInsn(Opcodes.PUTFIELD, callSiteNameInt, fieldNames[i], arg.getDescriptor());
+			indexInLocals += (Type.LONG_TYPE.equals(arg) || Type.DOUBLE_TYPE.equals(arg)) ? 2 : 1;
 		}
 		constr.visitInsn(Opcodes.RETURN);
 		constr.visitMaxs(0, 0);
@@ -294,14 +295,41 @@ public class CallSiteGenerator {
 		mv.visitLabel(labelJsmudExec);
 		mv.visitVarInsn(Opcodes.ALOAD, 0);
 		mv.visitFieldInsn(Opcodes.GETFIELD, callSiteNameInt, FIELD_CALL_SITE_CONTEXT, TYPE_CALL_SITE_CONTEXT.getDescriptor());
-		mv.visitLdcInsn(Integer.valueOf(1));
+		mv.visitLdcInsn(Integer.valueOf(callSiteConstrArgs.length + callSiteMethodArgsRuntime.length));
 		mv.visitTypeInsn(Opcodes.ANEWARRAY, Type.getType(Object.class).getInternalName());
-		mv.visitInsn(Opcodes.DUP);
-		mv.visitInsn(Opcodes.ICONST_0);
-		mv.visitVarInsn(Opcodes.ALOAD, 1);
-		mv.visitInsn(Opcodes.AASTORE);
+
+		for (int i = 0; i < callSiteConstrArgs.length; i++) {
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitLdcInsn(Integer.valueOf(i));
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			final Type arg = callSiteConstrArgs[i];
+			mv.visitFieldInsn(Opcodes.GETFIELD, callSiteNameInt, fieldNames[i], arg.getDescriptor());
+			convertPrimitiveToObject(mv, arg);
+			mv.visitInsn(Opcodes.AASTORE);
+		}
+		int indexInLocals = 1;
+		for (int i = 0; i < callSiteMethodArgsRuntime.length; i++) {
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitLdcInsn(Integer.valueOf(callSiteConstrArgs.length + i));
+			final Type arg = callSiteMethodArgsRuntime[i];
+			final Type argCompile = callSiteMethodArgsCompile[i];
+			try {
+				loadLocalVariable(mv, indexInLocals, arg, argCompile);
+			}
+			catch (JvmException e) {
+				throw new JvmException(String.format("Error while processing call-site-method (%s) in (%s): %s",
+						callSiteMethodDescRuntime, classOwner, e.getMessage()));
+			}
+			convertPrimitiveToObject(mv, arg);
+			mv.visitInsn(Opcodes.AASTORE);
+			indexInLocals += (Type.LONG_TYPE.equals(arg) || Type.DOUBLE_TYPE.equals(arg)) ? 2 : 1;
+		}
+
 		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_CALL_SITE_CONTEXT.getInternalName(), "executeMethod",
 				"([Ljava/lang/Object;)Ljava/lang/Object;", false);
+		if (!Type.getType(Object.class).equals(callSiteMethodDescRuntime.getReturnType())) {
+			mv.visitTypeInsn(Opcodes.CHECKCAST, callSiteMethodDescRuntime.getReturnType().getInternalName());
+		}
 
 		// Send the return-value
 		mv.visitLabel(labelReturn);
@@ -338,6 +366,42 @@ public class CallSiteGenerator {
 	}
 
 	/**
+	 * Converts a primitive-type on stack into the corresponding object-type.
+	 * @param mv method-visitor
+	 * @param arg type of topmost type
+	 */
+	private static void convertPrimitiveToObject(final MethodVisitor mv, final Type arg) {
+		if (Type.BOOLEAN_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Boolean.class),
+					"valueOf", "(Z)Ljava/lang/Boolean;", false);
+		}
+		else if (Type.CHAR_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Character.class),
+					"valueOf", "(C)Ljava/lang/Character;", false);
+		}
+		else if (Type.SHORT_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Short.class),
+					"valueOf", "(S)Ljava/lang/Short;", false);
+		}
+		else if (Type.INT_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Integer.class),
+					"valueOf", "(I)Ljava/lang/Integer;", false);
+		}
+		else if (Type.LONG_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Long.class),
+					"valueOf", "(J)Ljava/lang/Long;", false);
+		}
+		else if (Type.FLOAT_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Float.class),
+					"valueOf", "(F)Ljava/lang/Float;", false);
+		}
+		else if (Type.DOUBLE_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Double.class),
+					"valueOf", "(D)Ljava/lang/Double;", false);
+		}
+	}
+
+	/**
 	 * Loads instance and arguments to call the lambda-function.
 	 * @param mv method-visitor
 	 * @param methodHandle method-handle
@@ -364,10 +428,10 @@ public class CallSiteGenerator {
 			final Type arg = callSiteConstrArgs[i];
 			mv.visitFieldInsn(Opcodes.GETFIELD, callSiteNameInt, fieldNames[i], arg.getDescriptor());
 		}
+		int indexInLocals = 1;
 		for (int i = 0; i < callSiteMethodArgsRuntime.length; i++) {
 			final Type arg = callSiteMethodArgsRuntime[i];
 			final Type argCompile = callSiteMethodArgsCompile[i];
-			final int indexInLocals = 1 + i;
 			try {
 				loadLocalVariable(mv, indexInLocals, arg, argCompile);
 			}
@@ -375,6 +439,7 @@ public class CallSiteGenerator {
 				throw new JvmException(String.format("Error while processing call-site-method (%s) in (%s): %s",
 						callSiteMethodDescRuntime, classOwner, e.getMessage()));
 			}
+			indexInLocals += (Type.LONG_TYPE.equals(arg) || Type.DOUBLE_TYPE.equals(arg)) ? 2 : 1;
 		}
 	}
 
@@ -393,7 +458,10 @@ public class CallSiteGenerator {
 				mv.visitTypeInsn(Opcodes.CHECKCAST, argCompile.getInternalName());
 			}
 		}
-		else if (Type.INT_TYPE.equals(arg)) {
+		else if (Type.INT_TYPE.equals(arg)
+				|| Type.BOOLEAN_TYPE.equals(arg)
+				|| Type.CHAR_TYPE.equals(arg)
+				|| Type.SHORT_TYPE.equals(arg)) {
 			mv.visitVarInsn(Opcodes.ILOAD, indexInLocals);
 		}
 		else if (Type.LONG_TYPE.equals(arg)) {

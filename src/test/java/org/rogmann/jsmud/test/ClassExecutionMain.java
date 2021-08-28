@@ -39,10 +39,12 @@ public class ClassExecutionMain {
 				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace);
 		visitor.setShowOutput(true);
 
-		final ClassExecutionFilter executionFilter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
+		final ClassExecutionFilter executionFilterDefault = JvmHelper.createNonJavaExecutionFilter();
+		final ClassExecutionFilter executionFilter = (clazz ->
+			NativeExecutor.class.equals(clazz) ? false : executionFilterDefault.isClassToBeSimulated(clazz));
 		final ClassLoader classLoaderParent = ClassExecutionMain.class.getClassLoader();
-		final boolean patchClinit = true;
-		final boolean patchInit = true;
+		final boolean patchClinit = false;
+		final boolean patchInit = false;
 		final JsmudClassLoader classLoader = new JsmudClassLoader(classLoaderParent, name ->
 					!name.startsWith("java.") && !name.startsWith("com.sun.") && !name.startsWith("sun."),
 				patchClinit, patchInit);

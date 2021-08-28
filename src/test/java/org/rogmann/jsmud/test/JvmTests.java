@@ -18,9 +18,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -90,7 +92,8 @@ public class JvmTests {
 //		testsLambdaInterface();
 //		testsLambdaSpecialAndThen();
 //		testsLambdaStreamCollectOnly();
-		testsLambdaFunctionAndThen();
+//		testsLambdaFunctionAndThen();
+		testsLambdaPrimitiveTypes();
 //		testsLambdaStreams();
 //		testsLambdaStreamsThis();
 //		testsLambdaBiFunctionAndThen();
@@ -454,6 +457,30 @@ public class JvmTests {
 		final Function<Long, Integer> fctPreLen = fctPrefixA.andThen(fctLen);
 		final Integer lenA12345678901234 =  fctPreLen.apply(Long.valueOf(12345678901234L));
 		assertEquals("Test functionAndThen", Integer.valueOf(15), lenA12345678901234);
+	}
+
+	@FunctionalInterface
+	public interface PrimitiveTypesFunction {
+		String apply(boolean b, char c, short s, int i, long j, float f, double d);
+	}
+
+	public void testsLambdaPrimitiveTypes() {
+		final PrimitiveTypesFunction function = (b, c, s, i, j, f, d) ->
+			String.format(Locale.US, "b:%s,c:%s,s:%d,i:%d,j:%d,f:%.3f,d:%.3f",
+					Boolean.toString(b), Character.valueOf(c),
+					Short.valueOf(s), Integer.valueOf(i), Long.valueOf(j),
+					Float.valueOf(f), Double.valueOf(d));
+		final Callable<String> callable = new Callable<String>() {
+			@Override
+			public String call() throws Exception {
+				return function.apply(true, '@',
+						(short) -37, 691, 123456789012l, 1.1f, 1.23);
+			}
+			
+		};
+		final String result = NativeExecutor.executeCallable(callable);
+		assertEquals("Test lambda-primitive-types", "b:true,c:@,s:-37,i:691,j:123456789012,f:1.100,d:1.230",
+				result);
 	}
 
 	/** lambda-stream-tests with collect only*/

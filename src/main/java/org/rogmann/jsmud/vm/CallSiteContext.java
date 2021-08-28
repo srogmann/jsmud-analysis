@@ -4,6 +4,7 @@ import java.lang.reflect.Executable;
 
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 /**
  * Context-information to execute JSMUD out of a call-site-instance.
@@ -50,11 +51,53 @@ public class CallSiteContext {
 					classMethod, methodHandle, classOwner));
 		}
 		final int opcodeInvoke = lookupInvokeOpcode(classOwner, methodHandle);
-		final Executable method = classMethod.getDeclaredMethod(methodHandle.getName(), args[0].getClass());
-		OperandStack stack = new OperandStack(1);
-		stack.push(args[0]);
+		final Type[] argTypes = Type.getArgumentTypes(methodHandle.getDesc());
+		final Class<?>[] aArgs = new Class<?>[argTypes.length];
+		for (int i = 0; i < argTypes.length; i++) {
+			final Type type = argTypes[i];
+			final Class<?> clazz = convertTypeToClass(type);
+			aArgs[i] = clazz;
+		}
+		final Executable method = classMethod.getDeclaredMethod(methodHandle.getName(), aArgs);
+		final OperandStack stack = new OperandStack(args.length);
+		for (int i = 0; i < args.length; i++) {
+			stack.push(args[i]);
+		}
 		final Object objReturn = executor.executeMethod(opcodeInvoke, method, methodHandle.getDesc(), stack);
 		return objReturn;
+	}
+
+	private Class<?> convertTypeToClass(final Type type) throws ClassNotFoundException {
+		final Class<?> clazz;
+		final int sort = type.getSort();
+		if (sort == Type.BOOLEAN) {
+			clazz = boolean.class;
+		}
+		else if (sort == Type.BYTE) {
+			clazz = byte.class;
+		}
+		else if (sort == Type.CHAR) {
+			clazz = char.class;
+		}
+		else if (sort == Type.DOUBLE) {
+			clazz = double.class;
+		}
+		else if (sort == Type.FLOAT) {
+			clazz = float.class;
+		}
+		else if (sort == Type.INT) {
+			clazz = int.class;
+		}
+		else if (sort == Type.LONG) {
+			clazz = long.class;
+		}
+		else if (sort == Type.SHORT) {
+			clazz = short.class;
+		}
+		else {
+			clazz = registry.loadClass(type.getClassName(), classOwner);
+		}
+		return clazz;
 	}
 
 	/**
