@@ -78,6 +78,7 @@ public class CallSiteGenerator {
 	 */
 	public Object createCallSite(ClassRegistry registry, final Class<?> classOwner, final InvokeDynamicInsnNode idin,
 			final OperandStack stack) {
+		// TODO map of created call-sites
 		final Class<?> classCallSite = createCallSiteClass(classOwner, idin);
 		
 		final Type[] callSiteConstrArgs = Type.getArgumentTypes(idin.desc);
