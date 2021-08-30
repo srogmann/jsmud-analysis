@@ -217,7 +217,7 @@ public class MethodFrame {
 	}
 
 	/**
-	 * Converts a field-value into an integer -- if neccessary.
+	 * Converts a field-value into an integer -- if necessary.
 	 * @param fieldType field-type
 	 * @param objField field-value
 	 * @return converted object
