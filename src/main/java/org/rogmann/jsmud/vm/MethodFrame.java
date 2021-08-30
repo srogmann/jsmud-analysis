@@ -58,7 +58,7 @@ public class MethodFrame {
 	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20).intValue();
 
 	/** <code>true</code> if a call-site should be simulated via proxy, <code>false</code> if a call-site should get a generated class */
-	private final boolean callsiteViaProxy = Boolean.getBoolean(MethodFrame.class.getName() + "executeAccessControllerNative");
+	private final boolean callsiteViaProxy = Boolean.getBoolean(MethodFrame.class.getName() + ".executeAccessControllerNative");
 
 	/** class-registry */
 	public final ClassRegistry registry;

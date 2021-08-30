@@ -4,7 +4,7 @@ JSMUD-analysis (_Java simulator multi-user debugger_) is an embedded interpreter
 
 The interpreter uses reflection to work on the original objects so one can build an object-tree using the underlying JVM and then execute code working on that tree using JSMUD.
 
-The purpose is to support the analysis of given Java classes in development stages only. Most tests I executed under Java 8 (the release published 2014 which introduced lambda expressions). The module system in JDK 16 and later restricts reflective access against JDK-classes so their internal methods can't be called by a jsmud outside java.base, see [JEP 396](https://openjdk.java.net/jeps/396) and [JEP 403](https://openjdk.java.net/jeps/403). But for example the following code runs in JDK 11.
+The purpose is to support the analysis of given Java classes in development stages only. The module system in JDK 16 and later restricts reflective access against JDK-classes so their internal methods can't be called by a jsmud outside java.base, see [JEP 396](https://openjdk.java.net/jeps/396) and [JEP 403](https://openjdk.java.net/jeps/403). But for example the following code runs in JDK 11.
 
     final Runnable runnable = new Runnable() {
         public void run() {
@@ -61,8 +61,15 @@ JSMUD is written in Java and executes bytecode contained in .class-files by mean
 
 A `NEW`-instruction is implemented by placing an instance of UninitializedInstance on the stack.
 
-### INVOKEDYNAMIC
-A `INVOKEDYNAMIC`-instruction is implemented by placing a java.lang.reflect.Proxy-instance on the stack. Corresponding to the Proxy-instance a CallSiteSimulation-instance is stored in a map containing details of the bootstrap-method. Currently java/lang/invoke/LambdaMetafactory-bootstrap-methods are supported only via simulation. The Proxy-instances are detected in INVOKE-instructions. For example the following code can be executed by using these proxies:
+### INVOKEDYNAMIC via class-generation
+As default a `INVOKEDYNAMIC`-instruction is implemented by generating a class-site-class on-the-fly. Depending on the execution-filter the call-site-method will be simulated or executed by the underlying JVM.
+
+### INVOKEDYNAMIC via proxy
+Until version 0.2.4 the `INVOKEDYNAMIC`-instruction was implemented by placing a java.lang.reflect.Proxy-instance on the stack. This mode can be enable by setting a JVM-property:
+
+    -Dorg.rogmann.jsmud.vm.MethodFrame.executeAccessControllerNative=true.
+
+Corresponding to the Proxy-instance a CallSiteSimulation-instance is stored in a map containing details of the bootstrap-method. Currently java/lang/invoke/LambdaMetafactory-bootstrap-methods are supported only via simulation. The Proxy-instances are detected in INVOKE-instructions. For example the following code can be executed by using these proxies:
 
     final String listStreamed = list.stream()
     	.filter(s -> s.startsWith("d"))
@@ -70,6 +77,7 @@ A `INVOKEDYNAMIC`-instruction is implemented by placing a java.lang.reflect.Prox
     	.sorted()
     	.collect(Collectors.joining("-"));
 
+These proxies can't be used in JDK 16 and later when the stream-API is used. Therefore the class-generation had been added as default.
 
 ### JsmudClassLoader: Static initializer and constructors
 JSMUD operates on classes of the JVM using reflection. Static initializers are executed after loading, an empty constructor is needed to instanciate an object. The class-loader JsmusClassLoader tries to the manipulate the bytecode of a class so one can step through static initializers and constructors. 
