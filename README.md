@@ -95,6 +95,7 @@ I wrote this project in my free time and I like my free time so support is given
  * [ASM, the all purpose Java bytecode manipulation and analysis framework](https://asm.ow2.io/)
 
  ## Changelog
+ * V 0.3.0, 2021-08-30: Switch to using generated class-files as INVOKEDYNAMIC-call-sites. On-the-fly-disassembler for debugging bytecode.
  * V 0.2.4, 2021-08-01: Optional method-call-trace, mock-support of AccessController, classloader-determination in INVOKEDYNAMIC, bug-fixes (see history).
  * V 0.2.3, 2021-07-25: Support of ClassObject/InvokeMethod command in debugger, several bug-fixes (see history).
  * V 0.2.2, 2021-07-18: Use the class-loader of a class or class in context when analyzing new classes.
