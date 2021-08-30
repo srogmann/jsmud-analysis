@@ -61,7 +61,12 @@ public class JsmudClassLoader extends ClassLoader {
 
 	/** map from class-name to patched class */
 	protected final ConcurrentMap<String, Class<?>> mapPatchedClasses = new ConcurrentHashMap<>(100);
-	
+
+	/** map from class-name to bytecode of a class defined in {@link JsmudClassLoader#defineJsmudClass(String, byte[])} */
+	protected final ConcurrentMap<String, byte[]> mapJsmudClassBytecode = new ConcurrentHashMap<>();
+	/** map from class-name to class of a class defined in {@link JsmudClassLoader#defineJsmudClass(String, byte[])} */
+	protected final ConcurrentMap<String, Class<?>> mapJsmudClasses = new ConcurrentHashMap<>();
+
 	/** map from class-name to flags */
 	protected final ConcurrentMap<String, Integer> mapClassFlags = new ConcurrentHashMap<>(100);
 
@@ -112,6 +117,8 @@ public class JsmudClassLoader extends ClassLoader {
 	 */
 	public Class<?> defineJsmudClass(final String name, final byte[] bufBytecode) {
 		Class<?> clazz = defineClass(name, bufBytecode, 0, bufBytecode.length);
+		mapJsmudClassBytecode.put(name, bufBytecode);
+		mapJsmudClasses.put(name, clazz);
 		return clazz;
 	}
 	
@@ -130,6 +137,9 @@ public class JsmudClassLoader extends ClassLoader {
 	 */
 	public Class<?> findClass(final String name, final ClassLoader classLoader) throws ClassNotFoundException {
 		Class<?> clazz = mapPatchedClasses.get(name);
+		if (clazz == null) {
+			clazz = mapJsmudClasses.get(name);
+		}
 		if (clazz == null) {
 			LOG.debug("findClass: looking for " + name);
 			if (patchFilter.test(name) && (patchClinit || patchInit)) {

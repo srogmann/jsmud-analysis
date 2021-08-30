@@ -32,6 +32,9 @@ public class CallSiteGenerator {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
+	/** optional folder used to dump generated class-site-classes */
+	private static final String FOLDER_DUMP_CALL_SITES = System.getProperty(CallSiteGenerator.class.getName() + ".folderCallSites");
+
 	/** type of the {@link CallSiteContext}-instance */
 	private static final Type TYPE_CALL_SITE_CONTEXT = Type.getType(CallSiteContext.class);
 
@@ -146,7 +149,8 @@ public class CallSiteGenerator {
 		//final String callSiteName = String.format("%s$$Lambda$%d", classOwner.getName(),
 		//		Integer.valueOf(callSiteIdx), classOwner.getSimpleName());
 		final String callSiteNameInt = callSiteName.replace('.', '/');
-		final ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+		final ClassWriter cw = new ClassWriterCallSite(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS,
+				classLoader, callSiteNameInt);
 		final String[] aInterfaces = { typeInterface.getInternalName() };
 		cw.visit(Opcodes.V1_8, Opcodes.ACC_FINAL + Opcodes.ACC_SUPER +  Opcodes.ACC_SYNTHETIC,
 				callSiteNameInt, null, Type.getInternalName(Object.class), aInterfaces);
@@ -162,6 +166,10 @@ public class CallSiteGenerator {
 		if (callSiteMethodArgsRuntime.length != callSiteMethodArgsCompile.length) {
 			throw new JvmException(String.format("Unexpected argument-counts of runtime-time-method (%s) and compile-time-method (%s) in owner-class %s: bsm.tag=%d, bsm.args=%s",
 					callSiteMethodDescRuntime, callSiteMethodDescCompile, classOwner, Integer.valueOf(tag), Arrays.toString(idin.bsmArgs)));
+		}
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("createCallSite: idin.desc=%s, methodDescRuntime=%s, methodDescCompile=%s",
+					idin.desc, callSiteMethodDescRuntime, callSiteMethodDescCompile));
 		}
 
 		// Generate a jsmud-internal field.
@@ -193,10 +201,15 @@ public class CallSiteGenerator {
 		cw.visitEnd();
 		
 		final byte[] bufClass = cw.toByteArray();
-		try {
-			Files.write(new File("/tmp/CallSite1.class").toPath(), bufClass);
-		} catch (IOException e) {
-			e.printStackTrace();
+		if (FOLDER_DUMP_CALL_SITES != null) {
+			final File fileCallSiteClass = new File(FOLDER_DUMP_CALL_SITES, callSiteName + ".class");
+			LOG.debug(String.format("Dump call-site-class into (%s)", fileCallSiteClass));
+			try {
+				Files.write(fileCallSiteClass.toPath(), bufClass);
+			} catch (IOException e) {
+				throw new JvmException(String.format("IO-error while dumping class (%s) into file (%s)",
+						callSiteName, fileCallSiteClass), e);
+			}
 		}
 		final Class<?> classCallSite = classLoader.defineJsmudClass(callSiteName, bufClass);
 		mapBytecodes.put(classCallSite, bufClass);
@@ -327,8 +340,49 @@ public class CallSiteGenerator {
 
 		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_CALL_SITE_CONTEXT.getInternalName(), "executeMethod",
 				"([Ljava/lang/Object;)Ljava/lang/Object;", false);
-		if (!Type.getType(Object.class).equals(callSiteMethodDescRuntime.getReturnType())) {
-			mv.visitTypeInsn(Opcodes.CHECKCAST, callSiteMethodDescRuntime.getReturnType().getInternalName());
+		final int sortReturn = callSiteMethodDescRuntime.getReturnType().getSort();
+		switch (sortReturn) {
+		case Type.VOID:
+			// remove the void-object from stack.
+			mv.visitInsn(Opcodes.POP);
+			break;
+		case Type.INT:
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getType(Integer.class).getInternalName());
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getType(Integer.class).getInternalName(), "intValue", "()I", false);
+			break;
+		case Type.BOOLEAN:
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getType(Boolean.class).getInternalName());
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getType(Boolean.class).getInternalName(), "booleanValue", "()Z", false);
+			break;
+		case Type.CHAR:
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getType(Character.class).getInternalName());
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getType(Character.class).getInternalName(), "charValue", "()C", false);
+			break;
+		case Type.SHORT:
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getType(Short.class).getInternalName());
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getType(Short.class).getInternalName(), "shortValue", "()S", false);
+			break;
+		case Type.LONG:
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getType(Long.class).getInternalName());
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getType(Long.class).getInternalName(), "longValue", "()J", false);
+			break;
+		case Type.FLOAT:
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getType(Float.class).getInternalName());
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getType(Float.class).getInternalName(), "floatValue", "()F", false);
+			break;
+		case Type.DOUBLE:
+			mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getType(Double.class).getInternalName());
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getType(Double.class).getInternalName(), "doubleValue", "()D", false);
+			break;
+		case Type.ARRAY:
+		case Type.OBJECT:
+			if (!Type.getType(Object.class).equals(callSiteMethodDescRuntime.getReturnType())) {
+				mv.visitTypeInsn(Opcodes.CHECKCAST, callSiteMethodDescRuntime.getReturnType().getInternalName());
+			}
+			break;
+		default:
+			throw new JvmException(String.format("Unexpected return-type (%s) of call-site-method (%s) in (%s)",
+					callSiteMethodDescRuntime.getReturnType(), callSiteMethodDescRuntime.getDescriptor(), classOwner));
 		}
 
 		// Send the return-value
@@ -419,9 +473,6 @@ public class CallSiteGenerator {
 		if (methodHandle.getTag() == Opcodes.H_NEWINVOKESPECIAL) {
 			mv.visitTypeInsn(Opcodes.NEW, methodHandle.getOwner());
 			mv.visitInsn(Opcodes.DUP);
-		}
-		else if (methodHandle.getTag() == Opcodes.H_INVOKEVIRTUAL && callSiteConstrArgs.length == 0) {
-			mv.visitVarInsn(Opcodes.ALOAD, 0); // instance
 		}
 		for (int i = 0; i < callSiteConstrArgs.length; i++) {
 			mv.visitVarInsn(Opcodes.ALOAD, 0);
