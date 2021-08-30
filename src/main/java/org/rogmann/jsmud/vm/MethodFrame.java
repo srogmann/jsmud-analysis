@@ -1453,6 +1453,10 @@ whileInstr:
 					if ("java.lang.System".equals(nameFiOwner) && "security".equals(fi.name)) {
 						objField = System.getSecurityManager();
 					}
+					else if (CallSiteGenerator.FIELD_IS_EXECUTED_BY_JSMUD.equals(fi.name) && "Z".equals(fi.desc)) {
+						// JSMUD-internal field: class is executed by JSMUD.
+						objField = Integer.valueOf(1);
+					}
 					else {
 						try {
 							final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
@@ -1463,8 +1467,8 @@ whileInstr:
 							objField = convertFieldTypeIntoJvmType(field.getType(), objField);
 						} catch (ClassNotFoundException | NoSuchFieldException | SecurityException
 								| IllegalArgumentException | IllegalAccessException e) {
-							throw new JvmException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s)",
-									fi.name, nameFiOwner, methodName, clazz), e);
+							throw new JvmException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s) in class-loader (%s)",
+									fi.name, nameFiOwner, methodName, clazz, clazz.getClassLoader()), e);
 						}
 					}
 					stack.push(objField);
