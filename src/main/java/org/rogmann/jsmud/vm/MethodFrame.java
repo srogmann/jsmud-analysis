@@ -2175,25 +2175,19 @@ whileInstr:
 			}
 		}
 		else {
-			if (isInterface && !invMethod.getDeclaringClass().isInterface()) {
-				// In JDK16 and newer JVMs we should try to execute the interface-method,
-				// the reflective execution may not be allowed ("InaccessibleObjectException"). 
-				final Class<?> classInt;
-				try {
-					assert mi != null : "mi";
-					assert mi.owner != null : "mi.owner";
-					classInt = registry.loadClass(miOwnerName, clazz);
-				} catch (ClassNotFoundException e) {
-					final boolean doContinueWhile = handleCatchException(e);
-					if (doContinueWhile) {
-						return true;
-					}
-					throw e;
+			final Class<?> classInt;
+			try {
+				classInt = registry.loadClass(miOwnerName, clazz);
+			} catch (ClassNotFoundException e) {
+				final boolean doContinueWhile = handleCatchException(e);
+				if (doContinueWhile) {
+					return true;
 				}
-				final Method invMethodIntf = findMethodInClass(lMethodName, types, returnType, classInt);
-				if (invMethodIntf != null) {
-					invMethod = invMethodIntf;
-				}
+				throw e;
+			}
+			final Method invMethodIntf = findMethodInClass(lMethodName, types, returnType, classInt);
+			if (invMethodIntf != null) {
+				invMethod = invMethodIntf;
 			}
 
 			final Object[] initargs = new Object[numArgs];
