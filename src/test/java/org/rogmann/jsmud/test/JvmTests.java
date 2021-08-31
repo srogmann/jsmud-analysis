@@ -85,24 +85,25 @@ public class JvmTests {
 //		testsArray();
 //		testsExceptionHandling();
 //		testsRegexp();
-		testsLambda();
-		testsLambdaClassMethodReferences();
-		testsLambdaObjectMethodReferences();
-		testsLambdaNonStatic();
-		testsLambdaInterface();
-		testsLambdaSpecialAndThen();
-		testsLambdaStreamCollectOnly();
-		testsLambdaFunctionAndThen();
-		testsLambdaPrimitiveTypes();
-		testsLambdaStreams();
-		testsLambdaStreamsThis();
-		testsLambdaBiFunctionAndThen();
-		testsLambdaCollectingAndThen();
-		testsLambdaMultipleFunctions();
-		testsLambdaAndSecurity();
-		testsMethodChoosing();
-		testsMethodRef();
-		testsMethodArrayArgs();
+//		testsLambda();
+//		testsLambdaClassMethodReferences();
+//		testsLambdaObjectMethodReferences();
+//		testsLambdaNonStatic();
+//		testsLambdaInterface();
+//		testsLambdaSpecialAndThen();
+//		testsLambdaStreamCollectOnly();
+//		testsLambdaFunctionAndThen();
+//		testsLambdaPrimitiveTypes();
+//		testsLambdaStreams();
+//		testsLambdaStreamsThis();
+//		testsLambdaBiFunctionAndThen();
+//		testsLambdaCollectingAndThen();
+//		testsLambdaMultipleFunctions();
+		testsLambdaReuse();
+//		testsLambdaAndSecurity();
+//		testsMethodChoosing();
+//		testsMethodRef();
+//		testsMethodArrayArgs();
 //		testsStaticInitializer();
 //		testsSyntheticMethod();
 //		testsFields();
@@ -538,6 +539,20 @@ public class JvmTests {
 		final Function<String, String> addPrefix = (s -> "0x" + s);
 		final Function<Integer, String> toCHex = toHex.andThen(addPrefix);
 		assertEquals("Test Function#andThen", "0x2a", toCHex.apply(Integer.valueOf(42)));
+	}
+
+	/** lambda-tests (call-site-classes should be reused) */
+	@SuppressWarnings("null")
+	public void testsLambdaReuse() {
+		IntFunction<String> lastToHex = null;
+		for (int csNo = 0; csNo < 3; csNo++) {
+			final IntFunction<String> toHex = (i -> Integer.toHexString(i));
+			if (csNo == 2) {
+				assertEquals("testsReuse(toHex)", Integer.toString(csNo) + '0', toHex.apply(csNo * 16));
+				assertEquals("testsReuse(class)", lastToHex.getClass(), toHex.getClass());
+			}
+			lastToHex = toHex;;
+		}
 	}
 
 	/** lambda-tests with java.security */

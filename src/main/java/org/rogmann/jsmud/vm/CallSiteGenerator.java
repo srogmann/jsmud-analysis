@@ -61,6 +61,34 @@ public class CallSiteGenerator {
 	/** map from generated class to bytecode used */ 
 	private final ConcurrentMap<Class<?>, byte[]> mapBytecodes = new ConcurrentHashMap<>();
 
+	/** map from INVOKEDYNAMIC-instruction to call-site */
+	private final ConcurrentMap<InvokeDynamicInstructionKey, Class<?>> mapCallSiteClasses = new ConcurrentHashMap<>();
+
+	/**
+	 * Internal key-class (internal because of non-considered equals-contract).
+	 */
+	static class InvokeDynamicInstructionKey {
+		private final Class<?> classOwner;
+		private final InvokeDynamicInsnNode idi;
+		InvokeDynamicInstructionKey(final Class<?> classOwner, final InvokeDynamicInsnNode idi) {
+			this.classOwner = classOwner;
+			this.idi = idi;
+		}
+		@Override
+		public int hashCode() {
+			return classOwner.hashCode() * 37 + idi.hashCode();
+		}
+		@Override
+		public boolean equals(Object otherObj) {
+			if (this == otherObj) {
+				return true;
+			}
+			final InvokeDynamicInstructionKey otherKey = (InvokeDynamicInstructionKey) otherObj;
+			return classOwner.equals(otherKey.classOwner) && idi.equals(otherKey.idi);
+		}
+		
+	}
+
 	/**
 	 * Constructor
 	 * @param classLoader class-loader for generated classes
@@ -78,8 +106,13 @@ public class CallSiteGenerator {
 	 */
 	public Object createCallSite(ClassRegistry registry, final Class<?> classOwner, final InvokeDynamicInsnNode idin,
 			final OperandStack stack) {
-		// TODO map of created call-sites
-		final Class<?> classCallSite = createCallSiteClass(classOwner, idin);
+		final InvokeDynamicInstructionKey key = new InvokeDynamicInstructionKey(classOwner, idin);
+		Class<?> classCallSite = mapCallSiteClasses.get(key);
+		if (classCallSite == null) {
+			// In a multi-threaded environment this computeIfAbsent-less implementation could result in several call-site-classes.
+			classCallSite = createCallSiteClass(classOwner, idin);
+			mapCallSiteClasses.put(key, classCallSite);
+		}
 		
 		final Type[] callSiteConstrArgs = Type.getArgumentTypes(idin.desc);
 		final Constructor<?> constr = classCallSite.getDeclaredConstructors()[0];
