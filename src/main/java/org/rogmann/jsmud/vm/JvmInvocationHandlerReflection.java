@@ -311,6 +311,49 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			// proxy-instance
 			doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) objRefStack, stack, mi.name, mi.desc);
 		}
+		else if ("clone".equals(mi.name) && mi.owner.startsWith("[")) {
+			// clone an array.
+			final Object obj = stack.pop();
+			if (obj instanceof Object[]) {
+				final Object[] oArray = (Object[]) obj;
+				stack.push(oArray.clone());
+			}
+			else if (obj instanceof boolean[]) {
+				final boolean[] pArray = (boolean[]) obj;
+				stack.push(pArray.clone());
+			}
+			else if (obj instanceof char[]) {
+				final char[] pArray = (char[]) obj;
+				stack.push(pArray.clone());
+			}
+			else if (obj instanceof short[]) {
+				final short[] pArray = (short[]) obj;
+				stack.push(pArray.clone());
+			}
+			else if (obj instanceof int[]) {
+				final int[] pArray = (int[]) obj;
+				stack.push(pArray.clone());
+			}
+			else if (obj instanceof long[]) {
+				final long[] pArray = (long[]) obj;
+				stack.push(pArray.clone());
+			}
+			else if (obj instanceof double[]) {
+				final double[] pArray = (double[]) obj;
+				stack.push(pArray.clone());
+			}
+			else if (obj instanceof float[]) {
+				final float[] pArray = (float[]) obj;
+				stack.push(pArray.clone());
+			}
+			else if (obj == null) {
+				throw new NullPointerException();
+			}
+			else {
+				throw new JvmException(String.format("Unexpected clone-object of type (%s)", obj.getClass()));
+			}
+			doContinueWhile = Boolean.FALSE;
+		}
 		return doContinueWhile;
 	}
 
