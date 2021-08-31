@@ -1690,7 +1690,15 @@ whileInstr:
 					stack.push(Integer.valueOf(length));
 					break;
 				case Opcodes.ATHROW: // 0xbf
-					throw (Throwable) stack.pop();
+				{
+					final Throwable e = (Throwable) stack.pop();
+					final boolean doContinueWhileE = handleCatchException(e);
+					if (doContinueWhileE) {
+						continue whileInstr;
+					}
+					throw new JvmUncaughtException("ATHROW in " + getMethod() + "at " + getCurrLineNum(),
+							e);
+				}
 				case Opcodes.CHECKCAST: // 0xc0
 				{
 					final TypeInsnNode tin = (TypeInsnNode) instr;
