@@ -22,7 +22,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.concurrent.Callable;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -86,6 +88,7 @@ public class JvmTests {
 //		testsExceptionHandling();
 //		testsRegexp();
 //		testsLambda();
+		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
 //		testsLambdaNonStatic();
@@ -95,11 +98,12 @@ public class JvmTests {
 //		testsLambdaFunctionAndThen();
 //		testsLambdaPrimitiveTypes();
 //		testsLambdaStreams();
+		testsLambdaStreams2();
 //		testsLambdaStreamsThis();
 //		testsLambdaBiFunctionAndThen();
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
-		testsLambdaReuse();
+//		testsLambdaReuse();
 //		testsLambdaAndSecurity();
 //		testsMethodChoosing();
 //		testsMethodRef();
@@ -360,10 +364,22 @@ public class JvmTests {
 
 		// Check if a call of Object#getClass() is successful.
 		final String packageGen = JsmudGeneratedClasses.class.getName().replaceFirst("[.][^.]*$", "");
-		final String iFtkClass = iFkt.getClass().getName();
-		assertTrue("iFkt.class", iFtkClass.contains("$Proxy") || iFtkClass.startsWith(packageGen));
+		final String iFctClass = iFkt.getClass().getName();
+		assertTrue("iFkt.class", iFctClass.contains("$Lambda") 
+				|| iFctClass.contains("$Proxy")
+				|| iFctClass.startsWith(packageGen));
 	}
-	
+
+	public void testsLambdaBiConsumer() {
+		// The call-site has to ignore the return-type StringJoiner of StringJoiner::add.
+		final BiConsumer<StringJoiner, CharSequence> accumulator = StringJoiner::add;
+		final StringJoiner joiner = new StringJoiner(";");
+		accumulator.accept(joiner, "a");
+		accumulator.accept(joiner, "b");
+		accumulator.accept(joiner, "c");
+		assertEquals("testsLambdaBiConsumer", "a;b;c", joiner.toString());
+	}
+
 	/**
 	 * Example of a lambda-function with method-references on a class.
 	 */
@@ -505,6 +521,15 @@ public class JvmTests {
 			.sorted()
 			.collect(Collectors.joining("-"));
 		assertEquals("Test listStreamed", "D1-D2-D3", listStreamed);
+	}
+
+	public void testsLambdaStreams2() {
+	    final String[] chess = { "e2-e4", "e7-e5", "g1-f3", "b8-c6" };
+	    final String result = Arrays.stream(chess)
+	            .map(move -> move.substring(0, 2))
+	            .sorted()
+	            .collect(Collectors.joining(","));
+	    assertEquals("Test lambdaStreams2", "b8,e2,e7,g1", result);
 	}
 
 	/** lambda-tests with streams: filter with instance */

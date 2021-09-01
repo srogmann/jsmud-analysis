@@ -334,6 +334,10 @@ public class CallSiteGenerator {
 		final int opcodeInvoke = CallSiteContext.lookupInvokeOpcode(classOwner, methodHandle);
 		mv.visitMethodInsn(opcodeInvoke, methodHandle.getOwner(),
 				methodHandle.getName(), methodHandle.getDesc(), methodHandle.isInterface());
+		if (Type.VOID_TYPE.equals(callSiteMethodDescRuntime.getReturnType())) {
+			// remove the void-object from stack.
+			mv.visitInsn(Opcodes.POP);
+		}
 		mv.visitJumpInsn(Opcodes.GOTO, labelReturn);
 
 		// Generate execution via JSMUD.
