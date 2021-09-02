@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.util.concurrent.Callable;
 
 import javax.net.SocketFactory;
 
@@ -101,6 +102,43 @@ public class JvmHelper {
 		}
 	}
 
+	public static <T> T executeCallable(final Callable<T> callable, final ClassExecutionFilter filter,
+			final PrintStream psOut) {
+		LOG.info(String.format("executeCallable(version=%s)", ClassRegistry.VERSION));
+		final boolean dumpJreInstructions = true;
+		final boolean dumpClassStatistic = true;
+		final boolean dumpInstructionStatistic = true;
+		final boolean dumpMethodCallTrace = true;
+		final InstructionVisitor visitor = new InstructionVisitor(psOut, dumpJreInstructions,
+				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace);
+		visitor.setShowOutput(true);
+
+		final Class<?> classCallable = callable.getClass();
+		final ClassLoader classLoader = classCallable.getClassLoader();
+		final boolean simulateReflection = true;
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
+		final ClassRegistry registry = new ClassRegistry(filter, classLoader,
+				simulateReflection, visitor, invocationHandler);
+		registry.registerThread(Thread.currentThread());
+		final Object objReturn;
+		try {
+			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, callable.getClass(), visitor, invocationHandler);
+			final OperandStack stackArgs = new OperandStack(1);
+			stackArgs.push(callable);
+			try {
+				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(callable.getClass(), "call"), "()Ljava/lang/Object;", stackArgs);
+			} catch (Throwable e) {
+				throw new JvmUncaughtException("Exception while simulating callable", e);
+			}
+		}
+		finally {
+			registry.unregisterThread(Thread.currentThread());
+		}
+		@SuppressWarnings("unchecked")
+		final T t = (T) objReturn;
+		return t;
+	}
+
 	public static void executeRunnable(final Runnable runnable, final PrintStream psOut) {
 		executeRunnable(runnable, createNonJavaButJavaUtilExecutionFilter(), psOut);
 	}
@@ -137,7 +175,6 @@ public class JvmHelper {
 		finally {
 			registry.unregisterThread(Thread.currentThread());
 		}
-
 	}
 
 	/**
