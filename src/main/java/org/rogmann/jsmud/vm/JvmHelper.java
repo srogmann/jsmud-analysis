@@ -49,7 +49,8 @@ public class JvmHelper {
 	public static void connectRunnableToDebugger(final String host, final int port,
 			final Runnable runnable, final ClassExecutionFilter executionFilter,
 			final SourceFileRequester sourceFileRequester) {
-		LOG.info(String.format("connectRunnableToDebugger(host=%s, port=%d, version=%s)", host, Integer.valueOf(port), ClassRegistry.VERSION));
+		LOG.info(String.format("connectRunnableToDebugger(host=%s, port=%d, version=%s, jre.version=%s)",
+				host, Integer.valueOf(port), ClassRegistry.VERSION, System.getProperty("java.version")));
 		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
 			socket.setSoTimeout(200);
 			final ClassLoader classLoader = runnable.getClass().getClassLoader();
@@ -106,7 +107,8 @@ public class JvmHelper {
 
 	public static <T> T executeCallable(final Callable<T> callable, final ClassExecutionFilter filter,
 			final PrintStream psOut) {
-		LOG.info(String.format("executeCallable(version=%s)", ClassRegistry.VERSION));
+		LOG.info(String.format("executeRunnable(version=%s, jre.version=%s)",
+				ClassRegistry.VERSION, System.getProperty("java.version")));
 		final Object objReturn;
 		final boolean dumpJreInstructions = true;
 		final boolean dumpClassStatistic = true;
@@ -147,7 +149,8 @@ public class JvmHelper {
 
 	public static void executeRunnable(final Runnable runnable, final ClassExecutionFilter filter,
 			final PrintStream psOut) {
-		LOG.info(String.format("executeRunnable(version=%s)", ClassRegistry.VERSION));
+		LOG.info(String.format("executeRunnable(version=%s, jre.version=%s)",
+				ClassRegistry.VERSION, System.getProperty("java.version")));
 		final boolean dumpJreInstructions = true;
 		final boolean dumpClassStatistic = true;
 		final boolean dumpInstructionStatistic = true;
