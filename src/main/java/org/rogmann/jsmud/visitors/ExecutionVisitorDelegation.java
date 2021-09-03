@@ -91,4 +91,10 @@ public class ExecutionVisitorDelegation implements JvmExecutionVisitor {
 	public void invokeException(Throwable e) {
 		visitor.invokeException(e);
 	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void close() {
+		visitor.close();
+	}
 }

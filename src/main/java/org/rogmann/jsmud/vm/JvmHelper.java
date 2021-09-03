@@ -12,11 +12,12 @@ import javax.net.SocketFactory;
 
 import org.objectweb.asm.Opcodes;
 import org.rogmann.jsmud.debugger.DebuggerJvmVisitor;
+import org.rogmann.jsmud.debugger.DebuggerJvmVisitorProvider;
 import org.rogmann.jsmud.debugger.JdwpCommandProcessor;
 import org.rogmann.jsmud.debugger.SourceFileRequester;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
-import org.rogmann.jsmud.visitors.InstructionVisitor;
+import org.rogmann.jsmud.visitors.InstructionVisitorProvider;
 
 /**
  * Helper-methods for initializing a JVM.
@@ -52,48 +53,50 @@ public class JvmHelper {
 		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
 			socket.setSoTimeout(200);
 			final ClassLoader classLoader = runnable.getClass().getClassLoader();
-			final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor(sourceFileRequester);
-			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
-			final boolean simulateReflection = true;
-			final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
-					simulateReflection, visitor, invocationHandler);
-			vm.registerThread(Thread.currentThread());
-			final Class<?>[] classesPreload = {
-					Thread.class,
-					Throwable.class,
-					Error.class
-			};
-			for (final Class<?> classPreload : classesPreload) {
-				try {
-					vm.loadClass(classPreload.getName(), classPreload);
-				} catch (ClassNotFoundException e) {
-					throw new RuntimeException("Couldn't preload class " + classPreload, e);
-				}
-			}
-			visitor.setJvmSimulator(vm);
-			try (final InputStream socketIs = socket.getInputStream()) {
-				try (final OutputStream socketOs = socket.getOutputStream()) {
-					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
-							vm, visitor);
-					visitor.visitThreadStarted(Thread.currentThread());
-					vm.suspendThread(vm.getCurrentThreadId());
-					debugger.processPackets();
-		
-					vm.registerThread(Thread.currentThread());
+			try (final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester)) {
+				final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
+				final boolean simulateReflection = true;
+				final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
+						simulateReflection, visitorProvider, invocationHandler);
+				vm.registerThread(Thread.currentThread());
+				final DebuggerJvmVisitor visitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
+				final Class<?>[] classesPreload = {
+						Thread.class,
+						Throwable.class,
+						Error.class
+				};
+				for (final Class<?> classPreload : classesPreload) {
 					try {
-						final SimpleClassExecutor executor = new SimpleClassExecutor(vm, runnable.getClass(), visitor, invocationHandler);
-						// We have to announce the class to the debugger.
-						visitor.visitLoadClass(runnable.getClass());
-						final OperandStack stackArgs = new OperandStack(1);
-						stackArgs.push(runnable);
-						try {
-							executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
-						} catch (Throwable e) {
-							throw new RuntimeException("Exception while simulating runnable", e);
-						}
+						vm.loadClass(classPreload.getName(), classPreload);
+					} catch (ClassNotFoundException e) {
+						throw new RuntimeException("Couldn't preload class " + classPreload, e);
 					}
-					finally {
-						vm.unregisterThread(Thread.currentThread());
+				}
+				visitor.setJvmSimulator(vm);
+				try (final InputStream socketIs = socket.getInputStream()) {
+					try (final OutputStream socketOs = socket.getOutputStream()) {
+						final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
+								vm, visitor);
+						visitor.visitThreadStarted(Thread.currentThread());
+						vm.suspendThread(vm.getCurrentThreadId());
+						debugger.processPackets();
+			
+						vm.registerThread(Thread.currentThread());
+						try {
+							final SimpleClassExecutor executor = new SimpleClassExecutor(vm, runnable.getClass(), invocationHandler);
+							// We have to announce the class to the debugger.
+							visitor.visitLoadClass(runnable.getClass());
+							final OperandStack stackArgs = new OperandStack(1);
+							stackArgs.push(runnable);
+							try {
+								executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
+							} catch (Throwable e) {
+								throw new RuntimeException("Exception while simulating runnable", e);
+							}
+						}
+						finally {
+							vm.unregisterThread(Thread.currentThread());
+						}
 					}
 				}
 			}
@@ -105,34 +108,38 @@ public class JvmHelper {
 	public static <T> T executeCallable(final Callable<T> callable, final ClassExecutionFilter filter,
 			final PrintStream psOut) {
 		LOG.info(String.format("executeCallable(version=%s)", ClassRegistry.VERSION));
+		final Object objReturn;
 		final boolean dumpJreInstructions = true;
 		final boolean dumpClassStatistic = true;
 		final boolean dumpInstructionStatistic = true;
 		final boolean dumpMethodCallTrace = true;
-		final InstructionVisitor visitor = new InstructionVisitor(psOut, dumpJreInstructions,
-				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace);
-		visitor.setShowOutput(true);
-
-		final Class<?> classCallable = callable.getClass();
-		final ClassLoader classLoader = classCallable.getClassLoader();
-		final boolean simulateReflection = true;
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
-		final ClassRegistry registry = new ClassRegistry(filter, classLoader,
-				simulateReflection, visitor, invocationHandler);
-		registry.registerThread(Thread.currentThread());
-		final Object objReturn;
-		try {
-			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, callable.getClass(), visitor, invocationHandler);
-			final OperandStack stackArgs = new OperandStack(1);
-			stackArgs.push(callable);
+		try (final InstructionVisitorProvider visitorProvider = new InstructionVisitorProvider(psOut, dumpJreInstructions,
+				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace)) {
+			visitorProvider.setShowOutput(true);
+	
+			final Class<?> classCallable = callable.getClass();
+			final ClassLoader classLoader = classCallable.getClassLoader();
+			final boolean simulateReflection = true;
+			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
+			final ClassRegistry registry = new ClassRegistry(filter, classLoader,
+					simulateReflection, visitorProvider, invocationHandler);
+			registry.registerThread(Thread.currentThread());
 			try {
-				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(callable.getClass(), "call"), "()Ljava/lang/Object;", stackArgs);
-			} catch (Throwable e) {
-				throw new JvmUncaughtException("Exception while simulating callable", e);
+				final SimpleClassExecutor executor = new SimpleClassExecutor(registry, callable.getClass(), invocationHandler);
+				final OperandStack stackArgs = new OperandStack(1);
+				stackArgs.push(callable);
+				try {
+					objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(callable.getClass(), "call"), "()Ljava/lang/Object;", stackArgs);
+				} catch (Throwable e) {
+					throw new JvmUncaughtException("Exception while simulating callable", e);
+				}
+			}
+			finally {
+				registry.unregisterThread(Thread.currentThread());
 			}
 		}
-		finally {
-			registry.unregisterThread(Thread.currentThread());
+		catch (IOException e) {
+			throw new JvmException("IO-exception (because of execution-visitor?)", e);
 		}
 		@SuppressWarnings("unchecked")
 		final T t = (T) objReturn;
@@ -150,30 +157,34 @@ public class JvmHelper {
 		final boolean dumpClassStatistic = true;
 		final boolean dumpInstructionStatistic = true;
 		final boolean dumpMethodCallTrace = true;
-		final InstructionVisitor visitor = new InstructionVisitor(psOut, dumpJreInstructions,
-				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace);
-		visitor.setShowOutput(true);
-
-		final Class<?> classRunnable = runnable.getClass();
-		final ClassLoader classLoader = classRunnable.getClassLoader();
-		final boolean simulateReflection = true;
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
-		final ClassRegistry registry = new ClassRegistry(filter, classLoader,
-				simulateReflection, visitor, invocationHandler);
-		registry.registerThread(Thread.currentThread());
-		try {
-			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, runnable.getClass(), visitor, invocationHandler);
-			final OperandStack stackArgs = new OperandStack(1);
-			stackArgs.push(runnable);
+		try (final InstructionVisitorProvider visitorProvider = new InstructionVisitorProvider(psOut, dumpJreInstructions,
+				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace)) {
+			visitorProvider.setShowOutput(true);
+			visitorProvider.setShowStatisticsAfterExecution(true);
+	
+			final Class<?> classRunnable = runnable.getClass();
+			final ClassLoader classLoader = classRunnable.getClassLoader();
+			final boolean simulateReflection = true;
+			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
+			final ClassRegistry registry = new ClassRegistry(filter, classLoader,
+					simulateReflection, visitorProvider, invocationHandler);
+			registry.registerThread(Thread.currentThread());
 			try {
-				executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
-			} catch (Throwable e) {
-				throw new RuntimeException("Exception while simulating runnable", e);
+				final SimpleClassExecutor executor = new SimpleClassExecutor(registry, runnable.getClass(), invocationHandler);
+				final OperandStack stackArgs = new OperandStack(1);
+				stackArgs.push(runnable);
+				try {
+					executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
+				} catch (Throwable e) {
+					throw new RuntimeException("Exception while simulating runnable", e);
+				}
 			}
-			visitor.showStatistics();
+			finally {
+				registry.unregisterThread(Thread.currentThread());
+			}
 		}
-		finally {
-			registry.unregisterThread(Thread.currentThread());
+		catch (IOException e) {
+			throw new JvmException("IO-exception (because of execution-visitor?)", e);
 		}
 	}
 

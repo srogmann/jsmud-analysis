@@ -94,4 +94,10 @@ public interface JvmExecutionVisitor {
 	 */
 	void invokeException(Throwable e);
 
+	/**
+	 * Called when the thread using this visitor has been unregistered.
+	 * This method can be used to display statistics.
+	 */
+	void close();
+
 }

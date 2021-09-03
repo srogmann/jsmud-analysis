@@ -37,6 +37,12 @@ import org.rogmann.jsmud.replydata.VariableSlot;
 public interface VM {
 
 	/**
+	 * Gets the visitor of the current thread.
+	 * @return visitor
+	 */
+	JvmExecutionVisitor getCurrentVisitor();
+
+	/**
 	 * Creates a string in the JVM.
 	 * @param utf8 String 
 	 * @return String-Id

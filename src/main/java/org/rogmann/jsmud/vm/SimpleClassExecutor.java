@@ -50,7 +50,7 @@ public class SimpleClassExecutor {
 	 * @param visitor JVM-visitor
 	 */
 	public SimpleClassExecutor(final ClassRegistry registry, final Class<?> clazz,
-			final JvmExecutionVisitor visitor, final JvmInvocationHandler invocationHandler) {
+			final JvmInvocationHandler invocationHandler) {
 		fRegistry = registry;
 		fClass = clazz;
 		fClassLoader = clazz.getClassLoader();
@@ -68,7 +68,7 @@ public class SimpleClassExecutor {
 			methodsByName.add(method);
 			fMethodArgs.put(method.desc, Type.getArgumentTypes(method.desc));
 		}
-		fVisitor = visitor;
+		fVisitor = registry.getCurrentVisitor();
 		fInvocationHandler = invocationHandler;
 	}
 
@@ -139,6 +139,14 @@ public class SimpleClassExecutor {
 	 */
 	public ClassNode getClassNode() {
 		return fNode;
+	}
+
+	/**
+	 * Gets the execution-visitor of the executor.
+	 * @return visitor
+	 */
+	public JvmExecutionVisitor getVisitor() {
+		return fVisitor;
 	}
 
 	/**

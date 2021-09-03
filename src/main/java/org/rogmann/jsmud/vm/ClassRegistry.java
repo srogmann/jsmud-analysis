@@ -103,8 +103,8 @@ public class ClassRegistry implements VM {
 	/** <code>true</code> if reflection should be emulated too */
 	private final boolean simulateReflection;
 	
-	/** JVM-visitor */
-	private final JvmExecutionVisitor visitor;
+	/** JVM-visitor-provider */
+	private final JvmExecutionVisitorProvider visitorProvider;
 
 	/** JVM-invocation-handler */
 	private final JvmInvocationHandler invocationHandler;
@@ -120,6 +120,9 @@ public class ClassRegistry implements VM {
 	
 	/** suspend-counter */
 	private final ConcurrentMap<Long, AtomicInteger> mapThreadSuspendCounter = new ConcurrentHashMap<>();
+
+	/** map from thread-id to execution-visitor of the thread */
+	private final ConcurrentMap<Long, JvmExecutionVisitor> mapThreadVisitor = new ConcurrentHashMap<>();
 
 	/** map of all monitor-objects */
 	private final Map<Object, ThreadMonitor> mapMonitorObjects = Collections.synchronizedMap(new IdentityHashMap<>());
@@ -185,17 +188,17 @@ public class ClassRegistry implements VM {
 	 * @param executionFilter determines classes to be simulated
 	 * @param classLoader class-loader to be used as default
 	 * @param simulateReflection <code>true</code> if reflection should be emulated
-	 * @param visitor JVM-visitor
+	 * @param visitorProvider JVM-visitor-provider
 	 * @param invocationHandler invocation-handler
 	 */
 	public ClassRegistry(final ClassExecutionFilter executionFilter,
 			final ClassLoader classLoader,
 			final boolean simulateReflection,
-			final JvmExecutionVisitor visitor, final JvmInvocationHandler invocationHandler) {
+			final JvmExecutionVisitorProvider visitorProvider, final JvmInvocationHandler invocationHandler) {
 		this.executionFilter = executionFilter;
 		this.classLoaderDefault = classLoader;
 		this.simulateReflection = simulateReflection;
-		this.visitor = visitor;
+		this.visitorProvider = visitorProvider;
 		this.invocationHandler = invocationHandler;
 		callSiteRegistry = new CallSiteRegistry(classLoader);
 		final JsmudClassLoader jsmudClassLoader;
@@ -220,14 +223,26 @@ public class ClassRegistry implements VM {
 		if (executor == null && !JsmudClassLoader.class.equals(clazz)) {
 			boolean doSimulation = executionFilter.isClassToBeSimulated(clazz);
 			if (doSimulation) {
-				executor = new SimpleClassExecutor(this, clazz, visitor, invocationHandler);
+				executor = new SimpleClassExecutor(this, clazz, invocationHandler);
 				mapClassExecutors.put(clazz, executor);
-				visitor.visitLoadClass(clazz);
+				executor.getVisitor().visitLoadClass(clazz);
 			}
 		}
 		return executor;
 	}
-	
+
+	/** {@inheritDoc} */
+	@Override
+	public JvmExecutionVisitor getCurrentVisitor() {
+		final Long threadKey = Long.valueOf(Thread.currentThread().getId());
+		final JvmExecutionVisitor visitor = mapThreadVisitor.get(threadKey);
+		if (visitor == null) {
+			throw new JvmException(String.format("No registered execution-visitor of thread (%d/%s)",
+					threadKey, Thread.currentThread().getName()));
+		}
+		return visitor;
+	}
+
 	/**
 	 * Gets the default class-loader.
 	 * @return class-loader
@@ -424,11 +439,13 @@ public class ClassRegistry implements VM {
 			mapThreads.put(threadKey, vmThreadID);
 			mapThreadGroups.put(threadKey, vmThreadGroupID);		
 			mapThreadSuspendCounter.put(threadKey, new AtomicInteger(0));
+			final JvmExecutionVisitor visitor = visitorProvider.create(thread);
+			mapThreadVisitor.put(threadKey, visitor);
 		}
 	}
 
 	/**
-	 * Removes a thread and the corresonding thread-group.
+	 * Removes a thread and the corresponding thread-group.
 	 * @param thread thread
 	 */
 	public void unregisterThread(final Thread thread) {
@@ -443,6 +460,8 @@ public class ClassRegistry implements VM {
 		if (vmThreadGroupID != null) {
 			mapObjects.remove(vmThreadGroupID, thread.getThreadGroup());
 		}
+		final JvmExecutionVisitor visitor = mapThreadVisitor.remove(threadKey);
+		visitor.close();
 	}
 
 	/**

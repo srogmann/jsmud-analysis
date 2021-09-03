@@ -48,7 +48,11 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	/** dump method-call-trace */
 	private final boolean dumpMethodCallTrace;
 	
+	/** output-allowed flag */
 	private boolean showOutput = true;
+
+	/** statistics-flag */
+	private boolean showStatisticsAfterExecution = true;
 
 	/** current frame-stack */
 	Stack<VisitorFrame> stackFrames = new Stack<>();
@@ -451,5 +455,21 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	 */
 	public void setShowOutput(final boolean flag) {
 		showOutput = flag;
+	}
+
+	/**
+	 * Sets if statistics after execution show be displayed.
+	 * @param flag statistics-flag
+	 */
+	public void setShowStatisticsAfterExecution(final boolean flag) {
+		showStatisticsAfterExecution = flag;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void close() {
+		if (showStatisticsAfterExecution) {
+			showStatistics();
+		}
 	}
 }
