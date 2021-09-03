@@ -1,7 +1,5 @@
 package org.rogmann.jsmud.debugger;
 
-import java.io.IOException;
-
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
 
@@ -39,12 +37,6 @@ public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
 		this.maxInstrLogged = maxInstrLogged;
 		this.maxMethodsLogged = maxMethodsLogged;
 		this.sourceFileRequester = sourceFileRequester;
-	}
-
-	/** {@inheritDoc} */
-	@Override
-	public void close() throws IOException {
-		// Nothing to do here.
 	}
 
 	/** {@inheritDoc} */

@@ -1,6 +1,5 @@
 package org.rogmann.jsmud.visitors;
 
-import java.io.IOException;
 import java.io.PrintStream;
 
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
@@ -9,7 +8,7 @@ import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
 public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 
 	/** output-stream */
-	private final PrintStream psOut;
+	protected final PrintStream psOut;
 
 	/** show-instructions flag */
 	private final boolean dumpJreInstructions;
@@ -25,6 +24,9 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 
 	/** statistics-flag */
 	private boolean showStatisticsAfterExecution = true;
+
+	/** thread-display-flag */
+	protected boolean showThreadName = false;
 
 	/**
 	 * Constructor
@@ -48,7 +50,25 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 	/** {@inheritDoc} */
 	@Override
 	public JvmExecutionVisitor create(Thread currentThread) {
-		final InstructionVisitor visitor = new InstructionVisitor(psOut,
+		final Long threadId = Long.valueOf(currentThread.getId());
+		final String threadName = currentThread.getName();
+		final MessagePrinter printer = new MessagePrinter() {
+			@Override
+			public void println(String msg) {
+				if (showThreadName) {
+					psOut.println(String.format("%d/%s: %s",
+							threadId, threadName, msg));
+				}
+				else {
+					psOut.println(msg);
+				}
+			}
+			@Override
+			public void dump(Throwable e) {
+				e.printStackTrace();
+			}
+		};
+		final InstructionVisitor visitor = new InstructionVisitor(printer,
 				dumpJreInstructions,
 				dumpClassStatistic,
 				dumpInstructionStatistic,
@@ -56,12 +76,6 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 		visitor.setShowOutput(showOutput);
 		visitor.setShowStatisticsAfterExecution(showStatisticsAfterExecution);
 		return visitor;
-	}
-
-	/** {@inheritDoc} */
-	@Override
-	public void close() throws IOException {
-		// Nothing to do here.
 	}
 
 	/**
@@ -80,4 +94,11 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 		showStatisticsAfterExecution = flag;
 	}
 
+	/**
+	 * Sets if the thread-name should be printed.
+	 * @param flag thread-display-flag
+	 */
+	public void setShowThreadName(final boolean flag) {
+		showThreadName = flag;
+	}
 }

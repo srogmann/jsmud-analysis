@@ -1,11 +1,9 @@
 package org.rogmann.jsmud.vm;
 
-import java.io.Closeable;
-
 /**
  * Interface of a {@link JvmExecutionVisitor}-provider.
  */
-public interface JvmExecutionVisitorProvider extends Closeable {
+public interface JvmExecutionVisitorProvider {
 
 	/**
 	 * Creates a JVM-execution-visitor

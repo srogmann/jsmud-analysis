@@ -1,6 +1,5 @@
 package org.rogmann.jsmud.visitors;
 
-import java.io.PrintStream;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -36,8 +35,8 @@ import org.rogmann.jsmud.vm.OperandStack;
 
 public class InstructionVisitor implements JvmExecutionVisitor {
 
-	/** output-stream */
-	private final PrintStream psOut;
+	/** message-printer */
+	private final MessagePrinter printer;
 
 	/** show-instructions flag */
 	private final boolean dumpJreInstructions;
@@ -80,17 +79,17 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 
 	/**
 	 * Constructor
-	 * @param psOut output-stream
+	 * @param printer message-printer
 	 * @param dumpJreInstructions show-instructions flag
 	 * @param dumpClassStatistic dump class-usage statistics
 	 * @param dumpInstructionStatistic dump class-usage statistics
 	 * @param dumpMethodCallTrace dump a method-call-trace
 	 */
-	public InstructionVisitor(final PrintStream psOut,
+	public InstructionVisitor(final MessagePrinter printer,
 			final boolean dumpJreInstructions,
 			final boolean dumpClassStatistic, final boolean dumpInstructionStatistic,
 			final boolean dumpMethodCallTrace) {
-		this.psOut = psOut;
+		this.printer = printer;
 		this.dumpJreInstructions = dumpJreInstructions;
 		this.dumpClassStatistic = dumpClassStatistic;
 		this.dumpInstructionStatistic = dumpInstructionStatistic;
@@ -101,7 +100,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitThreadStarted(Thread startedThread) {
 		if (showOutput) {
-			psOut.println(String.format("Started thread: %s", startedThread.getName()));
+			printer.println(String.format("Started thread: %s", startedThread.getName()));
 		}
 	}
 
@@ -109,7 +108,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitLoadClass(Class<?> loadedClass) {
 		if (showOutput) {
-			psOut.println(String.format("Load class: %s", loadedClass.getName()));
+			printer.println(String.format("Load class: %s", loadedClass.getName()));
 		}
 	}
 
@@ -124,7 +123,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		vFrame.clazz = currClass;
 		vFrame.isJreClass = currClass.getName().startsWith("java.") || currClass.getName().startsWith("sun.com.");
 		if (showOutput) {
-			psOut.println(String.format("Enter %s", method));
+			printer.println(String.format("Enter %s", method));
 		}
 		vFrame.frame = pFrame;
 		vFrame.currLine = -1;
@@ -150,7 +149,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitMethodExit(Class<?> currClass, Executable method, MethodFrame pFrame, Object objReturn) {
 		if (showOutput) {
-			psOut.println(String.format("Leave %s", method));
+			printer.println(String.format("Leave %s", method));
 		}
 		if (stackFrames.size() > 0) {
 			vFrame = stackFrames.pop();
@@ -174,7 +173,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 					sObjReturn = String.format("%s(ex/%s)", objReturn.getClass(), e.getMessage());
 				}
 			}
-			psOut.println(String.format("Back in %s with %s", method, sObjReturn));
+			printer.println(String.format("Back in %s with %s", method, sObjReturn));
 		}
 		prevOpcode = -1;
 	}
@@ -193,11 +192,11 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			}
 			else if (instr instanceof LabelNode) {
 				final LabelNode label = (LabelNode) instr;
-				psOut.println("  Label: " + label.getLabel());
+				printer.println("  Label: " + label.getLabel());
 			}
 			else if (instr instanceof FrameNode) {
 				final FrameNode fn = (FrameNode) instr;
-				psOut.println(String.format("Frame %d: %s", Integer.valueOf(fn.type), FrameDisplay.lookup(fn.type)));
+				printer.println(String.format("Frame %d: %s", Integer.valueOf(fn.type), FrameDisplay.lookup(fn.type)));
 			}
 		}
 		else {
@@ -229,7 +228,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			else {
 				sLocals = "";
 			}
-			psOut.println(String.format("%s, Instr %02x, %s: %s%s",
+			printer.println(String.format("%s, Instr %02x, %s: %s%s",
 					line, (vFrame.frame != null) ? Integer.valueOf(vFrame.frame.instrNum) : null,
 					sInstruction, stack, sLocals));
 			prevOpcode = opcode;
@@ -246,8 +245,8 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void invokeException(Throwable e) {
 		if (showOutput) {
-			psOut.println(String.format("Exception while executing method: %s", e));
-			e.printStackTrace(psOut);
+			printer.println(String.format("Exception while executing method: %s", e));
+			printer.dump(e);
 		}
 	}
 
@@ -255,7 +254,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitMonitorEnter(Object objMonitor) {
 		if (showOutput) {
-			psOut.println(String.format("monitor-enter: obj.id=0x%x, obj.class=%s, obj=%s",
+			printer.println(String.format("monitor-enter: obj.id=0x%x, obj.class=%s, obj=%s",
 					Integer.valueOf(System.identityHashCode(objMonitor)),
 					(objMonitor != null) ? objMonitor.getClass().getName() : null, objMonitor));
 		}
@@ -265,7 +264,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitMonitorEntered(Object objMonitor, Integer counter) {
 		if (showOutput) {
-			psOut.println(String.format("monitor-entered: obj.id=0x%x, obj.class=%s, obj=%s, counter=%d",
+			printer.println(String.format("monitor-entered: obj.id=0x%x, obj.class=%s, obj=%s, counter=%d",
 					Integer.valueOf(System.identityHashCode(objMonitor)),
 					(objMonitor != null) ? objMonitor.getClass().getName() : null, objMonitor,
 					counter));
@@ -276,7 +275,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitMonitorExit(Object objMonitor, Integer counter) {
 		if (showOutput) {
-			psOut.println(String.format("monitor-exit: obj.hash=0x%x, obj.class=%s, obj=%s, counter=%d",
+			printer.println(String.format("monitor-exit: obj.hash=0x%x, obj.class=%s, obj=%s, counter=%d",
 					Integer.valueOf(System.identityHashCode(objMonitor)),
 					(objMonitor != null) ? objMonitor.getClass().getName() : null, objMonitor,
 					counter));
@@ -404,19 +403,19 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	public void showStatistics() {
 		if (dumpClassStatistic) {
 			for (final Entry<Class<?>, AtomicLong> entry : sortMap(mapClassInstrCount)) {
-				psOut.println(String.format("Class %s: %s instruction-calls", entry.getKey(), entry.getValue()));
+				printer.println(String.format("Class %s: %s instruction-calls", entry.getKey(), entry.getValue()));
 			}
 		}
 		if (dumpInstructionStatistic) {
 			for (final Entry<Integer, AtomicLong> entry : sortMap(mapInstrCount)) {
 				final Integer opcode = entry.getKey();
 				final String opcodeName = OpcodeDisplay.lookup(opcode.intValue());
-				psOut.println(String.format("Instruction %02x %s: %s instruction-calls",
+				printer.println(String.format("Instruction %02x %s: %s instruction-calls",
 						opcode, opcodeName, entry.getValue()));
 			}
 		}
 		if (dumpMethodCallTrace) {
-			psOut.println("Method-call-trace:");
+			printer.println("Method-call-trace:");
 			for (Entry<String, Integer> entry : mapMethodCallTrace.entrySet()) {
 				final String nameCallerAndCalled = entry.getKey();
 				final String nameCalled = nameCallerAndCalled.replaceFirst(".*_#_", "");
@@ -432,7 +431,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 				sb.append(cntCall);
 				sb.append(" of ");
 				sb.append(mapMethodCount.get(nameCalled));
-				psOut.println(sb);
+				printer.println(sb.toString());
 			}
 		}
 	}

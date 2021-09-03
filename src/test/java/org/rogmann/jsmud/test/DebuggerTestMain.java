@@ -46,36 +46,35 @@ public class DebuggerTestMain {
 			final ClassLoader classLoader = DebuggerTestMain.class.getClassLoader();
 			final ClassExecutionFilter executionFilter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
 			final SourceFileRequester sourceFileRequester = createSourceFileRequester(folderSources);
-			try (final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester)) {
-				final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
-				final boolean simulateReflection = true;
-				final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
-						simulateReflection, visitorProvider, invocationHandler);
-				vm.registerThread(Thread.currentThread());
-				final Class<?>[] classesPreload = {
-						Thread.class,
-						Throwable.class,
-						Error.class
-				};
-				for (final Class<?> classPreload : classesPreload) {
-					try {
-						vm.loadClass(classPreload.getName(), classPreload);
-					} catch (ClassNotFoundException e) {
-						throw new RuntimeException("Couldn't preload class " + classPreload, e);
-					}
+			final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
+			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
+			final boolean simulateReflection = true;
+			final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
+					simulateReflection, visitorProvider, invocationHandler);
+			vm.registerThread(Thread.currentThread());
+			final Class<?>[] classesPreload = {
+					Thread.class,
+					Throwable.class,
+					Error.class
+			};
+			for (final Class<?> classPreload : classesPreload) {
+				try {
+					vm.loadClass(classPreload.getName(), classPreload);
+				} catch (ClassNotFoundException e) {
+					throw new RuntimeException("Couldn't preload class " + classPreload, e);
 				}
-				final DebuggerJvmVisitor visitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
-				visitor.setJvmSimulator(vm);
-				try (final InputStream is = socket.getInputStream()) {
-					try (final OutputStream os = socket.getOutputStream()) {
-						final JdwpCommandProcessor debugger = new JdwpCommandProcessor(is, os, 
-								vm, visitor);
-						visitor.visitThreadStarted(Thread.currentThread());
-						vm.suspendThread(vm.getCurrentThreadId());
-						debugger.processPackets();
-						
-						debuggerTest4(vm);
-					}
+			}
+			final DebuggerJvmVisitor visitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
+			visitor.setJvmSimulator(vm);
+			try (final InputStream is = socket.getInputStream()) {
+				try (final OutputStream os = socket.getOutputStream()) {
+					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(is, os, 
+							vm, visitor);
+					visitor.visitThreadStarted(Thread.currentThread());
+					vm.suspendThread(vm.getCurrentThreadId());
+					debugger.processPackets();
+					
+					debuggerTest4(vm);
 				}
 			}
 		} catch (IOException e) {
