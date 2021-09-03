@@ -89,7 +89,7 @@ public interface JvmExecutionVisitor {
 	void visitMonitorExit(final Object objMonitor, final Integer counter);
 
 	/**
-	 * Reports an exceptio while executing a method-call.
+	 * Reports an exception while executing a method-call.
 	 * @param e thrown exception
 	 */
 	void invokeException(Throwable e);
