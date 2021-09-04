@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1540,6 +1541,66 @@ public class ClassRegistry implements VM {
 	@Override
 	public void interrupt(Thread thread) {
 		thread.interrupt();
+	}
+
+	/**
+	 * Waits for the call of notify/notifyAll.
+	 * @param monitorObj monitor-object
+	 * @param timeout timeout in milliseconds
+	 * @param nanos timeout in nanoseconds
+	 * @throws InterruptedException in case of an interruption
+	 */
+	void doObjectWait(Object monitorObj, long timeout, int nanos) throws InterruptedException {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("doObjectWait: monitor-object (%s)", monitorObj));
+		}
+		final ThreadMonitor threadMonitor = mapMonitorObjects.get(monitorObj);
+		if (threadMonitor == null) {
+			throw new IllegalMonitorStateException(String.format("no monitor-object (%s)",
+					monitorObj));
+		}
+		final CountDownLatch latch = threadMonitor.addWaitThread(Thread.currentThread());
+		if (timeout == 0 && nanos == 0) {
+			latch.await();
+		}
+		else if (nanos == 0) {
+			latch.await(timeout, TimeUnit.MILLISECONDS);
+		}
+		else {
+			latch.await(1000000 * timeout + nanos, TimeUnit.NANOSECONDS);
+		}
+	}
+
+	/**
+	 * Notifies one waiting thread.
+	 * @param monitorObj monitor-object
+	 */
+	void doNotify(Object monitorObj) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("doNotify: monitor-object (%s)", monitorObj));
+		}
+		final ThreadMonitor threadMonitor = mapMonitorObjects.get(monitorObj);
+		if (threadMonitor == null) {
+			throw new IllegalMonitorStateException(String.format("no monitor-object (%s)",
+					monitorObj));
+		}
+		threadMonitor.sendNotify();
+	}
+
+	/**
+	 * Notifies all waiting threads.
+	 * @param monitorObj monitor-object
+	 */
+	void doNotifyAll(Object monitorObj) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("doNotifyAll: monitor-object (%s)", monitorObj));
+		}
+		final ThreadMonitor threadMonitor = mapMonitorObjects.get(monitorObj);
+		if (threadMonitor == null) {
+			throw new IllegalMonitorStateException(String.format("no monitor-object (%s)",
+					monitorObj));
+		}
+		threadMonitor.sendNotify();
 	}
 
 	/**

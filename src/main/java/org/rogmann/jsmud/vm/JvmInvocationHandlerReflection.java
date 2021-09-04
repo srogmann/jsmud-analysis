@@ -157,6 +157,46 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	public Boolean preprocessInstanceCall(MethodFrame frame, final MethodInsnNode mi,
 			final Object objRefStack, final OperandStack stack) throws Throwable {
 		Boolean doContinueWhile = null;
+		if ("java/lang/Object".equals(mi.owner)) {
+			if ("wait".equals(mi.name)) {
+				final Long timeout;
+				final Integer nanos;
+				if ("()V".equals(mi.desc)) {
+					timeout = Long.valueOf(0);
+					nanos = Integer.valueOf(0);
+				}
+				else if ("(J)V".equals(mi.desc)) {
+					timeout = (Long) stack.peek();
+					nanos = Integer.valueOf(0);
+				}
+				else if ("(JI)V".equals(mi.desc)) {
+					nanos = (Integer) stack.peek();
+					timeout = (Long) stack.peek();
+				}
+				else {
+					throw new JvmException(String.format("Unexpected signature %s of wait-method (%s) in (%s)",
+							mi.desc, mi.name, objRefStack));
+				}
+				final Object monitorObj = stack.peek();
+				try {
+					frame.registry.doObjectWait(monitorObj, timeout.longValue(), nanos.intValue());
+				} catch (InterruptedException e) {
+					final boolean doContinueWhileE = frame.handleCatchException(e);
+					if (doContinueWhileE) {
+						return Boolean.TRUE;
+					}
+					// This exception isn't handled here.
+					throw new JvmUncaughtException(String.format("interruption of Object#wait(%d,%d)",
+							timeout, nanos), e);
+				}
+				doContinueWhile = Boolean.FALSE;
+				return doContinueWhile;
+			}
+			if ("notify".equals(mi.name) && "()V".equals(mi.desc)) {
+				final Object monitorObj = stack.peek();
+				frame.registry.doNotify(monitorObj);
+			}
+		}
 		if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name) && frame.registry.isSimulateReflection()) {
 			// Emulation of Constructor#newInstance?
 			final Constructor<?> constr = (Constructor<?>) stack.peek(1);

@@ -1,13 +1,20 @@
 package org.rogmann.jsmud.vm;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.rogmann.jsmud.log.Logger;
+import org.rogmann.jsmud.log.LoggerFactory;
 
 /**
  * Implementation of a monitor on an object.
  */
 public class ThreadMonitor {
+	/** logger */
+	private static final Logger LOG = LoggerFactory.getLogger(ThreadMonitor.class);
 	
 	/** monitor-object */
 	private final Object objMonitor;
@@ -20,6 +27,18 @@ public class ThreadMonitor {
 	
 	/** usage-counter in the owner-thread */
 	private final AtomicInteger counter = new AtomicInteger(0);
+
+	/** queue of waiting threads (used for wait/notify-support) */
+	private final BlockingQueue<WaitingThread> waitingThreads = new LinkedBlockingQueue<>(); 
+
+	/** internal class: thread which waits for notify/notifyAll */
+	static class WaitingThread {
+		final Thread thread;
+		final CountDownLatch latch = new CountDownLatch(1);
+		public WaitingThread(final Thread thread) {
+			this.thread = thread;
+		}
+	}
 	
 	/**
 	 * Constructor
@@ -81,5 +100,44 @@ public class ThreadMonitor {
 	 */
 	public void releaseMonitor() {
 		latch.countDown();
+	}
+
+	/**
+	 * Adds a thread which called a {@link Object#wait()}-method.
+	 * @param thread waiting thread
+	 * @return latch to wait for notify
+	 */
+	public CountDownLatch addWaitThread(final Thread thread) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("Thread (%s) waits for monitor (%s) of thread (%s)",
+					thread, objMonitor, this.thread));
+		}
+		final WaitingThread waitingThread = new WaitingThread(thread);
+		waitingThreads.add(waitingThread);
+		return waitingThread.latch;
+	}
+
+	/**
+	 * Releases one waiting thread.
+	 */
+	public void sendNotify() {
+		final WaitingThread waitingThread = waitingThreads.poll();
+		if (waitingThread != null) {
+			// The waiting thread should continue now.
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("Waiting Thread (%s) got notify on monitor (%s) via (%s)",
+						thread, objMonitor, this.thread));
+			}
+			waitingThread.latch.countDown();
+		}
+	}
+
+	/**
+	 * Releases all waiting threads.
+	 */
+	public void sendNotifyAll() {
+		while (waitingThreads.peek() != null) {
+			sendNotify();
+		}
 	}
 }
