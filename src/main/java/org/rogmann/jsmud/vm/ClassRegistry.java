@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +92,7 @@ public class ClassRegistry implements VM {
 	private static final AtomicInteger MONITOR_MAX_TRIES = new AtomicInteger(100);
 
 	/** map from class to executor */
-	private final Map<Class<?>, SimpleClassExecutor> mapClassExecutors = new HashMap<>(500);
+	private final ThreadLocal<ConcurrentMap<Class<?>, SimpleClassExecutor>> tlMapClassExecutors = ThreadLocal.withInitial(() -> new ConcurrentHashMap<>(500));
 
 	/** execution-filter */
 	final ClassExecutionFilter executionFilter;
@@ -154,6 +153,9 @@ public class ClassRegistry implements VM {
 	/** class-based call-site-generator */
 	private final CallSiteGenerator callSiteGenerator;
 
+	/** class-based thread-child-class-generator */
+	private final ThreadClassGenerator threadClassGenerator;
+
 	/** registry of call-site-simulations used by INVOKEDYNAMIC */
 	private final CallSiteRegistry callSiteRegistry;
 
@@ -210,8 +212,9 @@ public class ClassRegistry implements VM {
 			jsmudClassLoader = new JsmudClassLoader(classLoader, name -> false, false, false);
 		}
 		callSiteGenerator = new CallSiteGenerator(jsmudClassLoader);
+		threadClassGenerator = new ThreadClassGenerator(jsmudClassLoader);
 	}
-	
+
 	/**
 	 * Looks for an executor.
 	 * Only classes whose package-prefix is in the list of simulated packages will be simulated.
@@ -219,10 +222,22 @@ public class ClassRegistry implements VM {
 	 * @return executor or <code>null</code>
 	 */
 	public SimpleClassExecutor getClassExecutor(final Class<?> clazz) {
+		return getClassExecutor(clazz, false);
+	}
+
+	/**
+	 * Looks for an executor.
+	 * Only classes whose package-prefix is in the list of simulated packages will be simulated.
+	 * @param clazz class to be simulated
+	 * @param forceSimulation <code>true</code> if the execution should simulated regardless of the filter
+	 * @return executor or <code>null</code>
+	 */
+	public SimpleClassExecutor getClassExecutor(final Class<?> clazz, boolean forceSimulation) {
+		final ConcurrentMap<Class<?>, SimpleClassExecutor> mapClassExecutors = tlMapClassExecutors.get();
 		SimpleClassExecutor executor = mapClassExecutors.get(clazz);
 		// We don't want to analyze ourself (i.e. JsmudClassLoader).
 		if (executor == null && !JsmudClassLoader.class.equals(clazz)) {
-			boolean doSimulation = executionFilter.isClassToBeSimulated(clazz);
+			boolean doSimulation = executionFilter.isClassToBeSimulated(clazz) || forceSimulation;
 			if (doSimulation) {
 				executor = new SimpleClassExecutor(this, clazz, invocationHandler);
 				mapClassExecutors.put(clazz, executor);
@@ -401,6 +416,14 @@ public class ClassRegistry implements VM {
 	}
 
 	/**
+	 * Gets the thread-class-generator.
+	 * @return thread-class-generator
+	 */
+	public ThreadClassGenerator getThreadClassGenerator() {
+		return threadClassGenerator;
+	}
+
+	/**
 	 * Gets the source-file-writer of this class (if present).
 	 * @param clazz class
 	 * @return source-file-writer or <code>null</code>
@@ -450,19 +473,26 @@ public class ClassRegistry implements VM {
 	 * @param thread thread
 	 */
 	public void unregisterThread(final Thread thread) {
-		final Long threadKey = Long.valueOf(thread.getId());
-		final VMThreadID vmThreadID = mapThreads.remove(threadKey);
-		if (vmThreadID != null) {
-			mapObjects.remove(vmThreadID);
-			mapThreads.remove(threadKey);
-			mapThreadSuspendCounter.remove(threadKey);
+		try {
+			final Long threadKey = Long.valueOf(thread.getId());
+			final VMThreadID vmThreadID = mapThreads.remove(threadKey);
+			if (vmThreadID != null) {
+				mapObjects.remove(vmThreadID);
+				mapThreads.remove(threadKey);
+				mapThreadSuspendCounter.remove(threadKey);
+			}
+			final VMThreadGroupID vmThreadGroupID = mapThreadGroups.remove(threadKey);
+			if (vmThreadGroupID != null) {
+				mapObjects.remove(vmThreadGroupID, thread.getThreadGroup());
+			}
+			final JvmExecutionVisitor visitor = mapThreadVisitor.remove(threadKey);
+			visitor.close();
 		}
-		final VMThreadGroupID vmThreadGroupID = mapThreadGroups.remove(threadKey);
-		if (vmThreadGroupID != null) {
-			mapObjects.remove(vmThreadGroupID, thread.getThreadGroup());
+		finally {
+			if (Thread.currentThread().equals(thread)) {
+				tlMapClassExecutors.remove();
+			}
 		}
-		final JvmExecutionVisitor visitor = mapThreadVisitor.remove(threadKey);
-		visitor.close();
 	}
 
 	/**
@@ -1559,15 +1589,21 @@ public class ClassRegistry implements VM {
 			throw new IllegalMonitorStateException(String.format("no monitor-object (%s)",
 					monitorObj));
 		}
-		final CountDownLatch latch = threadMonitor.addWaitThread(Thread.currentThread());
-		if (timeout == 0 && nanos == 0) {
-			latch.await();
+		threadMonitor.decrementCounter();
+		try {
+			final CountDownLatch latch = threadMonitor.addWaitThread(Thread.currentThread());
+			if (timeout == 0 && nanos == 0) {
+				latch.await();
+			}
+			else if (nanos == 0) {
+				latch.await(timeout, TimeUnit.MILLISECONDS);
+			}
+			else {
+				latch.await(1000000 * timeout + nanos, TimeUnit.NANOSECONDS);
+			}
 		}
-		else if (nanos == 0) {
-			latch.await(timeout, TimeUnit.MILLISECONDS);
-		}
-		else {
-			latch.await(1000000 * timeout + nanos, TimeUnit.NANOSECONDS);
+		finally {
+			threadMonitor.incrementCounter();
 		}
 	}
 

@@ -321,7 +321,7 @@ public class CallSiteGenerator {
 		final MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, callSiteMethodName,
 				callSiteMethodDescRuntime.getDescriptor(), null, null);
 		mv.visitAnnotation("Ljava/lang/invoke/LambdaForm$Hidden;", true);
-		final Label labelJsmudExec= new Label();
+		final Label labelJsmudExec = new Label();
 		final Label labelReturn = new Label();
 		mv.visitFieldInsn(Opcodes.GETSTATIC, callSiteNameInt, FIELD_IS_EXECUTED_BY_JSMUD,
 				Type.BOOLEAN_TYPE.getDescriptor());
@@ -540,7 +540,7 @@ public class CallSiteGenerator {
 	 * @param argCompile optional type be casted to
 	 * @throws JvmException in case of an unexpected argument-type
 	 */
-	private static void loadLocalVariable(final MethodVisitor mv, final int indexInLocals, final Type arg, final Type argCompile) throws JvmException {
+	public static void loadLocalVariable(final MethodVisitor mv, final int indexInLocals, final Type arg, final Type argCompile) throws JvmException {
 		if (arg.getSort() == Type.OBJECT) {
 			mv.visitVarInsn(Opcodes.ALOAD, indexInLocals);
 			if (argCompile != null && "java/lang/Object".equals(arg.getInternalName()) && !arg.equals(argCompile)) {

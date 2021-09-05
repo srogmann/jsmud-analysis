@@ -195,6 +195,14 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			if ("notify".equals(mi.name) && "()V".equals(mi.desc)) {
 				final Object monitorObj = stack.peek();
 				frame.registry.doNotify(monitorObj);
+				doContinueWhile = Boolean.FALSE;
+				return doContinueWhile;
+			}
+			if ("notifyAll".equals(mi.name) && "()V".equals(mi.desc)) {
+				final Object monitorObj = stack.peek();
+				frame.registry.doNotifyAll(monitorObj);
+				doContinueWhile = Boolean.FALSE;
+				return doContinueWhile;
 			}
 		}
 		if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name) && frame.registry.isSimulateReflection()) {

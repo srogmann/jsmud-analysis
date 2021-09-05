@@ -85,7 +85,10 @@ public class SimpleClassExecutor {
 		final ClassReader classReader;
 		try (final InputStream is = clazz.getResourceAsStream(resName)) {
 			if (is == null) {
-				final byte[] bufBytecode = registry.getCallSiteGenerator().getBytecode(clazz);
+				byte[] bufBytecode = registry.getCallSiteGenerator().getBytecode(clazz);
+				if (bufBytecode == null) {
+					bufBytecode = registry.getThreadClassGenerator().getBytecode(clazz);
+				}
 				if (bufBytecode == null) {
 					throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
 							resName, clazz.getName(), classLoader));

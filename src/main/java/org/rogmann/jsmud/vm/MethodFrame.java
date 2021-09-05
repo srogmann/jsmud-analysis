@@ -2282,13 +2282,21 @@ whileSuperClass:
 		final UninitializedInstance uninstType;
 		final Class<?> classInit = registry.loadClass(Type.getObjectType(mi.owner).getClassName(), clazz);
 		final Object oInstance = stack.peek(anzArgs);
+		Class<?> classConstr = classInit;
 		if (oInstance instanceof UninitializedInstance) {
 			uninstType = (UninitializedInstance) oInstance;
+			if (Thread.class.isAssignableFrom(classInit)) {
+				classConstr = registry.getThreadClassGenerator().generateClass(classInit, mi.desc);
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("executeInvokeSpecial: replace (%s) by (%s)",
+							classInit, classConstr));
+				}
+			}
 		}
 		else {
 			uninstType = null;
 		}
-		final Constructor<?>[] constructors = classInit.getDeclaredConstructors();
+		final Constructor<?>[] constructors = classConstr.getDeclaredConstructors();
 		Constructor<?> constructor = null;
 		for (Constructor<?> constructorLoop : constructors) {
 			String loopDescr = Type.getConstructorDescriptor(constructorLoop);
@@ -2303,8 +2311,8 @@ whileSuperClass:
 
 		final Object instanceInit;
 		SimpleClassExecutor executor = null;
-		if (registry.isClassConstructorJsmudPatched(classInit)) {
-			executor = registry.getClassExecutor(classInit);
+		if (registry.isClassConstructorJsmudPatched(classConstr)) {
+			executor = registry.getClassExecutor(classConstr);
 		}
 		if (executor != null) {
 			if (uninstType == null) {
@@ -2313,12 +2321,12 @@ whileSuperClass:
 			}
 			else {
 				try {
-					final Constructor<?> constrDefault = classInit.getDeclaredConstructor();
+					final Constructor<?> constrDefault = classConstr.getDeclaredConstructor();
 					constrDefault.setAccessible(true);
 					instanceInit = constrDefault.newInstance();
 				} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
 						| IllegalArgumentException | InvocationTargetException e) {
-					throw new JvmException(String.format("Couldn't instanciate %s via default-constructor", classInit.getName()), e);
+					throw new JvmException(String.format("Couldn't instanciate %s via default-constructor", classConstr.getName()), e);
 				}
 				stack.replaceUninitialized(uninstType, instanceInit);
 			}
@@ -2369,6 +2377,11 @@ whileSuperClass:
 
 		if (uninstType != null) {
 			stack.replaceUninitialized(uninstType, instanceInit);
+			if (Thread.class.isAssignableFrom(classConstr)) {
+				LOG.debug("set ThreadExecutor: " + classConstr);
+				final Field field = classConstr.getDeclaredField(ThreadClassGenerator.FIELD_THREAD_EXECUTOR);
+				field.set(instanceInit, new ThreadExecutor(registry));
+			}
 		}
 		return false;
 	}

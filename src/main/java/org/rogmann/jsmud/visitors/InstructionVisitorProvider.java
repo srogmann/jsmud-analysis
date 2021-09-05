@@ -56,8 +56,8 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 			@Override
 			public void println(String msg) {
 				if (showThreadName) {
-					psOut.println(String.format("%d/%s: %s",
-							threadId, threadName, msg));
+					psOut.println(String.format("%d/%s (%s): %s",
+							threadId, threadName, Thread.currentThread(), msg));
 				}
 				else {
 					psOut.println(msg);

@@ -122,11 +122,17 @@ public class ThreadMonitor {
 	 */
 	public void sendNotify() {
 		final WaitingThread waitingThread = waitingThreads.poll();
-		if (waitingThread != null) {
+		if (waitingThread == null) {
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("No waiting Thread on monitor (%s) via (%s)",
+						objMonitor, this.thread));
+			}
+		}
+		else {
 			// The waiting thread should continue now.
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Waiting Thread (%s) got notify on monitor (%s) via (%s)",
-						thread, objMonitor, this.thread));
+						waitingThread, objMonitor, this.thread));
 			}
 			waitingThread.latch.countDown();
 		}
