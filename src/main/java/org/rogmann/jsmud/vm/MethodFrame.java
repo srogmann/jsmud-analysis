@@ -1732,8 +1732,8 @@ whileInstr:
 						throw new NullPointerException("monitor-enter: no monitor-object");
 					}
 					visitor.visitMonitorEnter(objMonitor);
-					final Integer currCounter = registry.enterMonitor(objMonitor);
-					visitor.visitMonitorEntered(objMonitor, currCounter);
+					final int currCounter = registry.enterMonitor(objMonitor);
+					visitor.visitMonitorEntered(objMonitor, Integer.valueOf(currCounter));
 					break;
 				}
 				case Opcodes.MONITOREXIT: // 0xc3
@@ -1742,8 +1742,8 @@ whileInstr:
 					if (objMonitor == null) {
 						throw new NullPointerException("monitor-exit: no monitor-object");
 					}
-					final Integer currCounter = registry.exitMonitor(objMonitor); 
-					visitor.visitMonitorExit(objMonitor, currCounter);
+					final int currCounter = registry.exitMonitor(objMonitor); 
+					visitor.visitMonitorExit(objMonitor, Integer.valueOf(currCounter));
 					break;
 				}
 				case 0xc4: // 0xc4

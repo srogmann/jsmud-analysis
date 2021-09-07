@@ -24,6 +24,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.objectweb.asm.ClassReader;
@@ -78,7 +80,7 @@ import org.rogmann.jsmud.visitors.SourceFileWriter;
  * Registry of classes whose execution should be simulated.
  * <p>This class simulates the JVM.</p>
  */
-public class ClassRegistry implements VM {
+public class ClassRegistry implements VM, ObjectMonitor {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(ClassRegistry.class);
 
@@ -129,6 +131,9 @@ public class ClassRegistry implements VM {
 
 	/** map from thread to an monitor-object the thread is waiting for */
 	private final ConcurrentMap<Thread, Object> mapContentedMonitor = new ConcurrentHashMap<>();
+
+	/** lock used for monitor-synchronization */
+	private final Lock fMonitorLock = new ReentrantLock();
 
 	/** object-id-counter */
 	private final AtomicLong objectIdCounter = new AtomicLong();
@@ -495,19 +500,31 @@ public class ClassRegistry implements VM {
 		}
 	}
 
-	/**
-	 * Enters a monitor.
-	 * @param objMonitor monitor-object
-	 * @return current monitor-counter
-	 */
-	public Integer enterMonitor(final Object objMonitor) {
+	/** {@inheritDoc} */
+	@Override
+	public int enterMonitor(final Object objMonitor) {
 		final Thread currentThread = Thread.currentThread();
 		ThreadMonitor threadMonitor;
 		int tryCounter = 0;
 		mapContentedMonitor.put(currentThread, objMonitor);
 		try {
 			do {
-				threadMonitor = mapMonitorObjects.computeIfAbsent(objMonitor, o -> new ThreadMonitor(o, currentThread));
+				fMonitorLock.lock();
+				try {
+					threadMonitor = mapMonitorObjects.computeIfAbsent(objMonitor, o -> new ThreadMonitor(this, o, currentThread));
+					threadMonitor.addContendingThread(currentThread);
+				}
+				finally {
+					fMonitorLock.unlock();
+				}
+				if (threadMonitor.gainOwnership(currentThread)) {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("enterMonitor: Thread (%s) gained ownership on (%s)",
+								currentThread, objMonitor));
+					}
+					threadMonitor.removeContendingThread(currentThread);
+					return 1;
+				}
 				if (threadMonitor.getThread() != currentThread) {
 					// A JVM would wait forever, we want a timeout instead.
 					final int maxMillis = MONITOR_MAX_MILLIS.get();
@@ -533,12 +550,18 @@ public class ClassRegistry implements VM {
 				}
 			}
 			while (threadMonitor.getThread() != currentThread);
+			threadMonitor.removeContendingThread(currentThread);
 		}
 		finally {
 			mapContentedMonitor.remove(currentThread);
 
 		}
-		return Integer.valueOf(threadMonitor.incrementCounter());
+		final int entryCount = threadMonitor.incrementCounter();
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("enterMonitor: Thread (%s) has entry-count %d on (%s)",
+					currentThread, Integer.valueOf(entryCount), objMonitor));
+		}
+		return entryCount;
 	}
 
 	/**
@@ -546,7 +569,8 @@ public class ClassRegistry implements VM {
 	 * @param objMonitor monitor-object
 	 * @return current monitor-counter
 	 */
-	public Integer exitMonitor(final Object objMonitor) {
+	@Override
+	public int exitMonitor(final Object objMonitor) {
 		final Thread currentThread = Thread.currentThread();
 		final ThreadMonitor threadMonitor = mapMonitorObjects.get(objMonitor);
 		if (threadMonitor == null) {
@@ -559,12 +583,20 @@ public class ClassRegistry implements VM {
 					objMonitor, monitorThread, currentThread));
 		}
 		final int counter = threadMonitor.decrementCounter();
-		if (counter == 0) {
-			// release the monitor.
-			mapMonitorObjects.remove(objMonitor);
-			threadMonitor.decrementCounter();
+		fMonitorLock.lock();
+		try {
+			if (counter == 0 && !threadMonitor.hasWaitingThreads()) {
+				// release the monitor.
+				mapMonitorObjects.remove(objMonitor);
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("exitMonitor: monitorObject=%s, released", objMonitor));
+				}
+			}
+			return counter;
 		}
-		return Integer.valueOf(counter);
+		finally {
+			fMonitorLock.unlock();
+		}
 	}
 
 	/** {@inheritDoc} */
@@ -1589,9 +1621,9 @@ public class ClassRegistry implements VM {
 			throw new IllegalMonitorStateException(String.format("no monitor-object (%s)",
 					monitorObj));
 		}
-		threadMonitor.decrementCounter();
+		final CountDownLatch latch = threadMonitor.addWaitThread(Thread.currentThread());
+		exitMonitor(monitorObj);
 		try {
-			final CountDownLatch latch = threadMonitor.addWaitThread(Thread.currentThread());
 			if (timeout == 0 && nanos == 0) {
 				latch.await();
 			}
@@ -1603,7 +1635,7 @@ public class ClassRegistry implements VM {
 			}
 		}
 		finally {
-			threadMonitor.incrementCounter();
+			enterMonitor(monitorObj);
 		}
 	}
 
@@ -1636,7 +1668,7 @@ public class ClassRegistry implements VM {
 			throw new IllegalMonitorStateException(String.format("no monitor-object (%s)",
 					monitorObj));
 		}
-		threadMonitor.sendNotify();
+		threadMonitor.sendNotifyAll();
 	}
 
 	/**
