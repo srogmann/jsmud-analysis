@@ -154,6 +154,22 @@ public class ThreadMonitor {
 	}
 
 	/**
+	 * Shows the first waiting thread.
+	 * @return waiting thread or <code>null</code>
+	 */
+	public WaitingThread peekWaitingThread() {
+		return waitingThreads.peek();
+	}
+
+	/**
+	 * Shows the first contending thread.
+	 * @return thread or <code>null</code>
+	 */
+	public Thread peekContentingThread() {
+		return contendingThreads.peek();
+	}
+
+	/**
 	 * Releases one waiting thread.
 	 */
 	public void sendNotify() {

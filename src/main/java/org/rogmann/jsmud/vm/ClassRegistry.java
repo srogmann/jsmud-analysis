@@ -508,6 +508,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		int tryCounter = 0;
 		mapContentedMonitor.put(currentThread, objMonitor);
 		try {
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("enterMonitor: thread=%s, objMonitor=%s", currentThread, objMonitor));
+			}
 			do {
 				fMonitorLock.lock();
 				try {
@@ -516,6 +519,10 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				}
 				finally {
 					fMonitorLock.unlock();
+				}
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("enterMonitor: thread=%s, objMonitor=%s, threadMonitor=%s",
+							currentThread, objMonitor, threadMonitor));
 				}
 				if (threadMonitor.gainOwnership(currentThread)) {
 					if (LOG.isDebugEnabled()) {
@@ -591,6 +598,14 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				if (LOG.isDebugEnabled()) {
 					LOG.debug(String.format("exitMonitor: monitorObject=%s, released", objMonitor));
 				}
+			}
+			else if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("exitMonitor: monitorObject=%s, counter=%d, waiting=%s, contending=%s",
+						objMonitor, Integer.valueOf(counter),
+						threadMonitor.peekWaitingThread(), threadMonitor.peekContentingThread()));
+			}
+			if (counter == 0) {
+				threadMonitor.releaseMonitor();
 			}
 			return counter;
 		}
