@@ -29,6 +29,8 @@ public enum JdwpCommand {
 	CAPABILITIES_NEW(JdwpCommandSet.VIRTUAL_MACHINE, 17),
 	/** AllClassesWithGeneric Command  */
 	ALL_CLASSES_WITH_GENERIC(JdwpCommandSet.VIRTUAL_MACHINE, 20),
+	/** InstanceCounts Command  */
+	INSTANCE_COUNTS(JdwpCommandSet.VIRTUAL_MACHINE, 21),
 
 	/** Signature Command */
 	SIGNATURE(JdwpCommandSet.REFERENCE_TYPE, 1),

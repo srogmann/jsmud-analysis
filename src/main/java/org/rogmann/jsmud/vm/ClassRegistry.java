@@ -1551,6 +1551,26 @@ public class ClassRegistry implements VM, ObjectMonitor {
 
 	/** {@inheritDoc} */
 	@Override
+	public long[] getInstanceCounts(VMReferenceTypeID[] aRefTypes) {
+		final int num = aRefTypes.length;
+		long[] aInstanceCounts = new long[num];
+		// The implementation is in O(n²) only.
+		for (int i = 0; i < num; i++) {
+			final Object oRefType = getVMObject(aRefTypes[i]);
+			final Class<?> classRefType = (Class<?>) oRefType;
+			long count = 0;
+			for (Object object : mapObjects.values()) {
+				if (classRefType.isInstance(object)) {
+					count++;
+				}
+			}
+			aInstanceCounts[i] = count;
+		}
+		return aInstanceCounts;
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public Integer getSuspendCount(VMThreadID cThreadId) {
 		Object oThread = mapObjects.get(cThreadId);
 		Integer iSuspCounter = null;

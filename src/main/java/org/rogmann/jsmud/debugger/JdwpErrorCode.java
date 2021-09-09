@@ -31,6 +31,8 @@ public enum JdwpErrorCode {
 	NOT_IMPLEMENTED(99),
 	/** The specified event type id is not recognized. */
 	INVALID_EVENT_TYPE(102),
+	/** Illegal Argument. */
+	ILLEGAL_ARGUMENT(103),
 	/** The virtual machine is not running. */
 	VM_DEAD(112),
 	/** Invalid Length. */

@@ -287,6 +287,14 @@ public interface VM {
 	List<VMTaggedObjectId> getOwnedMonitors(Thread thread);
 
 	/**
+	 * Counts the number of instances for the corresponding reference types.
+	 * <p>The current implementation is not very fast and should be used for small simulated heaps.</p>
+	 * @param aRefTypes reference types
+	 * @return number of instances
+	 */
+	long[] getInstanceCounts(VMReferenceTypeID[] aRefTypes);
+
+	/**
 	 * Requests the generation of a source-file containing pseudo-bytecode.
 	 * The source-file will be registered for the use of its line-numbers while debugging.
 	 * @param clazz class
@@ -294,4 +302,5 @@ public interface VM {
 	 * @throws IOException in case of an IOException
 	 */
 	void generateSourceFile(final Class<?> clazz, final SourceFileRequester sourceFileRequester) throws IOException;
+
 }

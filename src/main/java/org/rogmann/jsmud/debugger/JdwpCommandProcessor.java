@@ -319,6 +319,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else if (cmd == JdwpCommand.ALL_CLASSES_WITH_GENERIC) {
 			sendAllClassesWithGeneric(id);
 		}
+		else if (cmd == JdwpCommand.INSTANCE_COUNTS) {
+			sendInstanceCounts(id, cmdBuf);
+		}
 		else {
 			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
 		}
@@ -988,6 +991,28 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			aReplyData[1 + 5 * i + 4] = new VMInt(refTypeBean.getStatus());
 		}
 		sendReplyData(id, aReplyData);
+	}
+
+	/**
+	 * Sends instance-counts.
+	 * @param id current id
+	 * @throws IOException in case of an IO-error
+	 */
+	private void sendInstanceCounts(int id, final CommandBuffer cmdBuf) throws IOException {
+		int refTypesCount = cmdBuf.readInt();
+		if (refTypesCount < 0) {
+			sendError(id, JdwpErrorCode.ILLEGAL_ARGUMENT);
+		}
+		else {
+			final VMReferenceTypeID[] aRefTypes = new VMReferenceTypeID[refTypesCount];
+			final long[] aInstanceCount = vm.getInstanceCounts(aRefTypes);
+			final VMDataField[] aReplyData = new VMDataField[1 + refTypesCount];
+			aReplyData[0] = new VMInt(refTypesCount);
+			for (int i = 0; i < refTypesCount; i++) {
+				aReplyData[1 + i] = new VMLong(aInstanceCount[i]);
+			}
+			sendReplyData(id, aReplyData);
+		}
 	}
 
 	/**
