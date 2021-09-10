@@ -12,7 +12,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.objectweb.asm.Type;
 import org.rogmann.jsmud.datatypes.Tag;
@@ -101,7 +104,12 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 
 	/** debugger-visitor */
 	private final DebuggerJvmVisitor visitor;
+	
+	/** maximal time (in seconds) a thread should wait for sending packets */
+	private final int maxLockTime;
 
+	/** one thread only should communicate with the debugger at any time */
+	private final Lock lock = new ReentrantLock();
 	
 	/**
 	 * Constructor
@@ -109,14 +117,16 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	 * @param os Output-stream
 	 * @param visitor Debugger-visitor
 	 * @param classLoader class-loader
+	 * @param maxLockTime maximal time (in seconds) a thread should wait for sending packets
 	 * @throws IOException in case of an IO-error
 	 */
 	public JdwpCommandProcessor(final InputStream is, final OutputStream os,
-			final VM vm, final DebuggerJvmVisitor visitor) throws IOException {
+			final VM vm, final DebuggerJvmVisitor visitor, final int maxLockTime) throws IOException {
 		this.is = is;
 		this.os = os;
 		this.vm = vm;
 		this.visitor = visitor;
+		this.maxLockTime = maxLockTime;
 		visitor.setDebugger(this);
 		read(fBufIn, 0, BUF_HANDSHAKE.length);
 		for (int i = 0; i < BUF_HANDSHAKE.length; i++) {
@@ -137,42 +147,59 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	/** {@inheritDoc} */
 	@Override
 	public void processPackets() throws IOException {
-		LOG.debug(JdwpCommandProcessor.class + ": processPackets");
-		final VMThreadID threadId = vm.getCurrentThreadId();
-		if (threadId == null) {
-			throw new IllegalStateException("The current thread isn't registered.");
+		boolean tryLock;
+		try {
+			tryLock = lock.tryLock(maxLockTime, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DebuggerException(String.format("Thread (%s) waiting for sending JDWP-packets has been interrupted",
+					Thread.currentThread(), Integer.valueOf(maxLockTime)), e);
 		}
-		boolean showTimeout = true;
-		while (!SHOULD_STOP.get()) {
-			final int packetLen;
-			try {
-				packetLen = readPacket();
+		if (!tryLock) {
+			throw new DebuggerException(String.format("Thread (%s) couldn't send JDWP-packets (lock timeout %d seconds)",
+					Thread.currentThread(), Integer.valueOf(maxLockTime)));
+		}
+		try {
+			LOG.debug(JdwpCommandProcessor.class + ": processPackets");
+			final VMThreadID threadId = vm.getCurrentThreadId();
+			if (threadId == null) {
+				throw new IllegalStateException("The current thread isn't registered.");
 			}
-			catch (SocketTimeoutException e) {
-				// The debugger didn't respond in time.
-				// Resume?
-				final Integer suspendCount = vm.getSuspendCount(threadId);
-				if (suspendCount != null && suspendCount.intValue() <= 0) {
-					// We can resume the thread.
-					LOG.debug("Back to the thread " + threadId);
-					break;
+			boolean showTimeout = true;
+			while (!SHOULD_STOP.get()) {
+				final int packetLen;
+				try {
+					packetLen = readPacket();
 				}
-				if (showTimeout) {
-					LOG.debug(String.format("Debugger timeout ... (suspendCount=%d)", suspendCount));
-					showTimeout = false;
+				catch (SocketTimeoutException e) {
+					// The debugger didn't respond in time.
+					// Resume?
+					final Integer suspendCount = vm.getSuspendCount(threadId);
+					if (suspendCount != null && suspendCount.intValue() <= 0) {
+						// We can resume the thread.
+						LOG.debug("Back to the thread " + threadId);
+						break;
+					}
+					if (showTimeout) {
+						LOG.debug(String.format("Debugger timeout ... (suspendCount=%d)", suspendCount));
+						showTimeout = false;
+					}
+					continue;
 				}
-				continue;
+				final CommandBuffer cmdBuf = new CommandBuffer(fBufIn, 0, packetLen);
+				LOG.debug("RangeIn: " + printHexBinary(fBufIn, 0, packetLen));
+				try {
+					visitor.setIsProcessingPackets(true);
+					processPacket(threadId, cmdBuf);
+				}
+				finally {
+					visitor.setIsProcessingPackets(false);
+				}
+				showTimeout = true;
 			}
-			final CommandBuffer cmdBuf = new CommandBuffer(fBufIn, 0, packetLen);
-			LOG.debug("RangeIn: " + printHexBinary(fBufIn, 0, packetLen));
-			try {
-				visitor.setIsProcessingPackets(true);
-				processPacket(threadId, cmdBuf);
-			}
-			finally {
-				visitor.setIsProcessingPackets(false);
-			}
-			showTimeout = true;
+		}
+		finally {
+			lock.unlock();
 		}
 	}
 

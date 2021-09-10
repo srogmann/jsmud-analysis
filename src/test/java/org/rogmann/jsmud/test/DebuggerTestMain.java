@@ -68,8 +68,9 @@ public class DebuggerTestMain {
 			visitor.setJvmSimulator(vm);
 			try (final InputStream is = socket.getInputStream()) {
 				try (final OutputStream os = socket.getOutputStream()) {
+					final int maxLockTime = 600;
 					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(is, os, 
-							vm, visitor);
+							vm, visitor, maxLockTime);
 					visitor.visitThreadStarted(Thread.currentThread());
 					vm.suspendThread(vm.getCurrentThreadId());
 					debugger.processPackets();

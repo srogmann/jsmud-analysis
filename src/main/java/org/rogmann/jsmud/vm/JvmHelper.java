@@ -26,6 +26,9 @@ public class JvmHelper {
 	/** Logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmHelper.class);
 
+	/** maximum lock time (in seconds) a threads waits for sending JDWP-packets (default is 600 seconds) */
+	private static final int MAX_LOCK_TIME = Integer.getInteger(JvmHelper.class.getName() + ".maxLockTime", 600).intValue();
+
 	/**
 	 * Connects to a remote-debugger for executing the given runnable.
 	 * @param host remote-host
@@ -77,7 +80,7 @@ public class JvmHelper {
 			try (final InputStream socketIs = socket.getInputStream()) {
 				try (final OutputStream socketOs = socket.getOutputStream()) {
 					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
-							vm, visitor);
+							vm, visitor, MAX_LOCK_TIME);
 					visitor.visitThreadStarted(Thread.currentThread());
 					vm.suspendThread(vm.getCurrentThreadId());
 					debugger.processPackets();
