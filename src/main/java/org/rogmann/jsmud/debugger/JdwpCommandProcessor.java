@@ -66,7 +66,7 @@ import org.rogmann.jsmud.vm.Utils;
 import org.rogmann.jsmud.vm.VM;
 
 /**
- * Processor for receiving and sending jwdp-commands.
+ * Processor for receiving and sending jdwp-commands.
  */
 public class JdwpCommandProcessor implements DebuggerInterface {
 	/** logger */
@@ -112,7 +112,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	private final Lock lock = new ReentrantLock();
 	
 	/**
-	 * Constructor
+	 * Constructor.
 	 * @param is Input-stream
 	 * @param os Output-stream
 	 * @param visitor Debugger-visitor
@@ -127,7 +127,6 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		this.vm = vm;
 		this.visitor = visitor;
 		this.maxLockTime = maxLockTime;
-		visitor.setDebugger(this);
 		read(fBufIn, 0, BUF_HANDSHAKE.length);
 		for (int i = 0; i < BUF_HANDSHAKE.length; i++) {
 			if (fBufIn[i] != BUF_HANDSHAKE[i]) {

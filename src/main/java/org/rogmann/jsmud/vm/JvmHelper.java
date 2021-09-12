@@ -30,6 +30,70 @@ public class JvmHelper {
 	private static final int MAX_LOCK_TIME = Integer.getInteger(JvmHelper.class.getName() + ".maxLockTime", 600).intValue();
 
 	/**
+	 * Creates a vm-simulation with debugger-visitor which can be used to start a debugger in the current thread. 
+	 * @param executionFilter class which should be interpreted
+	 * @param classLoader default class-loader
+	 * @param sourceFileRequester optional source-file-requester
+	 * @return debugger-visitor
+	 */
+	public static DebuggerJvmVisitor createDebuggerVisitor(final ClassExecutionFilter executionFilter,
+			final ClassLoader classLoader, final SourceFileRequester sourceFileRequester) {
+		final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
+		final boolean simulateReflection = true;
+		final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
+				simulateReflection, visitorProvider, invocationHandler);
+		//vm.registerThread(Thread.currentThread());
+		final Class<?>[] classesPreload = {
+				Thread.class,
+				Throwable.class,
+				Error.class
+		};
+		for (final Class<?> classPreload : classesPreload) {
+			try {
+				vm.loadClass(classPreload.getName(), classPreload);
+			} catch (ClassNotFoundException e) {
+				throw new RuntimeException("Couldn't preload class " + classPreload, e);
+			}
+		}
+		// We register the current thread.
+		vm.registerThread(Thread.currentThread());
+		// And register the vm in the created visitor of this thread.
+		final DebuggerJvmVisitor visitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
+		visitor.setJvmSimulator(vm);
+		return visitor;
+	}
+
+	/**
+	 * Connects to a remote-debugger for executing the given callable.
+	 * @param debugger-visitor debugger-visitor initialized with vm-simulation
+	 * @param host remote-host
+	 * @param port remote-port
+	 * @param callable callable to be executed
+	 * @param <T> return-type of callable
+	 */
+	public static <T> T connectCallableToDebugger(final DebuggerJvmVisitor visitor, String host, final int port,
+			final Callable<T> callable) {
+		LOG.info(String.format("connectCallableToDebugger(host=%s, port=%d, version=%s, jre.version=%s)",
+				host, Integer.valueOf(port), ClassRegistry.VERSION, System.getProperty("java.version")));
+		final T t;
+		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
+			socket.setSoTimeout(200);
+			try (final InputStream socketIs = socket.getInputStream()) {
+				try (final OutputStream socketOs = socket.getOutputStream()) {
+					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
+							visitor.getJvmSimulator(), visitor, MAX_LOCK_TIME);
+					visitor.setDebugger(debugger);
+					t = visitor.executeCallable(callable);
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException("IO-Exception while speaking to " + host + ':' + port, e);
+		}
+		return t;
+	}
+
+	/**
 	 * Connects to a remote-debugger for executing the given runnable.
 	 * @param host remote-host
 	 * @param port remote-port

@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
@@ -13,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.rogmann.jsmud.datatypes.VMByte;
@@ -39,6 +41,7 @@ import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.OperandStack;
+import org.rogmann.jsmud.vm.SimpleClassExecutor;
 
 /**
  * JVM-debugger-visitor.
@@ -54,7 +57,7 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	private final ConcurrentMap<Integer, JdwpEventRequest> eventRequests = new ConcurrentHashMap<>();
 	
 	/** interface of the debugger */
-	private JdwpCommandProcessor debugger;
+	private DebuggerInterface debugger;
 
 	/** stack of method-frames */
 	private final Deque<MethodFrameDebugContext> stack = new ConcurrentLinkedDeque<>();
@@ -104,6 +107,14 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	}
 
 	/**
+	 * Gets the JVM-simulation used by the debugger-visitor.
+	 * @return vm-simulation
+	 */
+	public ClassRegistry getJvmSimulator() {
+		return vm;
+	}
+
+	/**
 	 * Sets the JVM-simulator.
 	 * @param vm simulator
 	 */
@@ -112,10 +123,10 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	}
 
 	/**
-	 * Sets the debugger.
+	 * Sets the debugger-interface.
 	 * @param debugger debugger
 	 */
-	public void setDebugger(JdwpCommandProcessor debugger) {
+	public void setDebugger(DebuggerInterface debugger) {
 		this.debugger = debugger;
 	}
 
@@ -125,6 +136,43 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	 */
 	public void setIsProcessingPackets(boolean isProcessingFlag) {
 		isProcessingPackets.set(isProcessingFlag);
+	}
+
+	/**
+	 * Executes a callable.
+	 * The call-method is expected in the class of the callable-instance (not in a parent-class).
+	 * @param callable callable to be called
+	 * @param <T> return-type
+	 * @return return-object
+	 * @throws IOException in case of an {@link IOException}
+	 */
+	public <T> T executeCallable(final Callable<T> callable) throws IOException {
+		visitThreadStarted(Thread.currentThread());
+		vm.suspendThread(vm.getCurrentThreadId());
+		debugger.processPackets();
+
+		vm.registerThread(Thread.currentThread());
+		final Object objReturn;
+		try {
+			final Class<?> callableClass = callable.getClass();
+			final SimpleClassExecutor executor = new SimpleClassExecutor(vm, callableClass, vm.getInvocationHandler());
+			// We have to announce the class to the debugger.
+			visitLoadClass(callableClass);
+			final OperandStack stackArgs = new OperandStack(2);
+			stackArgs.push(callable);
+			try {
+				final Method methodCall = callableClass.getDeclaredMethod("call");
+				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, methodCall, "()Ljava/lang/Object;", stackArgs);
+			} catch (Throwable e) {
+				throw new RuntimeException("Exception while simulating callable " + callableClass.getName(), e);
+			}
+		}
+		finally {
+			vm.unregisterThread(Thread.currentThread());
+		}
+		@SuppressWarnings("unchecked")
+		final T t = (T) objReturn;
+		return t;
 	}
 
 	/**

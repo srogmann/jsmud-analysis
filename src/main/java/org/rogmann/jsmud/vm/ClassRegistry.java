@@ -252,6 +252,14 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		return executor;
 	}
 
+	/**
+	 * Gets the invocation-handler
+	 * @return invocation-handler
+	 */
+	public JvmInvocationHandler getInvocationHandler() {
+		return invocationHandler;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public JvmExecutionVisitor getCurrentVisitor() {
@@ -1081,11 +1089,14 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			final byte tag = slotRequest.getTag();
 			final Tag eTag = Tag.lookupByTag(tag);
 			final int slot = slotRequest.getSlot();
-			if (slot < 0 && slot >= aLocals.length) {
+			if (slot < 0 || slot >= aLocals.length) {
 				// A wrong slot.
+				LOG.error(String.format("getVariableValues: mf=%s, i=%d, slot=%d, aLocals.length=%d",
+						methodFrame, Integer.valueOf(i), Integer.valueOf(slot),
+						Integer.valueOf(aLocals.length)));
 				break;
 			}
-			final Object valueJvm = aLocals[slot];
+			Object valueJvm = aLocals[slot];
 			final Object value = MethodFrame.convertJvmTypeIntoFieldType(eTag.getClassTag(), valueJvm);
 			final Tag tagReply;
 			if (LOG.isDebugEnabled()) {
