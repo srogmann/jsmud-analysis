@@ -4,6 +4,7 @@ import java.io.PrintStream;
 
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
+import org.rogmann.jsmud.vm.VM;
 
 public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 
@@ -49,7 +50,7 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 
 	/** {@inheritDoc} */
 	@Override
-	public JvmExecutionVisitor create(Thread currentThread) {
+	public JvmExecutionVisitor create(final VM vm, final Thread currentThread) {
 		final Long threadId = Long.valueOf(currentThread.getId());
 		final String threadName = currentThread.getName();
 		final MessagePrinter printer = new MessagePrinter() {

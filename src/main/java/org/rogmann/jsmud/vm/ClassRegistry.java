@@ -476,7 +476,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			mapThreads.put(threadKey, vmThreadID);
 			mapThreadGroups.put(threadKey, vmThreadGroupID);		
 			mapThreadSuspendCounter.put(threadKey, new AtomicInteger(0));
-			final JvmExecutionVisitor visitor = visitorProvider.create(thread);
+			final JvmExecutionVisitor visitor = visitorProvider.create(this, thread);
 			mapThreadVisitor.put(threadKey, visitor);
 		}
 	}

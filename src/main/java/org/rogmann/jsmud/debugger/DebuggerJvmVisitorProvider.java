@@ -1,7 +1,12 @@
 package org.rogmann.jsmud.debugger;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import org.rogmann.jsmud.events.JdwpEventRequest;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
+import org.rogmann.jsmud.vm.VM;
 
 /**
  * JVM-debugger-visitor provider.
@@ -15,6 +20,9 @@ public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
 
 	/** optional source-file-requester */
 	private final SourceFileRequester sourceFileRequester;
+
+	/** map from request-id to event-request */
+	private final ConcurrentMap<Integer, JdwpEventRequest> eventRequests = new ConcurrentHashMap<>();
 
 	/**
 	 * default-constructor,
@@ -42,8 +50,9 @@ public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
 
 	/** {@inheritDoc} */
 	@Override
-	public JvmExecutionVisitor create(Thread currentThread) {
-		return new DebuggerJvmVisitor(maxInstrLogged, maxMethodsLogged, sourceFileRequester);
+	public JvmExecutionVisitor create(final VM vm, final Thread currentThread) {
+		return new DebuggerJvmVisitor(eventRequests,
+				maxInstrLogged, maxMethodsLogged, sourceFileRequester);
 	}
 
 }

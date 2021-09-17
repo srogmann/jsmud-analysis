@@ -7,7 +7,6 @@ import java.lang.reflect.Method;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,6 +42,7 @@ import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.OperandStack;
 import org.rogmann.jsmud.vm.SimpleClassExecutor;
+import org.rogmann.jsmud.vm.VM;
 
 /**
  * JVM-debugger-visitor.
@@ -55,7 +55,7 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	private ClassRegistry vm;
 
 	/** map from request-id to event-request */
-	private final ConcurrentMap<Integer, JdwpEventRequest> eventRequests = new ConcurrentHashMap<>();
+	private final ConcurrentMap<Integer, JdwpEventRequest> eventRequests;
 	
 	/** interface of the debugger */
 	private DebuggerInterface debugger;
@@ -85,33 +85,26 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	private final AtomicBoolean isProcessingPackets = new AtomicBoolean(false);
 
 	/**
-	 * default-constructor,
-	 * the first 100 instructions will be logged.
-	 * @param sourceFileRequester optional source-file-requester
-	 */
-	public DebuggerJvmVisitor(final SourceFileRequester sourceFileRequester) {
-		maxInstrLogged = 100;
-		maxMethodsLogged = 500;
-		this.sourceFileRequester = sourceFileRequester;
-	}
-
-	/**
 	 * Constructor
+	 * @param eventRequests map from jdwp-request-id to event-request
 	 * @param maxInstrLogged number of instructions to be logged at debug-level
 	 * @param maxMethodsLogged number of method-invocations to be logged at debug-level
+	 * @param eventRequests 
 	 */
-	public DebuggerJvmVisitor(final int maxInstrLogged, final int maxMethodsLogged,
+	public DebuggerJvmVisitor(final ConcurrentMap<Integer, JdwpEventRequest> eventRequests,
+			final int maxInstrLogged, final int maxMethodsLogged,
 			final SourceFileRequester sourceFileRequester) {
 		this.maxInstrLogged = maxInstrLogged;
 		this.maxMethodsLogged = maxMethodsLogged;
 		this.sourceFileRequester = sourceFileRequester;
+		this.eventRequests = eventRequests;
 	}
 
 	/**
 	 * Gets the JVM-simulation used by the debugger-visitor.
 	 * @return vm-simulation
 	 */
-	public ClassRegistry getJvmSimulator() {
+	public VM getJvmSimulator() {
 		return vm;
 	}
 
