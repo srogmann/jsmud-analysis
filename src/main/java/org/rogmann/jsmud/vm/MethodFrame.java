@@ -52,7 +52,10 @@ public class MethodFrame {
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
 	/** <code>true</code>, if {@link AccessController} should be executed by underlying JVM (default is <code>false</code>) */
-	final boolean executeAccessControllerNative = Boolean.getBoolean(MethodFrame.class.getName() + "executeAccessControllerNative"); 
+	static final boolean EXEC_ACCESS_CONTR_NATIVE = Boolean.getBoolean(MethodFrame.class.getName() + "executeAccessControllerNative"); 
+
+	/** <code>true</code>, if {@link Thread}-classes should not be patched */
+	static final boolean DONT_PATCH_THREAD_CLASSES = Boolean.getBoolean(MethodFrame.class.getName() + "dontPatchThreadClasses");
 
 	/** maximum level of stacked method-references on an object-instance */
 	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20).intValue();
@@ -181,13 +184,13 @@ public class MethodFrame {
 	public int getCurrLineNum() {
 		int lineNum;
 		if (sourceFileMapInstrLine != null) {
+			// In generated source-files the instructions are counted.
 			final Integer iLineNum = sourceFileMapInstrLine.get(Integer.valueOf(instrNum));
 			lineNum = (iLineNum != null) ? iLineNum.intValue() : 0;
 		}
 		else {
 			lineNum = currLineNum;
 		}
-		// In generated source-files the instructions are counted.
 		return lineNum;
 	}
 	/**
@@ -1940,7 +1943,7 @@ whileInstr:
 			if (doContinueWhile != null) {
 				return doContinueWhile.booleanValue();
 			}
-			if (executeAccessControllerNative && "java/security/AccessController".equals(mi.owner)
+			if (EXEC_ACCESS_CONTR_NATIVE && "java/security/AccessController".equals(mi.owner)
 					&& "doPrivileged".equals(mi.name)) {
 				lMethodName = "run";
 				types = new Type[0];
@@ -2285,7 +2288,7 @@ whileSuperClass:
 		Class<?> classConstr = classInit;
 		if (oInstance instanceof UninitializedInstance) {
 			uninstType = (UninitializedInstance) oInstance;
-			if (Thread.class.isAssignableFrom(classInit)) {
+			if (Thread.class.isAssignableFrom(classInit) && !DONT_PATCH_THREAD_CLASSES) {
 				classConstr = registry.getThreadClassGenerator().generateClass(classInit, mi.desc);
 				if (LOG.isDebugEnabled()) {
 					LOG.debug(String.format("executeInvokeSpecial: replace (%s) by (%s)",
@@ -2377,7 +2380,7 @@ whileSuperClass:
 
 		if (uninstType != null) {
 			stack.replaceUninitialized(uninstType, instanceInit);
-			if (Thread.class.isAssignableFrom(classConstr)) {
+			if (Thread.class.isAssignableFrom(classConstr) && !DONT_PATCH_THREAD_CLASSES) {
 				LOG.debug("set ThreadExecutor: " + classConstr);
 				final Field field = classConstr.getDeclaredField(ThreadClassGenerator.FIELD_THREAD_EXECUTOR);
 				field.set(instanceInit, new ThreadExecutor(registry));

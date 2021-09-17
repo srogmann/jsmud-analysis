@@ -38,6 +38,7 @@ import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.ClassRegistry;
+import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.OperandStack;
@@ -143,17 +144,18 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	 * The call-method is expected in the class of the callable-instance (not in a parent-class).
 	 * @param callable callable to be called
 	 * @param <T> return-type
+	 * @param classReturnObj class of return-object
 	 * @return return-object
 	 * @throws IOException in case of an {@link IOException}
 	 */
-	public <T> T executeCallable(final Callable<T> callable) throws IOException {
-		visitThreadStarted(Thread.currentThread());
-		vm.suspendThread(vm.getCurrentThreadId());
-		debugger.processPackets();
-
+	public <T> T executeCallable(final Callable<T> callable, final Class<T> classReturnObj) throws IOException {
 		vm.registerThread(Thread.currentThread());
 		final Object objReturn;
 		try {
+			visitThreadStarted(Thread.currentThread());
+			vm.suspendThread(vm.getCurrentThreadId());
+			debugger.processPackets();
+
 			final Class<?> callableClass = callable.getClass();
 			final SimpleClassExecutor executor = new SimpleClassExecutor(vm, callableClass, vm.getInvocationHandler());
 			// We have to announce the class to the debugger.
@@ -162,13 +164,18 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 			stackArgs.push(callable);
 			try {
 				final Method methodCall = callableClass.getDeclaredMethod("call");
-				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, methodCall, "()Ljava/lang/Object;", stackArgs);
+				final String methodDesc = "()" + Type.getType(methodCall.getReturnType()).getDescriptor();
+				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, methodCall, methodDesc, stackArgs);
 			} catch (Throwable e) {
 				throw new RuntimeException("Exception while simulating callable " + callableClass.getName(), e);
 			}
 		}
 		finally {
 			vm.unregisterThread(Thread.currentThread());
+		}
+		if (objReturn != null && !classReturnObj.isInstance(objReturn)) {
+			throw new JvmException(String.format("Unexpected return-type (%s) instead of (%s) of callable",
+					objReturn.getClass(), classReturnObj));
 		}
 		@SuppressWarnings("unchecked")
 		final T t = (T) objReturn;
@@ -268,6 +275,9 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 				continue;
 			}
 			final VMThreadID curThreadId = vm.getThreadId(startedThread);
+			if (curThreadId == null) {
+				throw new DebuggerException(String.format("The thread (%s) is not known to the VM", startedThread));
+			}
 			try {
 				debugger.sendVMEvent(JdwpSuspendPolicy.NONE, evReq.getEventType(),
 						new VMInt(evReq.getRequestId()), curThreadId);

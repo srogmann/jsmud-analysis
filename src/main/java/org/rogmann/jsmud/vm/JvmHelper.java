@@ -33,11 +33,15 @@ public class JvmHelper {
 	 * Creates a vm-simulation with debugger-visitor which can be used to start a debugger in the current thread. 
 	 * @param executionFilter class which should be interpreted
 	 * @param classLoader default class-loader
+	 * @param maxInstrLogged number of instructions to be logged at debug-level
+	 * @param maxMethodsLogged number of method-invocations to be logged at debug-level
 	 * @param sourceFileRequester optional source-file-requester
 	 * @return debugger-visitor
 	 */
 	public static DebuggerJvmVisitor createDebuggerVisitor(final ClassExecutionFilter executionFilter,
-			final ClassLoader classLoader, final SourceFileRequester sourceFileRequester) {
+			final ClassLoader classLoader,
+			final int maxInstrLogged, final int maxMethodsLogged,
+			final SourceFileRequester sourceFileRequester) {
 		final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
 		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
 		final boolean simulateReflection = true;
@@ -70,10 +74,11 @@ public class JvmHelper {
 	 * @param host remote-host
 	 * @param port remote-port
 	 * @param callable callable to be executed
+	 * @param classReturnObj class of return-type
 	 * @param <T> return-type of callable
 	 */
 	public static <T> T connectCallableToDebugger(final DebuggerJvmVisitor visitor, String host, final int port,
-			final Callable<T> callable) {
+			final Callable<T> callable, final Class<T> classReturnObj) {
 		LOG.info(String.format("connectCallableToDebugger(host=%s, port=%d, version=%s, jre.version=%s)",
 				host, Integer.valueOf(port), ClassRegistry.VERSION, System.getProperty("java.version")));
 		final T t;
@@ -84,7 +89,7 @@ public class JvmHelper {
 					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
 							visitor.getJvmSimulator(), visitor, MAX_LOCK_TIME);
 					visitor.setDebugger(debugger);
-					t = visitor.executeCallable(callable);
+					t = visitor.executeCallable(callable, classReturnObj);
 				}
 			}
 		} catch (IOException e) {

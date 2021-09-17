@@ -1407,12 +1407,22 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					argCnt++;
 				}
 			}
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("sendVariableTableWithGenerics: class=%s, methodID=%s, method.name=%s, argCnt=%d",
+						method.getDeclaringClass(), methodID, method.getName(),
+						Integer.valueOf(argCnt)));
+			}
 			final List<VariableSlot> slots = vm.getVariableSlots(method);
 			int idx = 0;
 			final VMDataField[] fields = new VMDataField[2 + slots.size() * 6];
 			fields[idx++] = new VMInt(argCnt);
 			fields[idx++] = new VMInt(slots.size());
 			for (VariableSlot slot : slots) {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("local variable: slot=%d, name=%s, signature=%s, codeIndex=%d, length=%d",
+							Integer.valueOf(slot.getSlot()), slot.getName(), slot.getSignature(),
+							Long.valueOf(slot.getCodeIndex()), Integer.valueOf(slot.getLength())));
+				}
 				fields[idx++] = new VMLong(slot.getCodeIndex());
 				fields[idx++] = new VMString(slot.getName());
 				fields[idx++] = new VMString(slot.getSignature());
@@ -1436,7 +1446,10 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		final VMThreadID cThreadId = new VMThreadID(cmdBuf.readLong());
 		final VMFrameID frameId = new VMFrameID(cmdBuf.readLong());
 		final int slots = cmdBuf.readInt();
-		if (cThreadId.getValue() != threadId.getValue()) {
+		final List<RefFrameBean> frames = vm.getThreadFrames(cThreadId, 0, 1);
+		if (frames == null || frames.size() == 0) {
+			LOG.error(String.format("sendVariableValues; thread=%s, threadId=%s, frameId=%s, no frames",
+					vm.getVMObject(threadId), threadId, frameId));
 			sendError(id, JdwpErrorCode.INVALID_THREAD);	
 		}
 		else {

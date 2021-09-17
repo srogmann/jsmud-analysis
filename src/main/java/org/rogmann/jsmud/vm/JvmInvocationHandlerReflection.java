@@ -100,7 +100,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			stack.push(loadedClass);
 			doContinueWhile = Boolean.FALSE;
 		}
-		else if ("java/security/AccessController".equals(mi.owner) && "doPrivileged".equals(mi.name) && !frame.executeAccessControllerNative) {
+		else if ("java/security/AccessController".equals(mi.owner) && "doPrivileged".equals(mi.name) && !MethodFrame.EXEC_ACCESS_CONTR_NATIVE) {
 			final Type[] argumentTypes = Type.getArgumentTypes(mi.desc);
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Mock method %s%s", mi.name, mi.desc));

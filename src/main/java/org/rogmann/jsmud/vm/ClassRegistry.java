@@ -188,8 +188,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** map from object to object-id of a variable-value */
 	private final ConcurrentMap<Object, VMObjectID> mapVariableValues = new ConcurrentHashMap<>(100);
 	
-	/** method-stack */
-	private final Stack<MethodFrame> stack = new Stack<>();
+	/** map from thread to current method-stack */
+	private final ConcurrentMap<Thread, Stack<MethodFrame>> mapStacks = new ConcurrentHashMap<>();
 
 	/**
 	 * Constructor
@@ -1091,9 +1091,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			final int slot = slotRequest.getSlot();
 			if (slot < 0 || slot >= aLocals.length) {
 				// A wrong slot.
-				LOG.error(String.format("getVariableValues: mf=%s, i=%d, slot=%d, aLocals.length=%d",
+				LOG.error(String.format("getVariableValues: mf=%s, i=%d, slot=%d, aLocals.length=%d, aLocals=%s",
 						methodFrame, Integer.valueOf(i), Integer.valueOf(slot),
-						Integer.valueOf(aLocals.length)));
+						Integer.valueOf(aLocals.length), Arrays.toString(aLocals)));
 				break;
 			}
 			Object valueJvm = aLocals[slot];
@@ -1470,14 +1470,16 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	 * Pushes a method-frame onto the stack.
 	 * @param frame method-frame
 	 */
-	public void pushMethodFrame(final MethodFrame frame) {
+	public void pushMethodFrame(final Thread thread, final MethodFrame frame) {
+		final Stack<MethodFrame> stack = mapStacks.computeIfAbsent(thread, t -> new Stack<>());
 		stack.push(frame);
 	}
 	
 	/**
 	 * Removes the method-frame on top of the stack.
 	 */
-	public void popMethodFrame() {
+	public void popMethodFrame(final Thread thread) {
+		final Stack<MethodFrame> stack = mapStacks.get(thread);
 		final MethodFrame mf = stack.pop();
 		final RefFrameBean rfBean = mapRefFrameBean.remove(mf);
 		if (rfBean != null) {
@@ -1490,8 +1492,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	@Override
 	public List<RefFrameBean> getThreadFrames(VMThreadID cThreadId, int startFrame, int length) {
 		final List<RefFrameBean> frames = new ArrayList<>();
-		final Thread curThread = Thread.currentThread();
-		if (cThreadId.equals(getThreadId(curThread))) {
+		final Thread thread = (Thread) mapObjects.get(cThreadId);
+		if (thread != null) {
+			final Stack<MethodFrame> stack = mapStacks.get(thread);
 			final int stackSize = stack.size();
 			final int endFrame = (length == -1) ? stackSize : Math.min(stackSize, startFrame + length);
 			for (int i = startFrame; i < endFrame; i++) {

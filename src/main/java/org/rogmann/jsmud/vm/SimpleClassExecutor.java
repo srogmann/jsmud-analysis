@@ -124,13 +124,14 @@ public class SimpleClassExecutor {
 
 		final Type[] argsDefs = fMethodArgs.get(methodDesc);
 		final MethodFrame frame = new MethodFrame(fRegistry, pMethod, method, argsDefs, fVisitor, fInvocationHandler);
+		final Thread thread = Thread.currentThread();
 		final Object methodReturnObj;
 		try {
-			fRegistry.pushMethodFrame(frame);
+			fRegistry.pushMethodFrame(thread, frame);
 			methodReturnObj = frame.execute(args);
 		}
 		finally {
-			fRegistry.popMethodFrame();
+			fRegistry.popMethodFrame(thread);
 		}
 
 		return methodReturnObj;
