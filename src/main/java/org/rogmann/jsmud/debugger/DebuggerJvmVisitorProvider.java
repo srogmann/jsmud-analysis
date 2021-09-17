@@ -31,6 +31,7 @@ public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
 	 * Constructor
 	 * @param maxInstrLogged number of instructions to be logged at debug-level
 	 * @param maxMethodsLogged number of method-invocations to be logged at debug-level
+	 * @param sourceFileRequester optional source-file-requester
 	 */
 	public DebuggerJvmVisitorProvider(final int maxInstrLogged, final int maxMethodsLogged,
 			final SourceFileRequester sourceFileRequester) {
