@@ -43,11 +43,39 @@ public interface VM {
 	JvmExecutionVisitor getCurrentVisitor();
 
 	/**
+	 * Gets the invocation-handler
+	 * @return invocation-handler
+	 */
+	JvmInvocationHandler getInvocationHandler();
+
+	/**
+	 * Registers a thread and the corresponding thread-group.
+	 * @param thread thread
+	 */
+	void registerThread(final Thread thread);
+
+	/**
+	 * Removes a thread and the corresponding thread-group.
+	 * @param thread thread
+	 */
+	void unregisterThread(final Thread thread);
+
+	/**
 	 * Creates a string in the JVM.
 	 * @param utf8 String 
 	 * @return String-Id
 	 */
 	VMStringID createString(String utf8);
+
+	/**
+	 * Loads a class.
+	 * The context-class is used to determine the class-loader to be used.
+	 * @param className qualified class-name, e.g. "java.lang.String"
+	 * @param ctxClass context-class, i.e. a class which knows the class to be loaded
+	 * @return loaded class
+	 * @throws ClassNotFoundException if the class can't be found
+	 */
+	Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException;
 
 	/**
 	 * Gets the loaded classes by signature
@@ -68,6 +96,13 @@ public interface VM {
 	 * @return ref-type-bean
 	 */
 	RefTypeBean getClassRefTypeBean(Class<? extends Object> objClass);
+
+	/**
+	 * Gets the thread-id of a thread.
+	 * @param thread thread
+	 * @return thread-id or <code>null</code>
+	 */
+	VMThreadID getThreadId(Thread thread);
 
 	/**
 	 * Gets the Thread-Id of the current thread.
@@ -133,6 +168,13 @@ public interface VM {
 	 * @return list of method-ref-beans
 	 */
 	List<RefMethodBean> getMethodsWithGeneric(final Class<?> clazz);
+
+	/**
+	 * Gets the id of a method.
+	 * @param method method
+	 * @return method-id
+	 */
+	VMMethodID getMethodId(Executable method);
 
 	/**
 	 * Gets the values of fields of an object.

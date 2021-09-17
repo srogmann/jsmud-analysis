@@ -252,10 +252,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		return executor;
 	}
 
-	/**
-	 * Gets the invocation-handler
-	 * @return invocation-handler
-	 */
+	/** {@inheritDoc} */
+	@Override
 	public JvmInvocationHandler getInvocationHandler() {
 		return invocationHandler;
 	}
@@ -280,14 +278,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		return classLoaderDefault;
 	}
 
-	/**
-	 * Loads a class.
-	 * The context-class is used to determine the class-loader to be used.
-	 * @param className qualified class-name, e.g. "java.lang.String"
-	 * @param ctxClass context-class, i.e. a class which knows the class to be loaded
-	 * @return loaded class
-	 * @throws ClassNotFoundException if the class can't be found
-	 */
+	/** {@inheritDoc} */
+	@Override
 	public Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException {
 		// This implementation discards the used class-loader.
 		// The handling of classes with the same name in different class-loaders is not correct.
@@ -461,10 +453,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		return callSiteRegistry;
 	}
 
-	/**
-	 * Registers a thread and the corresponding thread-group.
-	 * @param thread thread
-	 */
+	/** {@inheritDoc} */
+	@Override
 	public void registerThread(final Thread thread) {
 		final Long threadKey = Long.valueOf(thread.getId());
 		if (!mapThreads.containsKey(threadKey)) {
@@ -481,10 +471,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		}
 	}
 
-	/**
-	 * Removes a thread and the corresponding thread-group.
-	 * @param thread thread
-	 */
+	/** {@inheritDoc} */
+	@Override
 	public void unregisterThread(final Thread thread) {
 		try {
 			final Long threadKey = Long.valueOf(thread.getId());
@@ -870,11 +858,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		return refFieldBean;
 	}
 
-	/**
-	 * Gets the id of a method.
-	 * @param method method
-	 * @return method-id
-	 */
+	/** {@inheritDoc} */
+	@Override
 	public VMMethodID getMethodId(Executable method) {
 		final RefMethodBean bean = getMethodRefBean(method);
 		return bean.getMethodID();
@@ -1442,11 +1427,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		return dfResAndExc;
 	}
 
-	/**
-	 * Gets the thread-id of a thread.
-	 * @param thread thread
-	 * @return thread-id or <code>null</code>
-	 */
+	/** {@inheritDoc} */
+	@Override
 	public VMThreadID getThreadId(Thread thread) {
 		return mapThreads.get(Long.valueOf(thread.getId()));
 	}
