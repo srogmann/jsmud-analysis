@@ -176,7 +176,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					final Integer suspendCount = vm.getSuspendCount(threadId);
 					if (suspendCount != null && suspendCount.intValue() <= 0) {
 						// We can resume the thread.
-						LOG.debug("Back to the thread " + threadId);
+						LOG.debug(String.format("SuspendCount = %d, back to the thread %s (%s)",
+								suspendCount, threadId, Thread.currentThread()));
 						break;
 					}
 					if (showTimeout) {
@@ -186,7 +187,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					continue;
 				}
 				final CommandBuffer cmdBuf = new CommandBuffer(fBufIn, 0, packetLen);
-				LOG.debug("RangeIn: " + printHexBinary(fBufIn, 0, packetLen));
+				if (LOG.isDebugEnabled()) {
+					LOG.debug("RangeIn: " + printHexBinary(fBufIn, 0, packetLen));
+				}
 				try {
 					visitor.setIsProcessingPackets(true);
 					processPacket(threadId, cmdBuf);
