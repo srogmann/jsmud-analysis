@@ -4,9 +4,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.rogmann.jsmud.events.JdwpEventRequest;
+import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
-import org.rogmann.jsmud.vm.VM;
 
 /**
  * JVM-debugger-visitor provider.
@@ -50,9 +50,15 @@ public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
 
 	/** {@inheritDoc} */
 	@Override
-	public JvmExecutionVisitor create(final VM vm, final Thread currentThread) {
-		return new DebuggerJvmVisitor(eventRequests,
+	public JvmExecutionVisitor create(final ClassRegistry vm, final Thread currentThread, final JvmExecutionVisitor visitorParent) {
+		final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor(eventRequests,
 				maxInstrLogged, maxMethodsLogged, sourceFileRequester);
+		visitor.setJvmSimulator(vm);
+		final DebuggerJvmVisitor debuggerVisitorParent = (DebuggerJvmVisitor) visitorParent;
+		if (visitorParent != null) {
+			visitor.setDebugger(debuggerVisitorParent.getDebugger());
+		}
+		return visitor;
 	}
 
 }

@@ -456,6 +456,12 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** {@inheritDoc} */
 	@Override
 	public void registerThread(final Thread thread) {
+		registerThread(thread, null);
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void registerThread(final Thread thread, final JvmExecutionVisitor parentVisitor) {
 		final Long threadKey = Long.valueOf(thread.getId());
 		if (!mapThreads.containsKey(threadKey)) {
 			final VMThreadID vmThreadID = new VMThreadID(objectIdCounter.incrementAndGet());
@@ -466,7 +472,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			mapThreads.put(threadKey, vmThreadID);
 			mapThreadGroups.put(threadKey, vmThreadGroupID);		
 			mapThreadSuspendCounter.put(threadKey, new AtomicInteger(0));
-			final JvmExecutionVisitor visitor = visitorProvider.create(this, thread);
+			final JvmExecutionVisitor visitor = visitorProvider.create(this, thread, parentVisitor);
 			mapThreadVisitor.put(threadKey, visitor);
 		}
 	}

@@ -55,6 +55,13 @@ public interface VM {
 	void registerThread(final Thread thread);
 
 	/**
+	 * Registers a thread and the corresponding thread-group.
+	 * @param thread thread
+	 * @param parentVisitor visitor of parent-thread or <code>null</code>
+	 */
+	void registerThread(final Thread thread, final JvmExecutionVisitor parentVisitor);
+
+	/**
 	 * Removes a thread and the corresponding thread-group.
 	 * @param thread thread
 	 */

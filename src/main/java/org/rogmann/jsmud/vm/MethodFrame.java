@@ -2383,7 +2383,7 @@ whileSuperClass:
 			if (Thread.class.isAssignableFrom(classConstr) && !DONT_PATCH_THREAD_CLASSES) {
 				LOG.debug("set ThreadExecutor: " + classConstr);
 				final Field field = classConstr.getDeclaredField(ThreadClassGenerator.FIELD_THREAD_EXECUTOR);
-				field.set(instanceInit, new ThreadExecutor(registry));
+				field.set(instanceInit, new ThreadExecutor(registry, visitor));
 			}
 		}
 		return false;

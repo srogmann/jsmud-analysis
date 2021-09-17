@@ -16,12 +16,16 @@ public class ThreadExecutor {
 	/** registry */
 	private final ClassRegistry registry;
 
+	/** visitor of parent-thread */
+	private final JvmExecutionVisitor visitorParent;
+
 	/**
 	 * Constructor
 	 * @param registry class-registry (VM)
 	 */
-	public ThreadExecutor(final ClassRegistry registry) {
+	public ThreadExecutor(final ClassRegistry registry, final JvmExecutionVisitor visitorParent) {
 		this.registry = registry;
+		this.visitorParent = visitorParent;
 	}
 
 	/**
@@ -32,7 +36,7 @@ public class ThreadExecutor {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug(String.format("run: %s", thread));
 		}
-		registry.registerThread(thread);
+		registry.registerThread(thread, visitorParent);
 		try {
 			final Class<? extends Thread> threadClass = thread.getClass();
 			final SimpleClassExecutor executor = registry.getClassExecutor(threadClass);

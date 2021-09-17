@@ -8,8 +8,9 @@ public interface JvmExecutionVisitorProvider {
 	/**
 	 * Creates a JVM-execution-visitor
 	 * @param currentThread current thread
+	 * @param visitorParent visitor of parent-thread or <code>null</code>
 	 * @return execution-visitor
 	 */
-	JvmExecutionVisitor create(VM vm, Thread currentThread);
+	JvmExecutionVisitor create(ClassRegistry vm, Thread currentThread, JvmExecutionVisitor visitorParent);
 
 }

@@ -109,6 +109,14 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	}
 
 	/**
+	 * Gets the debugger-interface.
+	 * @return debugger-interface
+	 */
+	public DebuggerInterface getDebugger() {
+		return debugger;
+	}
+
+	/**
 	 * Sets the JVM-simulator.
 	 * @param vm simulator
 	 */
