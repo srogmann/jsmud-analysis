@@ -1592,6 +1592,10 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			final Thread thread = (Thread) oThread;
 			final AtomicInteger suspCounter = mapThreadSuspendCounter.get(Long.valueOf(thread.getId()));
 			if (suspCounter != null) {
+				//if (LOG.isDebugEnabled()) {
+				//	LOG.debug(String.format("getSuspendCount: suspCounter=%d, vmSuspendCounter=%d",
+				//			Integer.valueOf(suspCounter.intValue()), Integer.valueOf(vmSuspendCounter.get())));
+				//}
 				iSuspCounter = Integer.valueOf(suspCounter.intValue() + vmSuspendCounter.get());
 			}
 		}
@@ -1638,7 +1642,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				throw new DebuggerException(String.format("Thread (%s, %s) without internal suspend-counter",
 						cThreadId, thread.getName()));
 			}
-			final int counter = suspCounter.decrementAndGet();
+			final int counter = suspCounter.updateAndGet(c -> Math.max(c - 1, 0));
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("resumeThread: thread=%s, suspCounter=%d",
 						thread.getName(), Integer.valueOf(counter)));
