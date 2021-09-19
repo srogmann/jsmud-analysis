@@ -32,6 +32,12 @@ public class VMByte extends VMDataField {
 
 	/** {@inheritDoc} */
 	@Override
+	public String toString() {
+		return new StringBuilder(20).append(getClass().getSimpleName()).append('(').append(value).append(')').toString();
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public void write(byte[] buf, int offset) {
 		buf[offset] = value;
 	}
