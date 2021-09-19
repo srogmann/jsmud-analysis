@@ -37,6 +37,7 @@ public class ThreadExecutor {
 			LOG.debug(String.format("run: %s", thread));
 		}
 		registry.registerThread(thread, visitorParent);
+		visitorParent.visitThreadStarted(thread);
 		try {
 			final Class<? extends Thread> threadClass = thread.getClass();
 			final SimpleClassExecutor executor = registry.getClassExecutor(threadClass);
