@@ -594,6 +594,11 @@ stepSearch:
 							final VMLong vIndex = new VMLong(bp.getIndex());
 							final JdwpSuspendPolicy suspendPolicy = evReq.getSuspendPolicy();
 							try {
+								if (LOG.isDebugEnabled()) {
+									LOG.debug(String.format("sendVMEvent: sP=%s, type=BREAKPOINT, reqId=0x%x, threadId=%s, typeTag=%s, classId=%s, methodId=%s, vIndex=%s",
+											suspendPolicy, Integer.valueOf(evReq.getRequestId()), threadId,
+											typeTag, bp.getClassID(), bp.getMethodId(), vIndex));
+								}
 								debugger.sendVMEvent(suspendPolicy, VMEventType.BREAKPOINT,
 										new VMInt(evReq.getRequestId()), threadId,
 										typeTag, bp.getClassID(), bp.getMethodId(), vIndex);

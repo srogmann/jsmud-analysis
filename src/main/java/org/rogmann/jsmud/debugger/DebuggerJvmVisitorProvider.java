@@ -4,6 +4,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.rogmann.jsmud.events.JdwpEventRequest;
+import org.rogmann.jsmud.log.Logger;
+import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
@@ -12,6 +14,9 @@ import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
  * JVM-debugger-visitor provider.
  */
 public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
+	/** logger */
+	private static final Logger LOGGER = LoggerFactory.getLogger(DebuggerJvmVisitorProvider.class);
+	
 	/** number of instructions to be logged in detail */
 	private final int maxInstrLogged;
 
@@ -51,11 +56,16 @@ public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
 	/** {@inheritDoc} */
 	@Override
 	public JvmExecutionVisitor create(final ClassRegistry vm, final Thread currentThread, final JvmExecutionVisitor visitorParent) {
+		if (LOGGER.isDebugEnabled()) {
+			LOGGER.debug(String.format("create: vm=%s, cT=%s, visitorParent=%s",
+					vm, currentThread, visitorParent));
+			new RuntimeException("woher der Visitor?").printStackTrace();
+		}
 		final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor(eventRequests,
 				maxInstrLogged, maxMethodsLogged, sourceFileRequester);
 		visitor.setJvmSimulator(vm);
-		final DebuggerJvmVisitor debuggerVisitorParent = (DebuggerJvmVisitor) visitorParent;
-		if (visitorParent != null) {
+		if (visitorParent instanceof DebuggerJvmVisitor) {
+			final DebuggerJvmVisitor debuggerVisitorParent = (DebuggerJvmVisitor) visitorParent;
 			visitor.setDebugger(debuggerVisitorParent.getDebugger());
 		}
 		return visitor;
