@@ -59,7 +59,6 @@ public class DebuggerJvmVisitorProvider implements JvmExecutionVisitorProvider {
 		if (LOGGER.isDebugEnabled()) {
 			LOGGER.debug(String.format("create: vm=%s, cT=%s, visitorParent=%s",
 					vm, currentThread, visitorParent));
-			new RuntimeException("woher der Visitor?").printStackTrace();
 		}
 		final DebuggerJvmVisitor visitor = new DebuggerJvmVisitor(eventRequests,
 				maxInstrLogged, maxMethodsLogged, sourceFileRequester);
