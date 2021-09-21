@@ -586,13 +586,14 @@ stepSearch:
 						// We have found the right method.
 						if (currFrame.frame.instrNum == bp.getIndex()) {
 							// We are at the wanted index.
-							LOG.debug(String.format("Breakpoint reached: method=%s, instrNum=%d, line=%d",
-									currMethod.getName(),
-									Long.valueOf(bp.getIndex()), Integer.valueOf(currFrame.frame.getCurrLineNum())));
 							final VMThreadID threadId = vm.getCurrentThreadId();
 							final VMByte typeTag = new VMByte(bp.getTypeTag());
 							final VMLong vIndex = new VMLong(bp.getIndex());
 							final JdwpSuspendPolicy suspendPolicy = evReq.getSuspendPolicy();
+							LOG.debug(String.format("Breakpoint reached: method=%s, instrNum=%d, line=%d, suspPolicy=%s",
+									currMethod.getName(),
+									Long.valueOf(bp.getIndex()), Integer.valueOf(currFrame.frame.getCurrLineNum()),
+									suspendPolicy));
 							try {
 								if (LOG.isDebugEnabled()) {
 									LOG.debug(String.format("sendVMEvent: sP=%s, type=BREAKPOINT, reqId=0x%x, threadId=%s, typeTag=%s, classId=%s, methodId=%s, vIndex=%s",
@@ -634,7 +635,11 @@ stepSearch:
 		}
 		else {
 			if (suspendPolicy == JdwpSuspendPolicy.EVENT_THREAD) {
-				vm.suspendThread(curThreadId);
+				boolean isKnown = vm.suspendThread(curThreadId);
+				if (!isKnown) {
+					throw new DebuggerException(String.format("The thread %s/%s is not known in the suspend-map",
+							curThreadId, vm.getVMObject(curThreadId)));
+				}
 			}
 			else if (suspendPolicy == JdwpSuspendPolicy.ALL) {
 				vm.suspend();
