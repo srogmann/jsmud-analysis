@@ -140,6 +140,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			throw new IllegalStateException("The current thread isn't registered.");
 		}
 		sendVMEvent(JdwpSuspendPolicy.ALL, VMEventType.VM_START, new VMInt(0), threadId);
+		vm.suspend();
 		LOG.info(JdwpCommandProcessor.class + ": initialized");
 	}
 
@@ -164,6 +165,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			if (threadId == null) {
 				throw new IllegalStateException("The current thread isn't registered.");
 			}
+			LOG.debug(String.format("processPackets: thread=%s/%s, suspendCount=%d",
+					threadId, Thread.currentThread(), vm.getSuspendCount(threadId)));
 			boolean showTimeout = true;
 			while (!SHOULD_STOP.get()) {
 				final int packetLen;
@@ -1664,7 +1667,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			// e.g. BREAKPOINT: 0000002B000000BE000F0102010000000107010000000000000006000000
 			final int requestId = eventRequestCounter++;
 			final JdwpEventRequest evReq = new JdwpEventRequest(requestId, eventType, suspendPolicy, modifiers);
-			LOG.debug("eventReq: " + eventType + ", mod: " + modifiers);
+			LOG.debug(String.format("eventReq: %s, suspPolicy: %s, mod: %d", eventType, suspendPolicy, Integer.valueOf(modifiers)));
 			for (int i = 0; i < modifiers; i++) {
 				final byte bModKind = cmdBuf.readByte();
 				final ModKind modKind = ModKind.lookupByKind(bModKind);
@@ -1734,7 +1737,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					final VMThreadID threadID = new VMThreadID(cmdBuf.readLong());
 					final int stepSize = cmdBuf.readInt();
 					final int stepDepth = cmdBuf.readInt();
-					LOG.debug("  Case Step: ss " + stepSize + ", sd " + stepDepth);
+					LOG.debug(String.format("  Case Step: threadId %s, ss %s, sd %s",
+							threadID, Integer.valueOf(stepSize), Integer.valueOf(stepDepth)));
 					final JdwpModifierStep modStep = new JdwpModifierStep(threadID, stepSize, stepDepth);
 					evReq.addModifier(modStep);
 					break;
@@ -1742,7 +1746,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					throw new RuntimeException("Unknown modifier kind: " + bModKind);
 				}
 			}
-			visitor.addEventRequest(evReq);
+			final DebuggerJvmVisitor currentVisitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
+			currentVisitor.addEventRequest(evReq);
 			sendReplyData(id, new VMInt(requestId));
 		}
 		else {
