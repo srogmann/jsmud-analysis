@@ -1735,7 +1735,24 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		SourceFileWriter sourceFileWriter = mapSourceSourceFiles.get(sourceFileGuessed);
 		if (sourceFileWriter == null) {
 			final ClassLoader classLoader = (clazz.getClassLoader() != null) ? clazz.getClassLoader() : classLoaderDefault;
-			final ClassReader reader = SimpleClassExecutor.createClassReader(this, classLoader, clazz);
+			
+			final Class<?> clazzOuter;
+			final String className = clazz.getName();
+			if (className.contains("$")) {
+				final String classNameOuter = className.replaceFirst("[$].*", "");
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Start with outer-class %s of %s", className, classNameOuter));
+				}
+				try {
+					clazzOuter = loadClass(classNameOuter, clazz);
+				} catch (ClassNotFoundException e) {
+					throw new JvmException(String.format("Can't load outer-class (%s)", classNameOuter), e);
+				}
+			}
+			else {
+				clazzOuter = clazz;
+			}
+			final ClassReader reader = SimpleClassExecutor.createClassReader(this, classLoader, clazzOuter);
 			final ClassNode node = new ClassNode();
 			reader.accept(node, 0);
 	
