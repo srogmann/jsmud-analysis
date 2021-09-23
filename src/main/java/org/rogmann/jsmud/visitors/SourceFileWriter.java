@@ -231,7 +231,7 @@ public class SourceFileWriter {
 			sb.append("abstract  ");
 		}
 		if ((access & Opcodes.ACC_SYNTHETIC) != 0) {
-			sb.append("synthentic ");
+			sb.append("synthetic ");
 		}
 		if ((access & Opcodes.ACC_INTERFACE) != 0) {
 			sb.append("interface ");
@@ -269,7 +269,7 @@ public class SourceFileWriter {
 			sb.append("transient ");
 		}
 		if ((access & Opcodes.ACC_SYNTHETIC) != 0) {
-			sb.append("synthentic ");
+			sb.append("synthetic ");
 		}
 	}
 
@@ -301,7 +301,7 @@ public class SourceFileWriter {
 			sb.append("synchronized ");
 		}
 		if ((access & Opcodes.ACC_SYNTHETIC) != 0) {
-			sb.append("synthentic ");
+			sb.append("synthetic ");
 		}
 	}
 
