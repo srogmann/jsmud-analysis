@@ -54,6 +54,8 @@ public enum JdwpCommand {
 	FIELDS_WITH_GENERIC(JdwpCommandSet.REFERENCE_TYPE, 14),
 	/** MethodsWithGeneric Command */
 	METHODS_WITH_GENERIC(JdwpCommandSet.REFERENCE_TYPE, 15),
+	/** Instances Command */
+	INSTANCES(JdwpCommandSet.REFERENCE_TYPE, 16),
 
 	/** Superclass Command */
 	SUPERCLASS(JdwpCommandSet.CLASS_TYPE, 1),

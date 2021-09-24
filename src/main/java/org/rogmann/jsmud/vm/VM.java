@@ -344,6 +344,14 @@ public interface VM {
 	long[] getInstanceCounts(VMReferenceTypeID[] aRefTypes);
 
 	/**
+	 * Gets the instances of a given class.
+	 * @param classRefType reference-type
+	 * @param maxInstances maximum number of instances (0 = all instances)
+	 * @return instance of this type
+	 */
+	List<VMTaggedObjectId> getInstances(Class<?> classRefType, int maxInstances);
+
+	/**
 	 * Requests the generation of a source-file containing pseudo-bytecode.
 	 * The source-file will be registered for the use of its line-numbers while debugging.
 	 * @param clazz class

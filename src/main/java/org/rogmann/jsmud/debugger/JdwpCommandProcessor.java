@@ -399,6 +399,10 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else if (cmd == JdwpCommand.METHODS_WITH_GENERIC) {
 			sendMethodsWithGeneric(id, refType);
 		}
+		else if (cmd == JdwpCommand.INSTANCES) {
+			final int maxInstances = cmdBuf.readInt();
+			sendInstances(id, refType, maxInstances);
+		}
 		else {
 			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
 		}
@@ -1337,6 +1341,36 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				methods[fnr++] = new VMInt(refMethod.getModBits());
 			}
 			sendReplyData(id, methods);
+		}
+	}
+
+	/**
+	 * Sends instances of a reference-type.
+	 * @param id request-id
+	 * @param refType ref-type-id of class
+	 * @param maxInstances maximum number of instances (0 = all instances)
+	 * @throws IOException in case of an IO-error
+	 */
+	private void sendInstances(int id, VMReferenceTypeID refType, int maxInstances) throws IOException {
+		final Object oClassRef = vm.getVMObject(refType);
+		if (oClassRef == null) {
+			sendError(id, JdwpErrorCode.INVALID_OBJECT);
+		}
+		else if (!(oClassRef instanceof Class)) {
+			sendError(id, JdwpErrorCode.INVALID_CLASS);
+		}
+		else if (maxInstances < 0) {
+			sendError(id, JdwpErrorCode.ILLEGAL_ARGUMENT);
+		}
+		else {
+			final Class<?> classRefType = (Class<?>) oClassRef;
+			final List<VMTaggedObjectId> instances = vm.getInstances(classRefType, maxInstances);
+			final VMDataField[] fields = new VMDataField[1 + instances.size()];
+			fields[0] = new VMInt(instances.size());
+			for (int i = 0; i < instances.size(); i++) {
+				fields[1 + i] = instances.get(i);
+			}
+			sendReplyData(id, fields);
 		}
 	}
 

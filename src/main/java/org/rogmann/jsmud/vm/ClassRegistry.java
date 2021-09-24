@@ -1583,6 +1583,37 @@ public class ClassRegistry implements VM, ObjectMonitor {
 
 	/** {@inheritDoc} */
 	@Override
+	public List<VMTaggedObjectId> getInstances(Class<?> classRefType, int maxInstances) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("getInstances: class=%s, maxInstances=%d",
+					classRefType, Integer.valueOf(maxInstances)));
+		}
+		final List<VMTaggedObjectId> listInstances = new ArrayList<>();
+		for (Entry<VMObjectID, Object> entry : mapObjects.entrySet()) {
+			final Object object = entry.getValue();
+			if (classRefType.isInstance(object)) {
+				final VMObjectID key = entry.getKey();
+				final VMTaggedObjectId taggedObjectId;
+				if (String.class.equals(classRefType)) {
+					taggedObjectId = new VMTaggedObjectId(Tag.STRING, key);
+				}
+				else {
+					taggedObjectId = new VMTaggedObjectId(key);
+				}
+				listInstances.add(taggedObjectId);
+				if (maxInstances > 0 && listInstances.size() >= maxInstances) {
+					break;
+				}
+			}
+		}
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("  numInstances=%d", Integer.valueOf(listInstances.size())));
+		}
+		return listInstances;
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public Integer getSuspendCount(VMThreadID cThreadId) {
 		Object oThread = mapObjects.get(cThreadId);
 		Integer iSuspCounter = null;
