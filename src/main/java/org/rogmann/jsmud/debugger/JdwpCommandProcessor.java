@@ -1037,6 +1037,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else {
 			final VMReferenceTypeID[] aRefTypes = new VMReferenceTypeID[refTypesCount];
+			for (int i = 0; i < refTypesCount; i++) {
+				aRefTypes[i] = new VMReferenceTypeID(cmdBuf.readLong());
+			}
 			final long[] aInstanceCount = vm.getInstanceCounts(aRefTypes);
 			final VMDataField[] aReplyData = new VMDataField[1 + refTypesCount];
 			aReplyData[0] = new VMInt(refTypesCount);
