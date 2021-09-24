@@ -26,6 +26,8 @@ import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * Writes pseudo-code of a class into a file.
+ * 
+ * <p>Lines are prefixed with "//"-comments. A 2021-06-eclipse started looping without these comments.</p>
  */
 public class SourceFileWriter {
 	
@@ -362,6 +364,7 @@ public class SourceFileWriter {
 	 * @throws IOException in case of an IO-error
 	 */
 	private void writeLine(BufferedWriter bw, String line) throws IOException {
+		bw.write("//");
 		for (int i = 0; i < level; i++) {
 			bw.write("    ");
 		}
@@ -379,6 +382,7 @@ public class SourceFileWriter {
 	 */
 	private void writeLine(BufferedWriter bw, StringBuilder sb) throws IOException {
 		sb.append(crlf);
+		bw.write("//");
 		for (int i = 0; i < level; i++) {
 			bw.write("    ");
 		}
