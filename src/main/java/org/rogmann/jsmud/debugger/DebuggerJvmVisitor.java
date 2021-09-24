@@ -336,6 +336,9 @@ loopEvents:
 			final RefTypeBean refTypeBean = vm.getClassRefTypeBean(loadedClass);
 			JdwpSuspendPolicy suspendPolicy = evReq.getSuspendPolicy();
 			try {
+				if (debugger == null) {
+					throw new IllegalStateException("There is no debugger registered (see method setDebugger).");
+				}
 				debugger.sendVMEvent(suspendPolicy, evReq.getEventType(),
 						new VMInt(evReq.getRequestId()), curThreadId,
 						new VMByte(refTypeBean.getTypeTag().getTag()),
