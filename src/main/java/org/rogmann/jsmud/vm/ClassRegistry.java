@@ -1481,8 +1481,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	public List<RefFrameBean> getThreadFrames(VMThreadID cThreadId, int startFrame, int length) {
 		final List<RefFrameBean> frames = new ArrayList<>();
 		final Thread thread = (Thread) mapObjects.get(cThreadId);
-		if (thread != null) {
-			final Stack<MethodFrame> stack = mapStacks.get(thread);
+		final Stack<MethodFrame> stack = (thread != null) ? mapStacks.get(thread) : null;
+		if (thread != null && stack != null) {
 			final int stackSize = stack.size();
 			final int endFrame = (length == -1) ? stackSize : Math.min(stackSize, startFrame + length);
 			for (int i = startFrame; i < endFrame; i++) {
