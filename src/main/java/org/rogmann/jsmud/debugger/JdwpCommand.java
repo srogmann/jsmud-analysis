@@ -27,6 +27,8 @@ public enum JdwpCommand {
 	CLASS_PATHS(JdwpCommandSet.VIRTUAL_MACHINE, 13),
 	/** CapabilitiesNew Command  */
 	CAPABILITIES_NEW(JdwpCommandSet.VIRTUAL_MACHINE, 17),
+	/** RedefineClasses Command  */
+	REDEFINE_CLASSES(JdwpCommandSet.VIRTUAL_MACHINE, 18),
 	/** AllClassesWithGeneric Command  */
 	ALL_CLASSES_WITH_GENERIC(JdwpCommandSet.VIRTUAL_MACHINE, 20),
 	/** InstanceCounts Command  */

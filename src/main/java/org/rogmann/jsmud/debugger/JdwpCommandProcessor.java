@@ -61,6 +61,7 @@ import org.rogmann.jsmud.replydata.RefMethodBean;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.VariableSlot;
 import org.rogmann.jsmud.vm.ClassRegistry;
+import org.rogmann.jsmud.vm.JsmudClassLoader;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.Utils;
 import org.rogmann.jsmud.vm.VM;
@@ -88,7 +89,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	private final VM vm;
 
 	/** incoming buffer */
-	private final byte[] fBufIn = new byte[1024];
+	private byte[] fBufIn = new byte[1024];
 
 	/** outgoing buffer */
 	private final byte[] fBufOut = new byte[1024];
@@ -347,6 +348,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else if (cmd == JdwpCommand.CAPABILITIES_NEW) {
 			sendCapabilitiesNew(id);
+		}
+		else if (cmd == JdwpCommand.REDEFINE_CLASSES) {
+			sendRedefineClasses(id, cmdBuf);
 		}
 		else if (cmd == JdwpCommand.ALL_CLASSES_WITH_GENERIC) {
 			sendAllClassesWithGeneric(id);
@@ -937,9 +941,11 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	/**
 	 * Send the debuggers capabilities.
 	 * @param id id
-	 * @throws IOException in case of an iIO-error
+	 * @throws IOException in case of an IO-error
 	 */
 	private void sendCapabilitiesNew(final int id) throws IOException {
+		final boolean isJsmudClassloader = (vm.getClassLoader() instanceof JsmudClassLoader);
+
 		boolean	canWatchFieldModification = false;
 		boolean	canWatchFieldAccess	= false;
 		boolean	canGetBytecodes	= true;
@@ -947,19 +953,19 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		boolean	canGetOwnedMonitorInfo = true;
 		boolean	canGetCurrentContendedMonitor = true;
 		boolean	canGetMonitorInfo = true;
-		boolean	canRedefineClasses = false; 
-		boolean	canAddMethod = false; 
-		boolean	canUnrestrictedlyRedefineClasses = false; 
-		boolean	canPopFrames = false; 
-		boolean	canUseInstanceFilters = false; 
-		boolean	canGetSourceDebugExtension = false; 
+		boolean	canRedefineClasses = isJsmudClassloader;
+		boolean	canAddMethod = isJsmudClassloader;
+		boolean	canUnrestrictedlyRedefineClasses = isJsmudClassloader;
+		boolean	canPopFrames = false;
+		boolean	canUseInstanceFilters = false;
+		boolean	canGetSourceDebugExtension = false;
 		boolean	canRequestVMDeathEvent = false; 
-		boolean	canSetDefaultStratum = false; 
-		boolean	canGetInstanceInfo = true; 
+		boolean	canSetDefaultStratum = false;
+		boolean	canGetInstanceInfo = true;
 		boolean	canRequestMonitorEvents = true;
-		boolean	canGetMonitorFrameInfo = true; 
-		boolean	canUseSourceNameFilters = false; 
-		boolean	canGetConstantPool = false; 
+		boolean	canGetMonitorFrameInfo = true;
+		boolean	canUseSourceNameFilters = false;
+		boolean	canGetConstantPool = false;
 		boolean	canForceEarlyReturn = false;
 		boolean res22 = false;
 		boolean res23 = false;
@@ -1008,6 +1014,46 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	}
 
 	/**
+	 * Sends instance-counts.
+	 * @param id current id
+	 * @param cmdBuf command-buffer
+	 * @throws IOException in case of an IO-error
+	 */
+	private void sendRedefineClasses(int id, final CommandBuffer cmdBuf) throws IOException {
+		final boolean isJsmudClassloader = (vm.getClassLoader() instanceof JsmudClassLoader);
+		if (!isJsmudClassloader) {
+			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
+			return;
+		}
+		final int numClasses = cmdBuf.readInt();
+		final VMReferenceTypeID[] refTypes = new VMReferenceTypeID[numClasses];
+		final byte[][] aBufClass = new byte[numClasses][];
+		for (int i = 0; i < numClasses; i++) {
+			refTypes[i] = new VMReferenceTypeID(cmdBuf.readLong());
+			final int sizeclassfile = cmdBuf.readInt();
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("Redefine class: refType=%s, sizeClassfile=%d",
+						refTypes[i], Integer.valueOf(sizeclassfile)));
+			}
+			aBufClass[i] = new byte[sizeclassfile];
+			for (int j = 0; j < sizeclassfile; j++) {
+				aBufClass[i][j] = cmdBuf.readByte();
+			}
+		}
+		for (int i = 0; i < numClasses; i++) {
+			final VMReferenceTypeID refType = refTypes[i];
+			final Object oClass = vm.getVMObject(refType);
+			if (!(oClass instanceof Class)) {
+				sendError(id, JdwpErrorCode.INVALID_CLASS);
+				return;
+			}
+			final Class<?> classUntilNow = (Class<?>) oClass;
+			vm.redefineClass(refType, classUntilNow, aBufClass[i]);
+		}
+		sendReplyData(id);
+	}
+
+	/**
 	 * Sends all loaded classes with generics.
 	 * @param id current id
 	 * @throws IOException in case of an IO-error
@@ -1032,6 +1078,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	/**
 	 * Sends instance-counts.
 	 * @param id current id
+	 * @param cmdBuf command-buffer
 	 * @throws IOException in case of an IO-error
 	 */
 	private void sendInstanceCounts(int id, final CommandBuffer cmdBuf) throws IOException {
@@ -1849,7 +1896,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 
 	/**
 	 * Reads a command-packet or reply-packet.
-	 * @return lenght of packet
+	 * @return length of packet
 	 * @throws IOException in case of an IO-error 
 	 */
 	private int readPacket() throws IOException {
@@ -1867,6 +1914,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else {
 			buf = new byte[length];
 			System.arraycopy(fBufIn, 0, buf, 0, HEADER_LEN);
+			fBufIn = buf;
 		}
 		read(buf, HEADER_LEN, length - HEADER_LEN);
 		return length;

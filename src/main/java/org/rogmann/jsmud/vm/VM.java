@@ -85,6 +85,14 @@ public interface VM {
 	Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException;
 
 	/**
+	 * Redefines a class.
+	 * @param refType reference-type of the class
+	 * @param classUntilNow class until now
+	 * @param aClassbytes new class-file
+	 */
+	void redefineClass(final VMReferenceTypeID refType, final Class<?> classUntilNow, final byte[] aClassbytes);
+
+	/**
 	 * Gets the loaded classes by signature
 	 * @param signature signature
 	 * @return list of classes
@@ -123,6 +131,12 @@ public interface VM {
 	 * @return thread-group-id
 	 */
 	VMThreadGroupID getCurrentThreadGroupId(Thread thread);
+
+	/**
+	 * Gets the default class-loader.
+	 * @return class-loader
+	 */
+	ClassLoader getClassLoader();
 
 	/**
 	 * Gets the class-loader of a class.
