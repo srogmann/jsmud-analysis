@@ -76,12 +76,11 @@ public class SimpleClassExecutor {
 	 * Creates a class-reader.
 	 * @param registry class-registry
 	 * @param classLoader class-loader
-	 * @param pClazz class to be read
+	 * @param clazz class to be read
 	 * @return reader
 	 */
-	public static ClassReader createClassReader(final ClassRegistry registry, final ClassLoader classLoader, final Class<?> pClazz) {
+	public static ClassReader createClassReader(final ClassRegistry registry, final ClassLoader classLoader, final Class<?> clazz) {
 		// Some OSGi-class-loaders depend on an absolute path.
-		final Class<?> clazz = registry.checkForRedefinedClass(pClazz);
 		final String resName = '/' + clazz.getName().replace('.', '/') + ".class";
 		final ClassReader classReader;
 		try (final InputStream is = clazz.getResourceAsStream(resName)) {

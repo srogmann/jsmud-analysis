@@ -79,20 +79,25 @@ public class JsmudClassLoader extends ClassLoader {
 	/** <code>true</code> if default-constructors ("&lt;init&gt;") may be patched */
 	final boolean patchInit;
 
+	/** <code>true</code> if hot-code-replace-requests should be accepted */
+	final boolean redefineClasses;
+
 	/**
 	 * Constructor
 	 * @param parentClassLoader parent-classloader
 	 * @param patchFilter checks if a class-name belongs to a class to be patched
 	 * @param patchClinit <code>true</code> if static-initializers ("<&lt;linit&gt;") may be patched 
 	 * @param patchInit <code>true</code> if default-constructors ("&lt;init&gt;") may be patched
+	 * @param redefineClasses <code>true</code> if hot-code-replace-requests should be accepted
 	 */
 	public JsmudClassLoader(final ClassLoader parentClassLoader,
 			final Predicate<String> patchFilter,
-			final boolean patchClinit, final boolean patchInit) {
+			final boolean patchClinit, final boolean patchInit, final boolean redefineClasses) {
 		this.parentClassLoader = parentClassLoader;
 		this.patchFilter = patchFilter;
 		this.patchClinit = patchClinit;
 		this.patchInit = patchInit;
+		this.redefineClasses = redefineClasses;
 	}
 
 	/** {@inheritDoc} */
@@ -125,7 +130,19 @@ public class JsmudClassLoader extends ClassLoader {
 		mapJsmudClasses.put(name, clazz);
 		return clazz;
 	}
-	
+
+	/**
+	 * Defines a new class.
+	 * @param name name of the new class
+	 * @param bufBytecode bytecode
+	 * @return
+	 */
+	public Class<?> redefineJsmudClass(final String name, final byte[] bufBytecode) {
+		// We use a new class-loader to redefine a class.
+		final JsmudClassLoader newClassLoader = new JsmudClassLoader(this, patchFilter, patchClinit, patchInit, redefineClasses);
+		return newClassLoader.defineJsmudClass(name, bufBytecode);
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public Class<?> findClass(String name) throws ClassNotFoundException {
@@ -233,9 +250,17 @@ public class JsmudClassLoader extends ClassLoader {
 	}
 
 	/**
+	 * <code>true</code> if hot-code-replace should be replaced.
+	 * @return redefine-classes-flag
+	 */
+	public boolean isRedefineClasses() {
+		return redefineClasses;
+	}
+
+	/**
 	 * Patches static initializer and constructors of a class.
 	 * @param name class-name
-	 * @param isBytecode inputstream of bytecode
+	 * @param isBytecode input-stream of bytecode
 	 * @return patched bytecode
 	 * @throws IOException in case of an IO-error while reading the class 
 	 */

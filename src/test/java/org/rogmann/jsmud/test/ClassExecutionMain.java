@@ -46,9 +46,10 @@ public class ClassExecutionMain {
 		final ClassLoader classLoaderParent = ClassExecutionMain.class.getClassLoader();
 		final boolean patchClinit = false;
 		final boolean patchInit = false;
+		final boolean redefineClass = false;
 		final JsmudClassLoader classLoader = new JsmudClassLoader(classLoaderParent, name ->
 					!name.startsWith("java.") && !name.startsWith("com.sun.") && !name.startsWith("sun."),
-				patchClinit, patchInit);
+				patchClinit, patchInit, redefineClass);
 		final boolean simulateReflection = true;
 		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
 		final ClassRegistry registry = new ClassRegistry(executionFilter, classLoader,

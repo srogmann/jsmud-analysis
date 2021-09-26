@@ -147,9 +147,6 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** map of loaded classes */
 	private final ConcurrentMap<String, Class<?>> mapLoadedClasses = new ConcurrentHashMap<>();
 
-	/** map of redefined classes */
-	private final ConcurrentMap<Class<?>, Class<?>> mapRedefinedClasses = new ConcurrentHashMap<>();
-
 	/** map containing ref-type-beans of class-signatures */
 	private final ConcurrentMap<String, RefTypeBean> mapClassSignatures = new ConcurrentHashMap<>(100);
 
@@ -217,7 +214,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			jsmudClassLoader = (JsmudClassLoader) classLoader;
 		}
 		else {
-			jsmudClassLoader = new JsmudClassLoader(classLoader, name -> false, false, false);
+			jsmudClassLoader = new JsmudClassLoader(classLoader, name -> false, false, false, false);
 		}
 		callSiteGenerator = new CallSiteGenerator(jsmudClassLoader);
 		threadClassGenerator = new ThreadClassGenerator(jsmudClassLoader);
@@ -236,13 +233,12 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/**
 	 * Looks for an executor.
 	 * Only classes whose package-prefix is in the list of simulated packages will be simulated.
-	 * @param pClazz class to be simulated
+	 * @param clazz class to be simulated
 	 * @param forceSimulation <code>true</code> if the execution should simulated regardless of the filter
 	 * @return executor or <code>null</code>
 	 */
-	public SimpleClassExecutor getClassExecutor(final Class<?> pClazz, boolean forceSimulation) {
+	public SimpleClassExecutor getClassExecutor(final Class<?> clazz, final boolean forceSimulation) {
 		final ConcurrentMap<Class<?>, SimpleClassExecutor> mapClassExecutors = tlMapClassExecutors.get();
-		final Class<?> clazz = checkForRedefinedClass(pClazz);
 		SimpleClassExecutor executor = mapClassExecutors.get(clazz);
 		// We don't want to analyze ourself (i.e. JsmudClassLoader).
 		if (executor == null && !JsmudClassLoader.class.equals(clazz)) {
@@ -355,33 +351,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	@Override
 	public void redefineClass(final VMReferenceTypeID refType, final Class<?> classUntilNow, final byte[] aClassbytes) {
 		final JsmudClassLoader classLoader = (JsmudClassLoader) classLoaderDefault;
-		final Class<?> classNew = classLoader.defineJsmudClass(classUntilNow.getName(), aClassbytes);
-		mapRedefinedClasses.put(classUntilNow, classNew);
-		for (Entry<Class<?>, Class<?>> entry : mapRedefinedClasses.entrySet()) {
-			if (classUntilNow.equals(entry.getValue())) {
-				mapRedefinedClasses.put(entry.getKey(), classNew);
-			}
-		}
-	}
-
-	/**
-	 * Checks if a class is redefined.
-	 * @param clazz class
-	 * @return redefined class or original class (if not redefined)
-	 */
-	public Class<?> checkForRedefinedClass(final Class<?> clazz) {
-		final Class<?> classRedefined = mapRedefinedClasses.get(clazz);
-		final Class<?> clazzReturn;
-		if (classRedefined != null) {
-			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("checkForRedefinedClass: replaced %s", clazz));
-			}
-			clazzReturn = classRedefined;
-		}
-		else {
-			clazzReturn = clazz;
-		}
-		return clazzReturn;
+		final Class<?> classNew = classLoader.redefineJsmudClass(classUntilNow.getName(), aClassbytes);
+		mapLoadedClasses.put(classNew.getName(), classNew);
 	}
 
 	/**

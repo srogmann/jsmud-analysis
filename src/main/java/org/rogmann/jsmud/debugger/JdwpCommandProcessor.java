@@ -1020,8 +1020,15 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	 * @throws IOException in case of an IO-error
 	 */
 	private void sendRedefineClasses(int id, final CommandBuffer cmdBuf) throws IOException {
-		final boolean isJsmudClassloader = (vm.getClassLoader() instanceof JsmudClassLoader);
-		if (!isJsmudClassloader) {
+		final ClassLoader defaultClassLoader = vm.getClassLoader();
+		if (!(defaultClassLoader instanceof JsmudClassLoader)) {
+			LOG.error("sendRedefineClasses: a JsmudClassLoader is necessary to redefine classes.");
+			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
+			return;
+		}
+		final JsmudClassLoader jsmudCL = (JsmudClassLoader) defaultClassLoader;
+		if (!jsmudCL.isRedefineClasses()) {
+			LOG.error("sendRedefineClasses: redefineClasses isn't configured in " + jsmudCL);
 			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
 			return;
 		}
