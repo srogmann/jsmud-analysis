@@ -2,9 +2,9 @@
 
 JSMUD-analysis (_Java simulator multi-user debugger_) is an embedded interpreter of [Java bytecode](https://en.wikipedia.org/wiki/Java_bytecode) written in Java supplemented by a JDWP-debugger-server. You can use it to debug Java applications running in environments where you don't want to enable a debugger via JVM arguments.
 
-The interpreter uses reflection to work on the original objects so one can build an object-tree using the underlying JVM and then execute code working on that tree using JSMUD.
+The interpreter uses reflection to work on the original objects so one can build an object-tree using the underlying JVM and then execute code working on that tree using JSMUD. The interpreter uses class-generation to support INVOKEDYNAMIC and inspection of constructors and static initializers.
 
-The purpose is to support the analysis of given Java classes in development stages only. The module system in JDK 16 and later restricts reflective access against JDK-classes so their internal methods can't be called by a jsmud outside java.base, see [JEP 396](https://openjdk.java.net/jeps/396) and [JEP 403](https://openjdk.java.net/jeps/403). But for example the following code runs in JDK 11.
+The purpose is to support the analysis of given Java classes in development stages. The module system in JDK 16 and later restricts reflective access against JDK-classes so their internal methods can't be called by a jsmud outside java.base, see [JEP 396](https://openjdk.java.net/jeps/396) and [JEP 403](https://openjdk.java.net/jeps/403). But for example the following code runs in JDK 11.
 
     final Runnable runnable = new Runnable() {
         public void run() {
@@ -79,13 +79,15 @@ Corresponding to the Proxy-instance a CallSiteSimulation-instance is stored in a
 
 These proxies can't be used in JDK 16 and later when the stream-API is used. Therefore the class-generation had been added as default.
 
-### JsmudClassLoader: Static initializer and constructors
+### JsmudClassLoader: Static initializer and constructors, HCR
 JSMUD operates on classes of the JVM using reflection. Static initializers are executed after loading, an empty constructor is needed to instanciate an object. The class-loader JsmusClassLoader tries to the manipulate the bytecode of a class so one can step through static initializers and constructors. 
 
-### Caveats
-JSMUD asks the class-loader to get information about the class to be executed. But for example the [WebAppClassLoader](https://github.com/eclipse/jetty.project/blob/jetty-9.4.42.v20210604/jetty-webapp/src/main/java/org/eclipse/jetty/webapp/WebAppClassLoader.java) of Jetty understandably doesn't want to give a webapp its internal classes. This is some kind of end boss – of the current level, not the game. You might try to write your own JvmExecutionVisitor treating such cases.
+The JsmudClassLoader is used to support hot-code-replace (redefine classes) while debugging.
 
-The module-system in newer JVMs doesn't allow reflection in JVM-classes: InaccessibleObjectException.
+### Caveats
+JSMUD asks the class-loader to get information about the class to be executed. But for example the [WebAppClassLoader](https://github.com/eclipse/jetty.project/blob/jetty-9.4.42.v20210604/jetty-webapp/src/main/java/org/eclipse/jetty/webapp/WebAppClassLoader.java) of Jetty understandably doesn't want to give a webapp its internal classes. You might try to write your own JvmExecutionVisitor treating such cases.
+
+The module-system in newer JVMs doesn't allow reflection in internal JVM-classes: InaccessibleObjectException.
 
 ## Support
 I wrote this project in my free time and I like my free time so support is given by studying the following links: 
@@ -94,7 +96,8 @@ I wrote this project in my free time and I like my free time so support is given
  * [Java Debug Wire Protocol](https://docs.oracle.com/javase/8/docs/technotes/guides/jpda/jdwp-spec.html)
  * [ASM, the all purpose Java bytecode manipulation and analysis framework](https://asm.ow2.io/)
 
- ## Changelog
+## Changelog
+ * V 0.4.0, 2021-09-26: Respect several threads, hot-code-replace while debugging.
  * V 0.3.0, 2021-08-30: Switch to using generated class-files as INVOKEDYNAMIC-call-sites. On-the-fly-disassembler for debugging bytecode.
  * V 0.2.4, 2021-08-01: Optional method-call-trace, mock-support of AccessController, classloader-determination in INVOKEDYNAMIC, bug-fixes (see history).
  * V 0.2.3, 2021-07-25: Support of ClassObject/InvokeMethod command in debugger, several bug-fixes (see history).
