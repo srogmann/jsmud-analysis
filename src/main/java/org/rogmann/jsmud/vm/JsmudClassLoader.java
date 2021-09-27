@@ -135,11 +135,13 @@ public class JsmudClassLoader extends ClassLoader {
 	 * Defines a new class.
 	 * @param name name of the new class
 	 * @param bufBytecode bytecode
+	 * @param classBefore class before (we need its class-loader)
 	 * @return
 	 */
-	public Class<?> redefineJsmudClass(final String name, final byte[] bufBytecode) {
+	public Class<?> redefineJsmudClass(final String name, final byte[] bufBytecode, final Class<?> classBefore) {
 		// We use a new class-loader to redefine a class.
-		final JsmudClassLoader newClassLoader = new JsmudClassLoader(this, patchFilter, patchClinit, patchInit, redefineClasses);
+		final JsmudClassLoader newClassLoader = new JsmudClassLoader(classBefore.getClassLoader(),
+				patchFilter, patchClinit, patchInit, redefineClasses);
 		return newClassLoader.defineJsmudClass(name, bufBytecode);
 	}
 
@@ -191,6 +193,9 @@ public class JsmudClassLoader extends ClassLoader {
 				}
 				mapPatchedClasses.put(name, clazz);
 				setClassFlag(name, FLAG_PATCHED_CLASS);
+			}
+			else if (classLoader != null) {
+				clazz = classLoader.loadClass(name);
 			}
 			else {
 				clazz = parentClassLoader.loadClass(name);

@@ -351,7 +351,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	@Override
 	public void redefineClass(final VMReferenceTypeID refType, final Class<?> classUntilNow, final byte[] aClassbytes) {
 		final JsmudClassLoader classLoader = (JsmudClassLoader) classLoaderDefault;
-		final Class<?> classNew = classLoader.redefineJsmudClass(classUntilNow.getName(), aClassbytes);
+		final Class<?> classNew = classLoader.redefineJsmudClass(classUntilNow.getName(), aClassbytes,
+				classUntilNow);
 		mapLoadedClasses.put(classNew.getName(), classNew);
 	}
 
