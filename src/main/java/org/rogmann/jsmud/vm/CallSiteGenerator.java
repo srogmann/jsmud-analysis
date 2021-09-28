@@ -26,6 +26,8 @@ import org.rogmann.jsmud.log.LoggerFactory;
  * of an INVOKEDYNAMIC-instruction.
  * 
  * <p>This class is a partial replacement of java.lang.invoke.LambdaMetafactory.</p>
+ * @see java.lang.invoke.MethodHandle
+ * @see java.lang.invoke.CallSite
  * @see CallSiteSimulation
  */
 public class CallSiteGenerator {
@@ -106,11 +108,17 @@ public class CallSiteGenerator {
 	 */
 	public Object createCallSite(ClassRegistry registry, final Class<?> classOwner, final InvokeDynamicInsnNode idin,
 			final OperandStack stack) {
+		final Handle bsm = idin.bsm;
+		if ("java/lang/runtime/SwitchBootstraps".equals(bsm.getOwner())
+				&& "typeSwitch".equals(bsm.getName())
+				&& "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;".equals(bsm.getDesc())) {
+			return createCallSiteClassTypeSwitch(classOwner, idin, stack);
+		}
 		final InvokeDynamicInstructionKey key = new InvokeDynamicInstructionKey(classOwner, idin);
 		Class<?> classCallSite = mapCallSiteClasses.get(key);
 		if (classCallSite == null) {
 			// In a multi-threaded environment this computeIfAbsent-less implementation could result in several call-site-classes.
-			classCallSite = createCallSiteClass(classOwner, idin);
+			classCallSite = createCallSiteClassMetafactory(classOwner, idin);
 			mapCallSiteClasses.put(key, classCallSite);
 		}
 		
@@ -140,7 +148,7 @@ public class CallSiteGenerator {
 	 * @param idin INVOKEDYNAMIC
 	 * @return class of call-site
 	 */
-	public Class<?> createCallSiteClass(final Class<?> classOwner, final InvokeDynamicInsnNode idin) {
+	public Class<?> createCallSiteClassMetafactory(final Class<?> classOwner, final InvokeDynamicInsnNode idin) {
 		final Handle bsm = idin.bsm;
 		final int tag = bsm.getTag();
 		if (!("java/lang/invoke/LambdaMetafactory".equals(bsm.getOwner())
@@ -248,6 +256,74 @@ public class CallSiteGenerator {
 		final Class<?> classCallSite = classLoader.defineJsmudClass(callSiteName, bufClass);
 		mapBytecodes.put(classCallSite, bufClass);
 		return classCallSite;
+	}
+
+	/**
+	 * Creates a call-site of a typeSwitch ("pattern-matching-switch") by generating a class.
+	 * The call-site is constant, the target will be executed at once. Therefore an integer is put onto the stack.
+	 * @param owner owner-class
+	 * @param idin INVOKEDYNAMIC
+	 * @param stack current stack
+	 */
+	static Integer createCallSiteClassTypeSwitch(final Class<?> classOwner, final InvokeDynamicInsnNode idin,
+			final OperandStack stack) {
+		final Handle bsm = idin.bsm;
+		final int tag = bsm.getTag();
+		if (LOG.isDebugEnabled()) {
+			// createCallSiteClassTypeSwitch: bsm.args=[Ljava/lang/Integer;, Ljava/lang/Integer;, Ljava/lang/String;]
+			// createCallSiteClassTypeSwitch: bsm.args.class=[class org.objectweb.asm.Type, class org.objectweb.asm.Type, class org.objectweb.asm.Type]
+			LOG.debug(String.format("createCallSiteClassTypeSwitch: bsm.args=%s", Arrays.toString(idin.bsmArgs)));
+		}
+		if (idin.bsmArgs == null) {
+			throw new JvmException(String.format("Missing bsm-arguments in owner-class %s: bsm.tag=%d",
+					classOwner, Integer.valueOf(tag)));
+		}
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("createCallSiteClassTypeSwitch: owner.clazz=%s, method=%s%s, bsm.tag=%d, bsm.isInterface=%s, idin.args=%s",
+					classOwner, idin.name, idin.desc, Integer.valueOf(tag), Boolean.toString(bsm.isInterface()),
+					Arrays.toString(idin.bsmArgs)));
+		}
+		if (!"(Ljava/lang/Object;I)I".equals(idin.desc)) {
+			// A labels-array "Object[] labels" isn't supported yet.
+			throw new JvmException(String.format("Unexpected typeSwitch-description %s", idin.desc));
+		}
+
+		// See java.lang.runtime.SwitchBootstraps.doSwitch(Object, int, Object[])
+		final Object[] labels = idin.bsmArgs;
+		final int startIndex = ((Integer) stack.pop()).intValue();
+		final Object target = stack.pop();
+		int result;
+		if (target == null) {
+			result = -1;
+		}
+		else {
+			result = labels.length;
+			final Class<? extends Object> targetClass = target.getClass();
+			for(int i=startIndex; i<labels.length; i++) {
+				final Object label = labels[i];
+				if (label instanceof Type) {
+					final Type type = (Type) label;
+					if (type.getClassName().equals(targetClass.getName())) {
+						result = i;
+						break;
+					}
+					// TODO isAssignable (ClassLoader is needed)
+				}
+				else if (label instanceof Integer) {
+					final Integer constant = (Integer) label;
+					if (target instanceof Number && ((Number) target).intValue() == constant.intValue()) {
+						result = i;
+						break;
+					}
+					if (target instanceof Character && ((Character) target).charValue() == constant.intValue()) {
+						result = i;
+						break;
+					}
+					
+				}
+			}
+		}
+		return Integer.valueOf(result);
 	}
 
 	/**

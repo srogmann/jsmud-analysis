@@ -87,8 +87,9 @@ public class JvmTests {
 //		testsArray();
 //		testsExceptionHandling();
 //		testsRegexp();
+		testsSwitch();
 //		testsLambda();
-		testsLambdaBiConsumer();
+//		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
 //		testsLambdaNonStatic();
@@ -338,6 +339,20 @@ public class JvmTests {
 		final Matcher mMagic = pMagic.matcher("There is a magic numbEr 691");
 		assertTrue("Pattern-m1", mMagic.matches());
 		assertEquals("Pattern-m2", "numbEr", mMagic.group(2));
+	}
+
+	public void testsSwitch() {
+		final String a = "e";
+		final String b = "2";
+		final String c = a.concat(b);
+		int result = 0;
+		switch (c) {
+			case "a1": result = 1; break;
+			case "f3": result = 2; break;
+			case "e2": result = 3; break;
+			default: result = 4; break;
+		}
+		assertEquals("switch(string)", Integer.valueOf(3), Integer.valueOf(result));
 	}
 	
 	/** simple lambda-tests */
