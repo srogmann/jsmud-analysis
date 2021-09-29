@@ -319,10 +319,6 @@ public class CallSiteGenerator {
 						throw new JvmException(String.format("Can't load class (%s) of label %d for (%s)",
 								typeClassName, Integer.valueOf(i), classOwner), e);
 					}
-					if (LOG.isDebugEnabled()) {
-						LOG.debug(String.format("Check label (%s) against target (%s)",
-								classLabel, target));
-					}
 					if (classLabel.isAssignableFrom(targetClass)) {
 						result = i;
 						break;
