@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.vm;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,6 +53,9 @@ public class JsmudClassLoader extends ClassLoader {
 
 	/** prefix of jsmud-classes (package-name of this class) */
 	private static final String PREFIX_JSMUD = JsmudClassLoader.class.getName().replaceFirst("[.][^.]*$", ".");
+
+	/** Suffix ".class" */
+	private static final String SUFFIX_CLASS = ".class";
 
 	/** parent-class-loader (default class-loader) */
 	private final ClassLoader parentClassLoader;
@@ -203,6 +207,24 @@ public class JsmudClassLoader extends ClassLoader {
 		}
 		return clazz;
 	}
+
+	/** {@inheritDoc} */
+	@Override
+    public InputStream getResourceAsStream(final String resName) {
+		if (resName.endsWith(SUFFIX_CLASS)) {
+			// Check if resName is a class defined in this class-loader.
+			final String className = resName.substring(0, resName.length() - SUFFIX_CLASS.length()).replace('/', '.');
+			final byte[] bufClass = mapJsmudClassBytecode.get(className);
+			if (bufClass != null) {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Send bytecode (len %d) of defined class (%s)",
+							Integer.valueOf(bufClass.length), className));
+				}
+				return new ByteArrayInputStream(bufClass);
+			}
+		}
+		return super.getResourceAsStream(resName);
+    }
 
 	/**
 	 * Sets a class-flag in the current-class.
