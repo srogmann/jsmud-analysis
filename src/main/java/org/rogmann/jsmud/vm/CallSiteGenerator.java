@@ -60,6 +60,9 @@ public class CallSiteGenerator {
 	/** class-loader for generated classes */
 	private final JsmudClassLoader classLoader;
 
+	/** VM (for loading classes) */
+	private final VM vm;
+
 	/** map from generated class to bytecode used */ 
 	private final ConcurrentMap<Class<?>, byte[]> mapBytecodes = new ConcurrentHashMap<>();
 
@@ -95,8 +98,9 @@ public class CallSiteGenerator {
 	 * Constructor
 	 * @param classLoader class-loader for generated classes
 	 */
-	public CallSiteGenerator(final JsmudClassLoader classLoader) {
+	public CallSiteGenerator(final JsmudClassLoader classLoader, final VM vm) {
 		this.classLoader = classLoader;
+		this.vm = vm;
 	}
 
 	/**
@@ -265,7 +269,7 @@ public class CallSiteGenerator {
 	 * @param idin INVOKEDYNAMIC
 	 * @param stack current stack
 	 */
-	static Integer createCallSiteClassTypeSwitch(final Class<?> classOwner, final InvokeDynamicInsnNode idin,
+	Integer createCallSiteClassTypeSwitch(final Class<?> classOwner, final InvokeDynamicInsnNode idin,
 			final OperandStack stack) {
 		final Handle bsm = idin.bsm;
 		final int tag = bsm.getTag();
@@ -303,11 +307,26 @@ public class CallSiteGenerator {
 				final Object label = labels[i];
 				if (label instanceof Type) {
 					final Type type = (Type) label;
-					if (type.getClassName().equals(targetClass.getName())) {
+					final String typeClassName = type.getClassName();
+					if (typeClassName.equals(targetClass.getName())) {
 						result = i;
 						break;
 					}
-					// TODO isAssignable (ClassLoader is needed)
+					final Class<?> classLabel;
+					try {
+						classLabel = vm.loadClass(typeClassName, classOwner);
+					} catch (ClassNotFoundException e) {
+						throw new JvmException(String.format("Can't load class (%s) of label %d for (%s)",
+								typeClassName, Integer.valueOf(i), classOwner), e);
+					}
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("Check label (%s) against target (%s)",
+								classLabel, target));
+					}
+					if (classLabel.isAssignableFrom(targetClass)) {
+						result = i;
+						break;
+					}
 				}
 				else if (label instanceof Integer) {
 					final Integer constant = (Integer) label;
