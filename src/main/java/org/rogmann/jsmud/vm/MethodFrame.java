@@ -405,7 +405,7 @@ whileInstr:
 					if (li.cst instanceof Type) {
 						final Type type = (Type) li.cst;
 						if (type.getSort() == Type.ARRAY) {
-							final Class<?> classArray = getClassArrayViaType(type);
+							final Class<?> classArray = getClassArrayViaType(type, registry, clazz);
 							obj = classArray;
 						}
 						else {
@@ -1670,7 +1670,7 @@ whileInstr:
 					if (type.getSort() == Type.ARRAY) {
 						final int dims = type.getDimensions();
 						final int[] aDims = new int[dims];
-						final Class<?> elClass = getClassArrayViaType(type);
+						final Class<?> elClass = getClassArrayViaType(type, registry, clazz);
 						final Object oArray = Array.newInstance(elClass, aDims);
 						classArray = oArray.getClass();
 					}
@@ -1755,7 +1755,7 @@ whileInstr:
 				{
 					final MultiANewArrayInsnNode manai = (MultiANewArrayInsnNode) instr;
 					final Type aType = Type.getType(manai.desc);
-					final Class<?> classArray = getClassArrayViaType(aType);
+					final Class<?> classArray = getClassArrayViaType(aType, registry, clazz);
 					final int[] dims = new int[manai.dims];
 					for (int i = 0; i < dims.length; i++) {
 						dims[dims.length - 1- i] = ((Integer) stack.pop()).intValue();
@@ -2509,7 +2509,7 @@ loopDeclMeth:
 		return invMethod;
 	}
 
-	private Class<?> getClassArrayViaType(final Type aType) {
+	static Class<?> getClassArrayViaType(final Type aType, final VM vm, final Class<?> clazz) {
 		final Type elType = aType.getElementType();
 		final Class<?> classArray;
 		final int sort = elType.getSort();
@@ -2540,10 +2540,9 @@ loopDeclMeth:
 		else {
 			final String nameNew = aType.getClassName().replace("[]", "");
 			try {
-				classArray = registry.loadClass(nameNew, clazz);
+				classArray = vm.loadClass(nameNew, clazz);
 			} catch (ClassNotFoundException e) {
-				throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
-						nameNew, methodName), e);
+				throw new JvmException(String.format("Error while loading class (%s)", nameNew), e);
 			}
 		}
 		return classArray;
@@ -2670,7 +2669,7 @@ loopDeclMeth:
 				final Type type = Type.getType(desc);
 				final int dim = type.getDimensions();
 				final int[] aDims = new int[dim];
-				final Class<?> elClass = getClassArrayViaType(type);
+				final Class<?> elClass = getClassArrayViaType(type, registry, clazz);
 				final Object oArray = Array.newInstance(elClass, aDims);
 				classDesc = oArray.getClass();
 			}

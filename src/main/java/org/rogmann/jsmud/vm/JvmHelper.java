@@ -51,7 +51,9 @@ public class JvmHelper {
 		final Class<?>[] classesPreload = {
 				Thread.class,
 				Throwable.class,
-				Error.class
+				Error.class,
+				// java.lang.Object[] is needed in org.eclipse.jdt.internal.debug.core.logicalstructures.JDIAllInstancesValue.JDIAllInstancesValue(JDIDebugTarget, JDIReferenceType)
+				new Object[0].getClass()
 		};
 		for (final Class<?> classPreload : classesPreload) {
 			try {

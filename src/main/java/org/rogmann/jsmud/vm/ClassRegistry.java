@@ -309,6 +309,14 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoaderDefault;
 				clazz = jsmudClassLoader.findClass(className, classLoaderClass);
 			}
+			else if (className.charAt(0) == '[') {
+				final Type type = Type.getObjectType(className);
+				final int dims = type.getDimensions();
+				final int[] aDims = new int[dims];
+				final Class<?> elClass = MethodFrame.getClassArrayViaType(type, this, ctxClass);
+				final Object oArray = Array.newInstance(elClass, aDims);
+				clazz = oArray.getClass();
+			}
 			else {
 				try {
 					clazz = classLoaderClass.loadClass(className);
@@ -318,28 +326,30 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				}
 			}
 			registerClass(clazz, className);
-			final SimpleClassExecutor executor = getClassExecutor(clazz);
-			if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
-				final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
-				if (jsmudCl.isStaticInitializerPatched(clazz)) {
-					final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
-					final Executable pMethod;
-					try {
-						pMethod = clazz.getDeclaredMethod(methodName);
-					} catch (NoSuchMethodException | SecurityException e) {
-						throw new JvmException(String.format("Can't execute patched static initializer (%s) in (%s)",
-								methodName, className), e);
-					}
-					String methodDesc = "()V";
-					OperandStack args = new OperandStack(0);
-					try {
-						if (LOG.isDebugEnabled()) {
-							LOG.debug(String.format("Execute patched static initializer of (%s)", className));
+			if (!clazz.isArray()) {
+				final SimpleClassExecutor executor = getClassExecutor(clazz);
+				if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
+					final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
+					if (jsmudCl.isStaticInitializerPatched(clazz)) {
+						final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
+						final Executable pMethod;
+						try {
+							pMethod = clazz.getDeclaredMethod(methodName);
+						} catch (NoSuchMethodException | SecurityException e) {
+							throw new JvmException(String.format("Can't execute patched static initializer (%s) in (%s)",
+									methodName, className), e);
 						}
-						executor.executeMethod(Opcodes.INVOKESTATIC, pMethod, methodDesc, args);
-					} catch (final Throwable e) {
-						throw new JvmException(String.format("Error while executing static initializer (%s) in (%s)",
-								methodName, className), e);
+						String methodDesc = "()V";
+						OperandStack args = new OperandStack(0);
+						try {
+							if (LOG.isDebugEnabled()) {
+								LOG.debug(String.format("Execute patched static initializer of (%s)", className));
+							}
+							executor.executeMethod(Opcodes.INVOKESTATIC, pMethod, methodDesc, args);
+						} catch (final Throwable e) {
+							throw new JvmException(String.format("Error while executing static initializer (%s) in (%s)",
+									methodName, className), e);
+						}
 					}
 				}
 			}
