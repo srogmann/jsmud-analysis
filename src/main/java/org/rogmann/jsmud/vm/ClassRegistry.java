@@ -140,6 +140,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	
 	/** map from object-id to object */
 	private final ConcurrentMap<VMObjectID, Object> mapObjects = new ConcurrentHashMap<>(5000);
+
+	/** map from object-id to object of gc-disabled objects */
+	private final ConcurrentMap<VMObjectID, Object> mapObjectsGcDisabled = new ConcurrentHashMap<>(50);
 	
 	/** map of known class-loaders */
 	private final ConcurrentMap<ClassLoader, VMClassLoaderID> mapClassLoader = new ConcurrentHashMap<>();
@@ -935,6 +938,18 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			list.add(methodRefBean);
 		}
 		return list;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void disableCollection(VMObjectID cObjectId, Object vmObject) {
+		mapObjectsGcDisabled.put(cObjectId, vmObject);
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void enableCollection(VMObjectID cObjectId) {
+		mapObjectsGcDisabled.remove(cObjectId);
 	}
 
 	/** {@inheritDoc} */

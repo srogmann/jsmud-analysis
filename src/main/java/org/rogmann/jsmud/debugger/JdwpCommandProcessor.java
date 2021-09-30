@@ -628,6 +628,20 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				sendReplyData(id, listValueAndException);
 			}
 		}
+		else if (cmd == JdwpCommand.DISABLE_COLLECTION) {
+			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
+			final Object vmObject = vm.getVMObject(cObjectId);
+			if (vmObject == null) {
+				sendError(id, JdwpErrorCode.INVALID_OBJECT);
+			}
+			else {
+				vm.disableCollection(cObjectId, vmObject);
+			}
+		}
+		else if (cmd == JdwpCommand.ENABLE_COLLECTION) {
+			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
+			vm.enableCollection(cObjectId);
+		}
 		else if (cmd == JdwpCommand.IS_COLLECTED) {
 			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
 			final Object vmObject = vm.getVMObject(cObjectId);
@@ -638,6 +652,22 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				// The objects known by us are not collected.
 				final boolean isCollected = false;
 				sendReplyData(id, new VMBoolean(isCollected));
+			}
+		}
+		else if (cmd == JdwpCommand.REFERRING_OBJECTS) {
+			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
+			final int maxReferrers = cmdBuf.readInt();
+			final Object vmObject = vm.getVMObject(cObjectId);
+			if (vmObject == null) {
+				sendError(id, JdwpErrorCode.INVALID_OBJECT);
+			}
+			else if (maxReferrers < 0) {
+				sendError(id, JdwpErrorCode.ILLEGAL_ARGUMENT);
+			}
+			else {
+				LOG.error("ReferringObject is not yet implemented");
+				final int numReferring = 0;
+				sendReplyData(id, new VMInt(numReferring));
 			}
 		}
 		else {

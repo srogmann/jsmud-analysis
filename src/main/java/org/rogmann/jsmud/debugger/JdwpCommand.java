@@ -87,6 +87,8 @@ public enum JdwpCommand {
 	ENABLE_COLLECTION(JdwpCommandSet.OBJECT_REFERENCE, 8),
 	/** IsCollected Command */
 	IS_COLLECTED(JdwpCommandSet.OBJECT_REFERENCE, 9),
+	/** ReferringObjects Command */
+	REFERRING_OBJECTS(JdwpCommandSet.OBJECT_REFERENCE, 10),
 
 	/** StringReference Value Command */ 
 	STRING_REFERENCE_VALUE(JdwpCommandSet.STRING_REFERENCE, 1),

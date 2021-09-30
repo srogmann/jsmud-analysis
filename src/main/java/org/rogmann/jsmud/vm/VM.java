@@ -198,6 +198,19 @@ public interface VM {
 	VMMethodID getMethodId(Executable method);
 
 	/**
+	 * Disables garbage collection for the given object.
+	 * @param cObjectId object-id
+	 * @param vmObject object
+	 */
+	void disableCollection(VMObjectID cObjectId, Object vmObject);
+
+	/**
+	 * Enables garbage collection for the given object.
+	 * @param cObjectId object-id
+	 */
+	void enableCollection(VMObjectID cObjectId);
+
+	/**
 	 * Gets the values of fields of an object.
 	 * In case of an error the size of the list of values is lesser than the number of field-ids 
 	 * @param vmObject object
