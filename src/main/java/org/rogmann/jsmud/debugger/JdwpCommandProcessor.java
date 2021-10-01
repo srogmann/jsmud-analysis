@@ -888,6 +888,24 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			final VMArrayRegion values = vm.readArrayValues(objArray, firstIndex, length);
 			sendReplyData(id, values);
 		}
+		else if (cmd == JdwpCommand.ARRAY_SET_VALUES) {
+			final int firstIndex = cmdBuf.readInt();
+			final int numValues = cmdBuf.readInt();
+			final int lenArray = Array.getLength(objArray);
+			if (firstIndex + numValues > lenArray) {
+				sendError(id, JdwpErrorCode.INVALID_LENGTH);
+			}
+			else {
+				final Class<?> typeArray = objArray.getClass().getComponentType();
+				final Tag tag = vm.getVMTag(typeArray);
+				final VMDataField[] values = new VMDataField[numValues];
+				for (int i = 0; i < numValues; i++) {
+					values[i] = readUntaggedValue(cmdBuf, tag.getTag());
+				}
+				vm.setArrayValues(objArray, tag, firstIndex, values);
+				sendReplyData(id);
+			}
+		}
 		else {
 			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
 		}

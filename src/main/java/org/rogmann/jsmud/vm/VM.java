@@ -6,6 +6,7 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.List;
 
+import org.rogmann.jsmud.datatypes.Tag;
 import org.rogmann.jsmud.datatypes.VMArrayRegion;
 import org.rogmann.jsmud.datatypes.VMClassID;
 import org.rogmann.jsmud.datatypes.VMClassLoaderID;
@@ -235,6 +236,22 @@ public interface VM {
 	 * @return array-region
 	 */
 	VMArrayRegion readArrayValues(Object objArray, int firstIndex, int length);
+
+	/**
+	 * Sets values of elements of an array.
+	 * @param objArray array
+	 * @param tag type of array-elements
+	 * @param firstIndex first index
+	 * @param values values to be set
+	 */
+	void setArrayValues(Object objArray, Tag tag, int firstIndex, VMDataField[] values);
+
+	/**
+	 * Gets the VM-tag of an object-value.
+	 * @param typeValue type of object
+	 * @return VM-tag
+	 */
+	Tag getVMTag(final Class<?> typeValue);
 
 	/**
 	 * Gets the VM-value of an object-value.

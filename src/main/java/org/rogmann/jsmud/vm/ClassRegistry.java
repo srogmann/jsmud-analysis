@@ -998,7 +998,95 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			}
 		}
 	}
-	
+
+	/** {@inheritDoc} */
+	@Override
+	public void setArrayValues(final Object objArray, final Tag tag, final int firstIndex, final VMDataField[] values) {
+		for (int i = 0; i < values.length; i++) {
+			final int destIndex = firstIndex + i;
+			if (tag == Tag.BOOLEAN) {
+				final VMBoolean vmBoolean = (VMBoolean) values[i];
+				Array.setBoolean(objArray, destIndex, vmBoolean.getValue() != (byte) 0);
+			}
+			else if (tag == Tag.BYTE) {
+				final VMByte vmByte = (VMByte) values[i];
+				Array.setByte(objArray, destIndex, vmByte.getValue());
+			}
+			else if (tag == Tag.CHAR) {
+				final VMShort vmShort = (VMShort) values[i];
+				Array.setChar(objArray, destIndex, (char) vmShort.getValue());
+			}
+			else if (tag == Tag.SHORT) {
+				final VMShort vmShort = (VMShort) values[i];
+				Array.setShort(objArray, destIndex, vmShort.getValue());
+			}
+			else if (tag == Tag.INT) {
+				final VMInt vmInt = (VMInt) values[i];
+				Array.setInt(objArray, destIndex, vmInt.getValue());
+			}
+			else if (tag == Tag.LONG) {
+				final VMLong vmLong = (VMLong) values[i];
+				Array.setLong(objArray, destIndex, vmLong.getValue());
+			}
+			else if (tag == Tag.FLOAT) {
+				final VMInt vmInt = (VMInt) values[i];
+				Array.setFloat(objArray, destIndex, Float.intBitsToFloat(vmInt.getValue()));
+			}
+			else if (tag == Tag.DOUBLE) {
+				final VMLong vmLong = (VMLong) values[i];
+				Array.setDouble(objArray, destIndex, Double.longBitsToDouble(vmLong.getValue()));
+			}
+			else if (tag == Tag.STRING || tag == Tag.ARRAY || tag == Tag.OBJECT) {
+				final VMObjectID vmObjId = (VMObjectID) values[i];
+				final Object value = mapObjects.get(vmObjId);
+				Array.set(objArray, destIndex, value);
+			}
+			else {
+				throw new IllegalArgumentException(String.format("Unexpected tag (%s)", tag));
+			}
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Tag getVMTag(final Class<?> typeValue) {
+		final Tag tag;
+		if (boolean.class.equals(typeValue)) {
+			tag = Tag.BOOLEAN;
+		}
+		else if (byte.class.equals(typeValue)) {
+			tag = Tag.BYTE;
+		}
+		else if (char.class.equals(typeValue)) {
+			tag = Tag.CHAR;
+		}
+		else if (short.class.equals(typeValue)) {
+			tag = Tag.SHORT;
+		}
+		else if (int.class.equals(typeValue)) {
+			tag = Tag.INT;
+		}
+		else if (long.class.equals(typeValue)) {
+			tag = Tag.LONG;
+		}
+		else if (float.class.equals(typeValue)) {
+			tag = Tag.FLOAT;
+		}
+		else if (double.class.equals(typeValue)) {
+			tag = Tag.DOUBLE;
+		}
+		else if (String.class.equals(typeValue)) {
+			tag = Tag.STRING;
+		}
+		else if (typeValue.isArray()) {
+			tag = Tag.ARRAY;
+		}
+		else {
+			tag = Tag.OBJECT;
+		}
+		return tag;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public VMValue getVMValue(final Class<?> typeValue, final Object oValue) {
