@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -98,9 +97,6 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	/** <code>true</code> if the debugging should stop */
 	private final AtomicBoolean SHOULD_STOP = new AtomicBoolean();
 
-	/** number of received packets */
-	private AtomicInteger numPackets = new AtomicInteger();
-	
 	/** id-counter for outgoing commands */
 	private int idOutCounter = 0;
 
@@ -112,9 +108,6 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	
 	/** maximum time (in seconds) a thread should wait for sending packets */
 	private final int maxLockTime;
-
-	/** maximum number of packet-debug-logs (0 = all) */
-	private int maxPacketLogs = 2;
 
 	/** one thread only should communicate with the debugger at any time */
 	private final Lock lock = new ReentrantLock();
@@ -198,8 +191,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					continue;
 				}
 				final CommandBuffer cmdBuf = new CommandBuffer(fBufIn, 0, packetLen);
-				final int num = numPackets.incrementAndGet();
-				if (LOG.isDebugEnabled() && (maxPacketLogs == 0 || num <= maxPacketLogs)) {
+				if (LOG.isDebugEnabled()) {
 					LOG.debug("RangeIn: " + printHexBinary(fBufIn, 0, packetLen));
 				}
 				try {
@@ -234,7 +226,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			final byte bCmd = cmdBuf.readByte();
 			final JdwpCommandSet cs = JdwpCommandSet.lookupByKind(bCs);
 			final JdwpCommand cmd = JdwpCommand.lookupByKind(cs, bCmd);
-			if (LOG.isDebugEnabled() && (maxPacketLogs == 0 || numPackets.get() <= maxPacketLogs)) {
+			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Command %d: %d/%d, %s/%s, len=%d",
 						Integer.valueOf(id),
 						Byte.valueOf(bCs), Byte.valueOf(bCmd),
@@ -283,7 +275,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else if (packetType == 0x80) {
 			final short errorCode = cmdBuf.readShort();
-			if (LOG.isDebugEnabled() && (maxPacketLogs == 0 || numPackets.get() <= maxPacketLogs)) {
+			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Reply %d: error=%d",
 						Integer.valueOf(id),
 						Short.valueOf(errorCode), Integer.valueOf(len)));
@@ -2005,7 +1997,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			offset += field.length();
 		}
 		os.write(buf, 0, length);
-		if (LOG.isDebugEnabled() && (maxPacketLogs == 0 || numPackets.get() <= maxPacketLogs)) {
+		if (LOG.isDebugEnabled()) {
 			LOG.debug("RangeOut: " + printHexBinary(buf, 0, length));
 			LOG.debug("RangeOut: '" + new String(buf, 0, length, StandardCharsets.ISO_8859_1).replaceAll("[^\u0020-\u007f\u00a0-\u00ff]", "°") + "'");
 		}
@@ -2038,7 +2030,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			field.write(buf, offset);
 			offset += field.length();
 		}
-		if (LOG.isDebugEnabled() && (maxPacketLogs == 0 || numPackets.get() <= maxPacketLogs)) {
+		if (LOG.isDebugEnabled()) {
 			LOG.debug("EventOut: " + printHexBinary(buf, 0, length));
 			LOG.debug("EventOut: '" + new String(buf, 0, length, StandardCharsets.ISO_8859_1).replaceAll("[^\u0020-\u007f\u00a0-\u00ff]", "°") + "'");
 		}
