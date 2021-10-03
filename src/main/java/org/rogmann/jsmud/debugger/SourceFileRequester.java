@@ -28,4 +28,10 @@ public interface SourceFileRequester {
 	 * @return line-break
 	 */
 	String lineBreak();
+
+	/**
+	 * Extension of a generated file.
+	 * @return extension, e.g. "java" or "asm"
+	 */
+	String getExtension();
 }

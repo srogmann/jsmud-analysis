@@ -111,7 +111,12 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 
 	/** one thread only should communicate with the debugger at any time */
 	private final Lock lock = new ReentrantLock();
-	
+
+	/** current command */
+	private JdwpCommandSet cs;
+	/** current command-set */
+	private JdwpCommand cmd;
+
 	/**
 	 * Constructor.
 	 * @param is Input-stream
@@ -224,8 +229,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			// 0000   00 00 00 0b 00 00 02 54 00 01 07
 			final byte bCs = cmdBuf.readByte();
 			final byte bCmd = cmdBuf.readByte();
-			final JdwpCommandSet cs = JdwpCommandSet.lookupByKind(bCs);
-			final JdwpCommand cmd = JdwpCommand.lookupByKind(cs, bCmd);
+			cs = JdwpCommandSet.lookupByKind(bCs);
+			cmd = JdwpCommand.lookupByKind(cs, bCmd);
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Command %d: %d/%d, %s/%s, len=%d",
 						Integer.valueOf(id),
@@ -397,6 +402,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else if (cmd == JdwpCommand.CLASS_OBJECT) {
 			sendReferenceTypeClassObject(id, refType);
+		}
+		else if (cmd == JdwpCommand.SOURCE_DEBUG_EXTENSION) {
+			sendReferenceTypeSourceDebugExtension(id, refType);
 		}
 		else if (cmd == JdwpCommand.SIGNATURE_WITH_GENERIC) {
 			sendSignatureWithGeneric(id, refType);
@@ -1010,7 +1018,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		boolean	canUnrestrictedlyRedefineClasses = isJsmudClassloader;
 		boolean	canPopFrames = false;
 		boolean	canUseInstanceFilters = false;
-		boolean	canGetSourceDebugExtension = false;
+		boolean	canGetSourceDebugExtension = false; // JSR-045
 		boolean	canRequestVMDeathEvent = false; 
 		boolean	canSetDefaultStratum = false;
 		boolean	canGetInstanceInfo = true;
@@ -1305,7 +1313,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		}
 		else {
 			final Class<?> classRef = (Class<?>) oClassRef;
-			final String sourceFileGuessed = Utils.guessSourceFile(classRef);
+			final String sourceFileGuessed = Utils.guessSourceFile(classRef, "java");
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("sendReferenceTypeSourceFile: %s -> (%s)",
 						classRef, sourceFileGuessed)); 
@@ -1358,6 +1366,31 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else {
 			// final Class<?> classRef = (Class<?>) oClassRef;
 			sendReplyData(id, new VMClassObjectID(refType.getValue()));
+		}
+	}
+
+	/**
+	 * Sends the extension-attribute of reference-type (JSP-045).
+	 * @param id request-id
+	 * @param refType ref-type-id of class-object
+	 * @throws IOException in case of an IO-error
+	 */
+	private void sendReferenceTypeSourceDebugExtension(final int id, final VMReferenceTypeID refType) throws IOException {
+		final Object oClassRef = vm.getVMObject(refType);
+		if (oClassRef == null) {
+			sendError(id, JdwpErrorCode.INVALID_OBJECT);
+		}
+		else if (!(oClassRef instanceof Class)) {
+			sendError(id, JdwpErrorCode.INVALID_CLASS);
+		}
+		else {
+			final String extensionAttribute = vm.getExtensionAttribute(oClassRef);
+			if (extensionAttribute == null) {
+				sendError(id, JdwpErrorCode.ABSENT_INFORMATION);
+			}
+			else {
+				sendReplyData(id, new VMString(extensionAttribute));
+			}
 		}
 	}
 
@@ -1990,7 +2023,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		writeByte(fBufOut, 8, (byte) 0x80);
 		writeShort(fBufOut, 9, errorCode.getErrorCode());
 		os.write(fBufOut, 0, length);
-		LOG.error("sendError " + id + ": " + errorCode);
+		LOG.error(String.format("sendError id=%d, cmd=%s/%s: %s",
+				Integer.valueOf(id), cs, cmd, errorCode));
 	}
 
 	/**

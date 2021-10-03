@@ -404,4 +404,11 @@ public interface VM {
 	 */
 	void generateSourceFile(final Class<?> clazz, final SourceFileRequester sourceFileRequester) throws IOException;
 
+	/**
+	 * Gets the extension-attribute of a reference-type (see JSR-045).
+	 * @param classRef class
+	 * @return extension-attribute
+	 */
+	String getExtensionAttribute(Object classRef);
+
 }

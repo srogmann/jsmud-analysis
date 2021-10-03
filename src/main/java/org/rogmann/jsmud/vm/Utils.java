@@ -32,12 +32,13 @@ public class Utils {
 	/**
 	 * Guesses the name of a source-file.
 	 * @param classRef class
-	 * @return guessed .java-name
+	 * @param extension (e.g. "java" or "asm")
+	 * @return guessed source-file (e.g. .java-name)
 	 */
-	public static String guessSourceFile(final Class<?> classRef) {
+	public static String guessSourceFile(final Class<?> classRef, final String extension) {
 		final String className = classRef.getName().replaceFirst(".*[.]", "");
 		final String classNameOuter = className.replaceFirst("[$].*", "");
-		final String sourceFileGuessed = String.format("%s.java", classNameOuter);
+		final String sourceFileGuessed = String.format("%s.%s", classNameOuter, extension);
 		return sourceFileGuessed;
 	}
 

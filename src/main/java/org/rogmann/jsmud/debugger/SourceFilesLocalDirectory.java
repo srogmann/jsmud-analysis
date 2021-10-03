@@ -20,6 +20,8 @@ public class SourceFilesLocalDirectory implements SourceFileRequester {
 	private final Predicate<Class<?>> classFilter;
 	/** destination directory */
 	private final File dirDest;
+	/** extension of generated files (e.g. "java" or "asm") */
+	private final String extension;
 	/** encoding */
 	private final Charset charset;
 	/** line-break in generated files */
@@ -29,13 +31,15 @@ public class SourceFilesLocalDirectory implements SourceFileRequester {
 	 * Constructor
 	 * @param classFilter classes to generate sources
 	 * @param dirDest destination source-folder
+	 * @param extension extension of generated files
 	 * @param charset encoding of generated files
 	 * @param lineBreak line-break in generated files
 	 */
 	public SourceFilesLocalDirectory(final Predicate<Class<?>> classFilter,
-			final File dirDest, final Charset charset, final String lineBreak) {
+			final File dirDest, final String extension, final Charset charset, final String lineBreak) {
 		this.classFilter = classFilter;
 		this.dirDest = dirDest;
+		this.extension = extension;
 		this.charset = charset;
 		this.lineBreak = lineBreak;
 	}
@@ -62,7 +66,7 @@ public class SourceFilesLocalDirectory implements SourceFileRequester {
 		if (!dirPackage.isDirectory()) {
 			Files.createDirectories(dirPackage.toPath());
 		}
-		final File fileSource = new File(dirPackage, Utils.guessSourceFile(clazz));
+		final File fileSource = new File(dirPackage, Utils.guessSourceFile(clazz, extension));
 		return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileSource), charset));
 	}
 
@@ -70,6 +74,12 @@ public class SourceFilesLocalDirectory implements SourceFileRequester {
 	@Override
 	public String lineBreak() {
 		return lineBreak;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String getExtension() {
+		return extension;
 	}
 
 }

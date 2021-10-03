@@ -87,7 +87,8 @@ public class DebuggerTestMain {
 		SourceFileRequester sfr = null;
 		if (folderSources != null) {
 			final Predicate<Class<?>> classFilter = (clazz -> clazz.getName().startsWith("com.sun.net."));
-			sfr = new SourceFilesLocalDirectory(classFilter, folderSources, StandardCharsets.UTF_8,
+			final String extension = "java";
+			sfr = new SourceFilesLocalDirectory(classFilter, folderSources, extension, StandardCharsets.UTF_8,
 					System.lineSeparator());
 		}
 		return sfr;

@@ -1892,7 +1892,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** {@inheritDoc} */
 	@Override
 	public void generateSourceFile(Class<?> clazz, final SourceFileRequester sourceFileRequester) throws IOException {
-		final String sourceFileGuessed = Utils.guessSourceFile(clazz);
+		final String sourceFileGuessed = Utils.guessSourceFile(clazz, sourceFileRequester.getExtension());
 		SourceFileWriter sourceFileWriter = mapSourceSourceFiles.get(sourceFileGuessed);
 		if (sourceFileWriter == null) {
 			final ClassLoader classLoader = (clazz.getClassLoader() != null) ? clazz.getClassLoader() : classLoaderDefault;
@@ -1934,12 +1934,27 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			});
 	
 			try (final BufferedWriter bw = sourceFileRequester.createBufferedWriter(clazz)) {
+				final String extension = sourceFileRequester.getExtension();
 				final String lineBreak = sourceFileRequester.lineBreak();
-				sourceFileWriter = new SourceFileWriter(bw, lineBreak, node, innerClassProvider);
+				sourceFileWriter = new SourceFileWriter(extension, bw, lineBreak, node, innerClassProvider);
 				mapSourceSourceFiles.put(sourceFileGuessed, sourceFileWriter);
 			}
 		}
 		mapClassSourceFiles.put(clazz, sourceFileWriter);
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String getExtensionAttribute(Object classRef) {
+		String extension = null;
+		
+		// JSR-045, smap:
+		// source-debug-extension can be used to map from .class-lines to source-lines,
+		// e.g. in jsp-files.
+		
+		//extension = "SMAP\nParser.java\njsp\n*S jsp\n*F\n1 Parser.jsp\n*L\n1#1,5:10,2\n*E\n";
+
+		return extension;
 	}
 
 }

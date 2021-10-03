@@ -30,7 +30,10 @@ import org.rogmann.jsmud.vm.JvmException;
  * <p>Lines are prefixed with "//"-comments. A 2021-06-eclipse started looping without these comments.</p>
  */
 public class SourceFileWriter {
-	
+
+	/** extension of the generated file (e.g. "java" or "asm") */
+	private final String extension;
+
 	/** line-break in source-file */
 	private final String crlf;
 
@@ -57,14 +60,16 @@ public class SourceFileWriter {
 
 	/**
 	 * Constructor, writes the source-file.
+	 * @param extension extension, e.g. "asm"
 	 * @param bw output-writer
 	 * @param crlf line-break
 	 * @param node class-node
 	 * @param innerClassesProvider function which returns a class-node corresponding to an internal-name
 	 * @throws IOException in case of an IO-error
 	 */
-	public SourceFileWriter(final BufferedWriter bw, final String crlf, final ClassNode node,
+	public SourceFileWriter(final String extension, final BufferedWriter bw, final String crlf, final ClassNode node,
 			final Function<String, ClassNode> innerClassesProvider) throws IOException {
+		this.extension = extension;
 		this.crlf = crlf;
 		final StringBuilder sb = new StringBuilder(100);
 		final int lastSlash = node.name.lastIndexOf('/');
@@ -389,6 +394,14 @@ public class SourceFileWriter {
 		bw.write(sb.toString());
 		sb.setLength(0);
 		lineNum++;
+	}
+
+	/**
+	 * Gets the extension of the generated file.
+	 * @return extension, e.g. "asm"
+	 */
+	public String getExtension() {
+		return extension;
 	}
 
 }

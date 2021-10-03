@@ -29,10 +29,16 @@ public enum JdwpErrorCode {
 	INVALID_SLOT(35),
 	/** The functionality is not implemented in this virtual machine. */
 	NOT_IMPLEMENTED(99),
+	/** Invalid pointer. */
+	NULL_POINTER(100),
+	/** Desired information is not available. */
+	ABSENT_INFORMATION(101),
 	/** The specified event type id is not recognized. */
 	INVALID_EVENT_TYPE(102),
 	/** Illegal Argument. */
 	ILLEGAL_ARGUMENT(103),
+	/** The function needed to allocate memory and no more memory was available for allocation. */
+	OUT_OF_MEMORY(110),
 	/** The virtual machine is not running. */
 	VM_DEAD(112),
 	/** Invalid Length. */
