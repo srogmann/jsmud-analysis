@@ -2184,6 +2184,10 @@ whileInstr:
 				// This exception isn't handled here.
 				throw e;
 			}
+			catch (JvmException e) {
+				throw new JvmException(String.format("JvmException in %s#%d, execution of %s",
+						clazz, Integer.valueOf(getCurrLineNum()), invMethod), e);
+			}
 		}
 		else {
 			final Class<?> classInt;
@@ -2563,10 +2567,10 @@ loopDeclMeth:
 			v = ((Boolean) oValue).booleanValue() ? 1 : 0;
 		}
 		else if (oValue == null) {
-			throw new IllegalStateException("Unexpected null (expected int-value)");
+			throw new JvmException("Unexpected null (expected int-value)");
 		}
 		else {
-			throw new IllegalStateException("Unexpected type " + oValue.getClass());
+			throw new JvmException("Unexpected type " + oValue.getClass());
 		}
 		return v;
 	}
