@@ -772,6 +772,46 @@ public class ClassRegistry implements VM, ObjectMonitor {
 
 	/** {@inheritDoc} */
 	@Override
+	public void setClassStaticValues(final Class<?> clazz, final RefFieldBean[] aFields, final VMDataField[] aValues) {
+		for (int i = 0; i < aFields.length; i++) {
+			final RefFieldBean refFieldBean = aFields[i];
+			final String jniSignature = refFieldBean.getSignature();
+			Class<?> classField = clazz;
+			while (classField != null) {
+				try {
+					final Field field = classField.getDeclaredField(refFieldBean.getName());
+					final VMDataField vmValue = aValues[i];
+					final Object oValue = convertVmValueIntoObject((byte) jniSignature.charAt(0), vmValue);
+					field.setAccessible(true);
+					try {
+						field.set(classField, oValue);
+					} catch (IllegalArgumentException | IllegalAccessException e) {
+						// We expect setObjectValues to be called without illegal arguments.
+						throw new JvmException(String.format("Error while setting field (%s) with signature (%s) to value of type (%s)",
+								field, jniSignature, (oValue != null) ? oValue.getClass() : null), e);
+					}
+					break;
+				}
+				catch (NoSuchFieldException e) {
+					classField = classField.getSuperclass();
+					continue;
+				}
+				catch (SecurityException e) {
+					throw new JvmException(String.format("Field (%s) in class (%s) may not be accessed",
+							refFieldBean.getName(), classField), e);
+				}
+				
+			}
+			if (classField == null) {
+				throw new JvmException(String.format("Field (%s) is not in class (%s) or one of its super-classes",
+						refFieldBean.getName(), clazz));
+			}
+		}
+
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public List<LineCodeIndex> getLineTable(final Class<?> clazz, final Executable executable, final VMReferenceTypeID refType,
 			VMMethodID methodID) {
 		final List<LineCodeIndex> lineTable = new ArrayList<>();

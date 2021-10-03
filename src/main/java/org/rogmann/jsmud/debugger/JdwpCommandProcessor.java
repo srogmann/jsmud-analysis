@@ -434,8 +434,15 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	 */
 	private void processCommandClassType(final int id, final JdwpCommand cmd, final CommandBuffer cmdBuf)
 			throws IOException {
-		if (cmd == JdwpCommand.SUPERCLASS) {
-			final VMClassID classId = new VMClassID(cmdBuf.readLong());
+		final VMClassID classId = new VMClassID(cmdBuf.readLong());
+		final Object oClass = vm.getVMObject(classId);
+		if (oClass == null) {
+			sendError(id, JdwpErrorCode.INVALID_OBJECT);
+		}
+		else if (!(oClass instanceof Class)) {
+			sendError(id, JdwpErrorCode.INVALID_CLASS);
+		}
+		else if (cmd == JdwpCommand.SUPERCLASS) {
 			final VMClassID superClassId = vm.getSuperClass(classId);
 			if (superClassId != null) {
 				sendReplyData(id, superClassId);
@@ -444,20 +451,40 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				sendError(id, JdwpErrorCode.INVALID_OBJECT);
 			}
 		}
+		else if (cmd == JdwpCommand.CLASS_SET_VALUES) {
+			final int numValues = cmdBuf.readInt();
+			final RefFieldBean[] aFields = new RefFieldBean[numValues];
+			final VMDataField[] aValues = new VMDataField[numValues];
+			boolean hasUnknownField = false;
+			for (int i = 0; i < numValues; i++) {
+				final VMFieldID fieldID = new VMFieldID(cmdBuf.readLong());
+				final RefFieldBean refFieldBean = vm.getRefFieldBean(fieldID);
+				if (refFieldBean == null) {
+					LOG.error(String.format("Unknown fieldID (%s)", fieldID));
+					hasUnknownField = true;
+					break;
+				}
+				aFields[i] = refFieldBean;
+				final char cTag = refFieldBean.getSignature().charAt(0);
+				final byte bTag = (byte) cTag;
+				final VMDataField value = readUntaggedValue(cmdBuf, bTag);
+				aValues[i] = value;
+			}
+			if (hasUnknownField) {
+				sendError(id, JdwpErrorCode.INVALID_FIELDID);
+			}
+			else {
+				final Class<?> clazz = (Class<?>) oClass;
+				vm.setClassStaticValues(clazz, aFields, aValues);
+				sendReplyData(id);
+			}
+		}
 		else if (cmd == JdwpCommand.CLASS_NEW_INSTANCE) {
-			final VMClassID classId = new VMClassID(cmdBuf.readLong());
 			final VMThreadID threadId = new VMThreadID(cmdBuf.readLong());
 			final VMMethodID methodId = new VMMethodID(cmdBuf.readLong());
-			final Object oClass = vm.getVMObject(classId);
 			final Object oThread = vm.getVMObject(threadId);
 			final Object oMethod = vm.getVMObject(methodId);
-			if (oClass == null) {
-				sendError(id, JdwpErrorCode.INVALID_OBJECT);
-			}
-			else if (!(oClass instanceof Class)) {
-				sendError(id, JdwpErrorCode.INVALID_CLASS);
-			}
-			else if (!(oThread instanceof Thread)) {
+			if (!(oThread instanceof Thread)) {
 				sendError(id, JdwpErrorCode.INVALID_THREAD);
 			}
 			else if (!threadId.equals(vm.getCurrentThreadId())) {

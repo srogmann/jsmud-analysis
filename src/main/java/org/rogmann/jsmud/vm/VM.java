@@ -154,6 +154,14 @@ public interface VM {
 	VMClassID getSuperClass(VMClassID classId);
 
 	/**
+	 * Sets static values in a class.
+	 * @param clazz class
+	 * @param aFields fields (may be in a super-class)
+	 * @param aValues values
+	 */
+	void setClassStaticValues(Class<?> clazz, RefFieldBean[] aFields, VMDataField[] aValues);
+
+	/**
 	 * Gets a line-code-table of a method.
 	 * @param clazz class of method
 	 * @param method method
