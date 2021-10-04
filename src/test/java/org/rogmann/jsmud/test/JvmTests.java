@@ -42,15 +42,6 @@ import org.rogmann.jsmud.gen.JsmudGeneratedClasses;
  * Some simple JVM-tests.
  */
 public class JvmTests {
-	/** static test-value */
-	private static final Integer CLINIT_TEST;
-	
-	/** static test-set */
-	private static final Set<String> CLINIT_SET;
-
-	/** static test-singleton */
-	private static final JvmTests CLINIT_SINGLETON;
-
 	/** list of executed tests */
 	private final List<String> executedTests = new ArrayList<>();
 	
@@ -60,13 +51,6 @@ public class JvmTests {
 	/** test-map */
 	private final Map<String, Integer> testMap = new HashMap<>();
 	
-	static {
-		CLINIT_TEST = Integer.valueOf(691);
-		CLINIT_SET = new HashSet<>(1);
-		CLINIT_SET.add("ClinitTestEntry");
-		CLINIT_SINGLETON = new JvmTests();
-	}
-
 	/** int-instance */
 	private final int fIntField;
 	
@@ -77,58 +61,56 @@ public class JvmTests {
 
 	/** Executes a simple test-suite */
 	public void tests() {
-//		testsBoolean();
-//		testsByte();
-//		testsChar();
-//		testsShort();
-//		testsLong();
-//		testsFloat();
-//		testsDouble();
-//		testsArray();
-//		testsExceptionHandling();
-//		testsRegexp();
+		testsBoolean();
+		testsByte();
+		testsChar();
+		testsShort();
+		testsLong();
+		testsFloat();
+		testsDouble();
+		testsArray();
+		testsExceptionHandling();
+		testsRegexp();
 		testsSwitch();
-//		testsLambda();
-//		testsLambdaBiConsumer();
-//		testsLambdaClassMethodReferences();
-//		testsLambdaObjectMethodReferences();
-//		testsLambdaNonStatic();
-//		testsLambdaInterface();
-//		testsLambdaSpecialAndThen();
-//		testsLambdaStreamCollectOnly();
-//		testsLambdaFunctionAndThen();
-//		testsLambdaPrimitiveTypes();
-//		testsLambdaStreams();
+		testsLambda();
+		testsLambdaBiConsumer();
+		testsLambdaClassMethodReferences();
+		testsLambdaObjectMethodReferences();
+		testsLambdaNonStatic();
+		testsLambdaInterface();
+		testsLambdaSpecialAndThen();
+		testsLambdaStreamCollectOnly();
+		testsLambdaFunctionAndThen();
+		testsLambdaPrimitiveTypes();
+		testsLambdaStreams();
 		testsLambdaStreams2();
-//		testsLambdaStreamsThis();
-//		testsLambdaBiFunctionAndThen();
-//		testsLambdaCollectingAndThen();
-//		testsLambdaMultipleFunctions();
-//		testsLambdaReuse();
-//		testsLambdaAndSecurity();
-//		testsMethodChoosing();
-//		testsMethodRef();
-//		testsMethodArrayArgs();
-//		testsStaticInitializer();
-//		testsSyntheticMethod();
-//		testsFields();
-//		testsConstructor();
-//		testsConstructorRef();
-//		testsCatchException();
-//		testsJavaTime();
-//		testsProxy();
-//		testsProxySuper();
-//		testsProxyViaReflection();
-//		testsProxyViaReflectionMethod();
-//		testsProxyPublicInterface();
-//		testsProxyPublicInterfaceViaReflection();
-//		testsProxyPublicInterfaceViaReflectionImpl();
-//		testsProxyExecuteInternal();
-//		testsReflection();
-//		testsReflectionOnInterface();
-//		testReflectionDeclaredConstructors();
-//		testsClassForName();
-//		testsAccessController();
+		testsLambdaStreamsThis();
+		testsLambdaBiFunctionAndThen();
+		testsLambdaCollectingAndThen();
+		testsLambdaMultipleFunctions();
+		testsLambdaReuse();
+		testsLambdaAndSecurity();
+		testsMethodChoosing();
+		testsMethodRef();
+		testsMethodArrayArgs();
+		testsSyntheticMethod();
+		testsFields();
+		testsConstructorRef();
+		testsCatchException();
+		testsJavaTime();
+		testsProxy();
+		testsProxySuper();
+		testsProxyViaReflection();
+		testsProxyViaReflectionMethod();
+		testsProxyPublicInterface();
+		testsProxyPublicInterfaceViaReflection();
+		testsProxyPublicInterfaceViaReflectionImpl();
+		testsProxyExecuteInternal();
+		testsReflection();
+		testsReflectionOnInterface();
+		testReflectionDeclaredConstructors();
+		testsClassForName();
+		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}
 
@@ -148,6 +130,7 @@ public class JvmTests {
 	}
 
 	/** boolean-tests */
+	@JsmudTest
 	public void testsBoolean() {
 		final boolean[] aBoolean = new boolean[2];
 		aBoolean[0] = true;
@@ -157,6 +140,7 @@ public class JvmTests {
 	}
 
 	/** byte-tests */
+	@JsmudTest
 	public void testsByte() {
 		final byte[] aByte = new byte[4];
 		aByte[0] = (byte) 0x00;
@@ -174,6 +158,7 @@ public class JvmTests {
 	}
 
 	/** char-tests */
+	@JsmudTest
 	public void testsChar() {
 		final char[] aChar = {
 				' ', '\u0000', 'ü', '老' 
@@ -203,6 +188,7 @@ public class JvmTests {
 		assertEquals("cast-[[[C", Character.valueOf('ü'), Character.valueOf(aDim3Cast[0][1][0]));
 	}
 
+	@JsmudTest
 	public void testsShort() {
 		final short a = (short) 1;
 		final short b = Short.parseShort("-1");
@@ -221,6 +207,7 @@ public class JvmTests {
 		return (short) (2 * a);
 	}
 
+	@JsmudTest
 	public void testsLong() {
 		final long l = Long.parseLong("16777216");
 		final long m = 10L;
@@ -248,6 +235,7 @@ public class JvmTests {
 		return a + 10 * b + 100 * c + 1000 * d;
 	}
 	
+	@JsmudTest
 	public void testsFloat() {
 		final float a = Float.parseFloat("1357.5");
 		final float b = 10.0f;
@@ -256,6 +244,7 @@ public class JvmTests {
 		assertTrue("b < a", b < a);
 	}
 
+	@JsmudTest
 	public void testsDouble() {
 		final double a = Double.parseDouble("12345.1122334455");
 		final double b = 10.0d;
@@ -268,6 +257,7 @@ public class JvmTests {
 		return a * (int) b;
 	}
 
+	@JsmudTest
 	public void testsArray() {
 		// ANEWARRAY int
 		final int[] i1 = new int[1];
@@ -291,6 +281,7 @@ public class JvmTests {
 		assertEquals("array a123.012", Long.valueOf(1024), Long.valueOf(a123[0][1][2]));
 	}
 
+	@JsmudTest
 	public void testsExceptionHandling() {
 		Method method = null;
 		boolean hasException;
@@ -317,10 +308,11 @@ public class JvmTests {
 
 	}
 
-	private Method searchMethod(Class<?> clazz, String name) throws NoSuchMethodException {
+	private static Method searchMethod(Class<?> clazz, String name) throws NoSuchMethodException {
 		return clazz.getDeclaredMethod(name);
 	}
 
+	@JsmudTest
 	public void testsRegexp() {
 		final Pattern pAlpha = Pattern.compile("[A-Za-z]+");
 		assertTrue("Pattern-a1", pAlpha.matcher("Carrot").matches());
@@ -341,6 +333,7 @@ public class JvmTests {
 		assertEquals("Pattern-m2", "numbEr", mMagic.group(2));
 	}
 
+	@JsmudTest
 	public void testsSwitch() {
 		final String a = "e";
 		final String b = "2";
@@ -356,6 +349,7 @@ public class JvmTests {
 	}
 	
 	/** simple lambda-tests */
+	@JsmudTest
 	public void testsLambda() {
 		//linkCallSite org.rogmann.jsmud.test.JvmTests java.lang.invoke.LambdaMetafactory.metafactory(Lookup,String,MethodType,MethodType,MethodHandle,MethodType)CallSite/invokeStatic apply()IntFunction/[(int)Object, MethodHandle(int)Integer, (int)Integer]
 		//linkMethod java.lang.invoke.MethodHandle.invoke()Object/5
@@ -385,6 +379,7 @@ public class JvmTests {
 				|| iFctClass.startsWith(packageGen));
 	}
 
+	@JsmudTest
 	public void testsLambdaBiConsumer() {
 		// The call-site has to ignore the return-type StringJoiner of StringJoiner::add.
 		final BiConsumer<StringJoiner, CharSequence> accumulator = StringJoiner::add;
@@ -398,6 +393,7 @@ public class JvmTests {
 	/**
 	 * Example of a lambda-function with method-references on a class.
 	 */
+	@JsmudTest
 	public void testsLambdaClassMethodReferences() {
 		// ClassName::instanceMethod, bsm_tag H_INVOKEVIRTUAL.
 		final Function<String, String> sFkt = String::toUpperCase; // bsm_tag H_INVOKEVIRTUAL.
@@ -411,6 +407,7 @@ public class JvmTests {
 	/**
 	 * Example of a lambda-function with method-references on an object-instance.
 	 */
+	@JsmudTest
 	public void testsLambdaObjectMethodReferences() {
 		// instance::instanceMethod, bsm_tag H_INVOKEVIRTUAL.
 		final String s = "catalog";
@@ -441,6 +438,7 @@ public class JvmTests {
 	}
 
 	/** lambda-tests with BiFunction et al. */
+	@JsmudTest
 	public void testsLambdaMultipleFunctions() {
 		final Function <Integer, String> fct = i -> "i:" + i;
 		assertEquals("Fct", "i:-37", fct.apply(Integer.valueOf(-37)));
@@ -456,6 +454,7 @@ public class JvmTests {
 	}
 
 	/** lambda-tests with non-static lambda-function */
+	@JsmudTest
 	public void testsLambdaNonStatic() {
 		this.testMap.put("A", Integer.valueOf(11));
 		final String key = "A";
@@ -463,6 +462,7 @@ public class JvmTests {
 		assertTrue("Key present", predicate.test(Collections.emptySet()));
 	}
 
+	@JsmudTest
 	public void testsLambdaInterface() {
 		final Consumer<Map<String, Integer>> consumer = Map::clear; // bsm_tag H_INVOKEINTERFACE.
 		testMap.put("a1", Integer.valueOf(1));
@@ -477,12 +477,14 @@ public class JvmTests {
 		}
 	}
 
+	@JsmudTest
 	public void testsLambdaSpecialAndThen() {
 		final FunctionWithDefault prefixA = (i -> "A" + i);
 		final IntFunction<String> prefixASuffixB = prefixA.andThen("B"); // bsm_tag H_INVOKESPECIAL (interface)
 		assertEquals("Test functionWithDefault-andThen", "A3B", prefixASuffixB.apply(3));
 	}
 
+	@JsmudTest
 	public void testsLambdaFunctionAndThen() {
 		final Function<Long, String> fctPrefixA = (i -> "A" + i);
 		final Function<String, Integer> fctLen = (s -> Integer.valueOf(s.length()));
@@ -496,6 +498,7 @@ public class JvmTests {
 		String apply(boolean b, char c, short s, int i, long j, float f, double d);
 	}
 
+	@JsmudTest
 	public void testsLambdaPrimitiveTypes() {
 		final PrimitiveTypesFunction function = (b, c, s, i, j, f, d) ->
 			String.format(Locale.US, "b:%s,c:%s,s:%d,i:%d,j:%d,f:%.3f,d:%.3f",
@@ -516,6 +519,7 @@ public class JvmTests {
 	}
 
 	/** lambda-stream-tests with collect only*/
+	@JsmudTest
 	public void testsLambdaStreamCollectOnly() {
 		final List<String> list = Arrays.asList("d1", "d2", "d3");
 		final String listStreamed = list.stream().collect(Collectors.joining("-"));
@@ -523,6 +527,7 @@ public class JvmTests {
 	}
 
 	/** lambda-tests with streams */
+	@JsmudTest
 	public void testsLambdaStreams() {
 		final int[] aValues = { 1, -2, 3, -5, 8 };
 		final OptionalInt max = Arrays.stream(aValues).map(i -> -i).max();
@@ -538,6 +543,7 @@ public class JvmTests {
 		assertEquals("Test listStreamed", "D1-D2-D3", listStreamed);
 	}
 
+	@JsmudTest
 	public void testsLambdaStreams2() {
 	    final String[] chess = { "e2-e4", "e7-e5", "g1-f3", "b8-c6" };
 	    final String result = Arrays.stream(chess)
@@ -548,6 +554,7 @@ public class JvmTests {
 	}
 
 	/** lambda-tests with streams: filter with instance */
+	@JsmudTest
 	public void testsLambdaStreamsThis() {
 		this.testMap.put("a2", Integer.valueOf(11));
 
@@ -557,6 +564,7 @@ public class JvmTests {
 	}
 
 	/** lambda-tests with function and Collectors.andThan(...) */
+	@JsmudTest
 	public void testsLambdaBiFunctionAndThen() {
 		final Map<String, List<String>> result = new HashMap<>(1);
 		final List<String> list = new ArrayList<>();
@@ -574,6 +582,7 @@ public class JvmTests {
 	}
 
 	/** lambda-tests with function and andThen */
+	@JsmudTest
 	public void testsLambdaCollectingAndThen() {
 		final Function<Integer, String> toHex = (i -> Integer.toHexString(i.intValue()));
 		final Function<String, String> addPrefix = (s -> "0x" + s);
@@ -583,6 +592,7 @@ public class JvmTests {
 
 	/** lambda-tests (call-site-classes should be reused) */
 	@SuppressWarnings("null")
+	@JsmudTest
 	public void testsLambdaReuse() {
 		IntFunction<String> lastToHex = null;
 		for (int csNo = 0; csNo < 3; csNo++) {
@@ -591,11 +601,12 @@ public class JvmTests {
 				assertEquals("testsReuse(toHex)", Integer.toString(csNo) + '0', toHex.apply(csNo * 16));
 				assertEquals("testsReuse(class)", lastToHex.getClass(), toHex.getClass());
 			}
-			lastToHex = toHex;;
+			lastToHex = toHex;
 		}
 	}
 
 	/** lambda-tests with java.security */
+	@JsmudTest
 	public void testsLambdaAndSecurity() {
 		final Function<Integer, String> toHex = (i -> Integer.toHexString(i.intValue()));
 		final Integer iInput = Integer.valueOf("83");
@@ -619,6 +630,7 @@ public class JvmTests {
 		assertEquals("AccessController:PrExAc", "65", resultExc);
 	}
 
+	@JsmudTest
 	public void testsMethodArrayArgs() {
 		final int[][] arrInt = new int[0][0];
 		final Class<?> aArrIntExpected = int[][].class;
@@ -629,6 +641,7 @@ public class JvmTests {
 		return aArr;
 	}
 
+	@JsmudTest
 	public void testsMethodRef() {
 		// method-ref on class-
 		final String[] sValues = { "Gamma", "Alpha", "Beta", "Delta" };
@@ -645,36 +658,14 @@ public class JvmTests {
 		assertEquals("extImpl.name", "Gamma", extImpl.getName());
 	}
 	
-	public void testsStaticInitializer() {
-		assertEquals("Test static int", Integer.valueOf(691), CLINIT_TEST);
-		assertTrue("Test static set 1", CLINIT_SET != null);
-		assertTrue("Test static set 2", CLINIT_SET.contains("ClinitTestEntry"));
-		assertTrue("Test singleton 1", CLINIT_SINGLETON != null);
-		assertTrue("Test singleton 2", CLINIT_SINGLETON.executedTests != null);
-		assertEquals("Test singleton 3", Integer.valueOf(0), Integer.valueOf(CLINIT_SINGLETON.executedTests.size()));
-	}
-
+	@JsmudTest
 	public void testsFields() {
 		// SETSTATIC and GETSTATIC in super-class.
 		TestConstructor.staticInt = 89;
 		assertEquals("Test super-static", Integer.valueOf(89), Integer.valueOf(TestConstructor.staticInt));
 	}
 
-	public void testsConstructor() {
-		final TestConstructor testConstr = new TestConstructor(21, 34);
-		assertEquals("Constructor", Integer.valueOf(55), Integer.valueOf(testConstr.getSum()));
-		assertEquals("Constructor-Base", Integer.valueOf(21), Integer.valueOf(testConstr.getSumBase()));
-
-		final TestConstructor testConstrDefault = new TestConstructor();
-		assertEquals("ConstructorDefault", Integer.valueOf(-42), Integer.valueOf(testConstrDefault.getSum()));
-		assertEquals("ConstructorDefault-Base", Integer.valueOf(-2), Integer.valueOf(testConstrDefault.getSumBase()));
-
-		final TestConstructorBase testConstrBase = new TestConstructorBase();
-		assertEquals("ConstructorBase", Integer.valueOf(-2), Integer.valueOf(testConstrBase.getSumBase()));
-		final TestConstructorBase testConstrBase7 = new TestConstructorBase(7);
-		assertEquals("ConstructorBase7", Integer.valueOf(7), Integer.valueOf(testConstrBase7.getSumBase()));
-	}
-
+	@JsmudTest
 	public void testsConstructorRef() {
 		final String[] sValues = { "Gamma", "Alpha", "Beta", "Delta" };
 		final Supplier<Set<String>> setSupplier = HashSet::new; // bsm_tag H_NEWINVOKESPECIAL.
@@ -684,6 +675,7 @@ public class JvmTests {
 		assertTrue("Test Gamma", set.contains("Gamma"));
 	}
 	
+	@JsmudTest
 	public void testsMethodChoosing() {
 		final ConsumerIntConsumer consumer = new ConsumerIntConsumer();
 		final TestMethodChoosing test = new TestMethodChoosing();
@@ -694,6 +686,7 @@ public class JvmTests {
 		assertEquals("Integer", Integer.valueOf(0x44), consumer.acceptedInteger);
 	}
 	
+	@JsmudTest
 	public void testsCatchException() {
 		try {
 			throwIllegalArgumentException();
@@ -709,6 +702,7 @@ public class JvmTests {
 		}
 	}
 
+	@JsmudTest
 	public void testsProxy() {
 		final ClassLoader cl = WorkExampleNonPublic.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExampleNonPublic.class };
@@ -727,6 +721,7 @@ public class JvmTests {
 	/**
 	 * Creates a proxy with invoke-method in a super-class.
 	 */
+	@JsmudTest
 	public void testsProxySuper() {
 		final ClassLoader cl = WorkExampleNonPublic.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExampleNonPublic.class };
@@ -737,6 +732,7 @@ public class JvmTests {
 		assertEquals("ProxySuper: A", "SuperA", result1);
 	}
 
+	@JsmudTest
 	public void testsProxyViaReflection() {
 		final ClassLoader cl = WorkExampleNonPublic.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExampleNonPublic.class };
@@ -779,6 +775,7 @@ public class JvmTests {
 	/**
 	 * Checks if the invocation-handler gets an interface-method as method.
 	 */
+	@JsmudTest
 	public void testsProxyViaReflectionMethod() {
 		final ClassLoader cl = WorkExample.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExample.class };
@@ -806,6 +803,7 @@ public class JvmTests {
 	 * Call of a proxy using a public interface.
 	 * Proxies with public interfaces may be placed under "com.sun.*".
 	 */
+	@JsmudTest
 	public void testsProxyPublicInterface() {
 		final ClassLoader cl = WorkExample.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExample.class };
@@ -828,6 +826,7 @@ public class JvmTests {
 	/**
 	 * Call of a proxy using a public interface by reflection.
 	 */
+	@JsmudTest
 	public void testsProxyPublicInterfaceViaReflection() {
 		final ClassLoader cl = WorkExample.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExample.class };
@@ -852,6 +851,7 @@ public class JvmTests {
 		assertTrue("ProxyPublicRefl getClass", worker.getClass().getName().contains("$Proxy"));
 	}
 
+	@JsmudTest
 	public void testsProxyPublicInterfaceViaReflectionImpl() {
 		final ClassLoader cl = WorkExample.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExample.class };
@@ -879,6 +879,7 @@ public class JvmTests {
 	/**
 	 * Execute a proxy-method and use reflection to execute the method given the invocation-handler.
 	 */
+	@JsmudTest
 	public void testsProxyExecuteInternal() {
 		final ClassLoader cl = WorkExample.class.getClassLoader();
 		final Class<?>[] aInterfaces = { WorkExample.class };
@@ -951,6 +952,7 @@ public class JvmTests {
 		// nothing here
 	}
 
+	@JsmudTest
 	public void testsReflection() {
 		final JvmTests jvmTest;
 		try {
@@ -983,6 +985,7 @@ public class JvmTests {
 		assertEquals("testsReflection: subtract", Integer.valueOf(34), diff);
 	}
 
+	@JsmudTest
 	public void testsReflectionOnInterface() {
 		final TestExtendedConsumer impl = new TestExtendedConsumerImpl();
 		final Method methodAccept;
@@ -1007,6 +1010,7 @@ public class JvmTests {
 		assertEquals("ReflectionOnInterface", "王", name);
 	}
 
+	@JsmudTest
 	public void testReflectionDeclaredConstructors() {
 		final Constructor<?>[] constr = TestConstructorWithoutDefault.class.getDeclaredConstructors();
 		final String[] constrDesc = new String[constr.length];
@@ -1019,6 +1023,7 @@ public class JvmTests {
 				Arrays.toString(constrDesc));
 	}
 
+	@JsmudTest
 	public void testsClassForName() {
 		final String className = JvmTests.class.getName();
 		final Class<?> classJvmTests;
@@ -1043,6 +1048,7 @@ public class JvmTests {
 		assertEquals("Test Class.forName class-loader", JvmTests.class.getClassLoader(), classJvmTests.getClassLoader());
 	}
 
+	@JsmudTest
 	public void testsAccessController() {
 		final int iValue = 5;
 		PrivilegedAction<String> action = new PrivilegedAction<String>() {
