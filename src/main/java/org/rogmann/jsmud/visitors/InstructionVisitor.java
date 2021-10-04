@@ -192,11 +192,15 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			}
 			else if (instr instanceof LabelNode) {
 				final LabelNode label = (LabelNode) instr;
-				printer.println("  Label: " + label.getLabel());
+				if (showOutput) {
+					printer.println("  Label: " + label.getLabel());
+				}
 			}
 			else if (instr instanceof FrameNode) {
 				final FrameNode fn = (FrameNode) instr;
-				printer.println(String.format("Frame %d: %s", Integer.valueOf(fn.type), FrameDisplay.lookup(fn.type)));
+				if (showOutput) {
+					printer.println(String.format("Frame %d: %s", Integer.valueOf(fn.type), FrameDisplay.lookup(fn.type)));
+				}
 			}
 		}
 		else {
