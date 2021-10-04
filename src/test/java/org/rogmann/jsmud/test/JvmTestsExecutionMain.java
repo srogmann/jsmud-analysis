@@ -17,6 +17,8 @@ import org.rogmann.jsmud.vm.SimpleClassExecutor;
 
 /**
  * Executes a class.
+ * 
+ * <p>This class executes all methods in JvmTests marked with annotation @JsmudTest.</p>
  */
 public class JvmTestsExecutionMain {
 
