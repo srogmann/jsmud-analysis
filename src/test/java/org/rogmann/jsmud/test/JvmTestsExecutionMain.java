@@ -22,7 +22,8 @@ import org.rogmann.jsmud.vm.SimpleClassExecutor;
  */
 public class JvmTestsExecutionMain {
 
-	static boolean repeatFailedTestsWithTracing = false;
+	static boolean repeatFailedTestsWithTracing = true;
+	static boolean stopAtFailedTest = true;
 	
 	/**
 	 * Entry point.
@@ -48,7 +49,7 @@ public class JvmTestsExecutionMain {
 				e.printStackTrace();
 				psOut.flush();
 
-				if (!repeatFailedTestsWithTracing) {
+				if (!repeatFailedTestsWithTracing && !stopAtFailedTest) {
 					continue;
 				}
 				LoggerFactory.setLoggerSpi(new LoggerFactorySystemOut(psOut, true, true));
@@ -57,6 +58,9 @@ public class JvmTestsExecutionMain {
 					executeTestMethod(classTest, method, psOut, dumpInstructions);
 				} catch (Throwable e1) {
 					psOut.println(String.format("Exception while tracing method %s", method));
+				}
+				if (stopAtFailedTest) {
+					break;
 				}
 			}
 
