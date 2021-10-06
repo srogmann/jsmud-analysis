@@ -244,7 +244,12 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		final ConcurrentMap<Class<?>, SimpleClassExecutor> mapClassExecutors = tlMapClassExecutors.get();
 		SimpleClassExecutor executor = mapClassExecutors.get(clazz);
 		// We don't want to analyze ourself (i.e. JsmudClassLoader).
-		if (executor == null && !JsmudClassLoader.class.equals(clazz)) {
+		if (executor == null && MockMethods.class.equals(clazz)) {
+			executor = new SimpleClassExecutor(this, clazz, invocationHandler);
+			mapClassExecutors.put(clazz, executor);
+			executor.getVisitor().visitLoadClass(clazz);
+		}
+		else if (executor == null && !JsmudClassLoader.class.equals(clazz)) {
 			boolean doSimulation = executionFilter.isClassToBeSimulated(clazz) || forceSimulation;
 			if (doSimulation) {
 				executor = new SimpleClassExecutor(this, clazz, invocationHandler);
