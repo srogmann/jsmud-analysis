@@ -549,8 +549,7 @@ public class CallSiteGenerator {
 		}
 
 		// close the method-generation.
-		
-		mv.visitMaxs(50, 50);
+		mv.visitMaxs(0, 0);
 		mv.visitEnd();
 	}
 
