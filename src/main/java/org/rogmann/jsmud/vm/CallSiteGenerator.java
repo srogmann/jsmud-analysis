@@ -425,7 +425,12 @@ public class CallSiteGenerator {
 		final int opcodeInvoke = CallSiteContext.lookupInvokeOpcode(classOwner, methodHandle);
 		mv.visitMethodInsn(opcodeInvoke, methodHandle.getOwner(),
 				methodHandle.getName(), methodHandle.getDesc(), methodHandle.isInterface());
-		if (Type.VOID_TYPE.equals(callSiteMethodDescRuntime.getReturnType())) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("generateHandleMethod: methodHandle=%s, callSiteMethodDescRuntime=%s", methodHandle, callSiteMethodDescRuntime));
+		}
+		
+		if (Type.VOID_TYPE.equals(callSiteMethodDescRuntime.getReturnType())
+				&& !Type.VOID_TYPE.equals(Type.getReturnType(methodHandle.getDesc()))) {
 			// remove the void-object from stack.
 			mv.visitInsn(Opcodes.POP);
 		}
@@ -544,7 +549,8 @@ public class CallSiteGenerator {
 		}
 
 		// close the method-generation.
-		mv.visitMaxs(0, 0);
+		
+		mv.visitMaxs(50, 50);
 		mv.visitEnd();
 	}
 
