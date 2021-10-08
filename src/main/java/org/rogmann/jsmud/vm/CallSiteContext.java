@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.vm;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -60,7 +61,13 @@ public class CallSiteContext {
 			final Type methodType = Type.getMethodType(methodHandle.getDesc());
 			final Type[] types = methodType.getArgumentTypes();
 			final Type returnType = methodType.getReturnType();
-			final Method method = MethodFrame.findMethodInClass(methodHandle.getName(), types, returnType, classMethod);
+			final Executable method;
+			if ("<init>".equals(methodHandle.getName())) {
+				method = MethodFrame.findConstrInClass(types, classMethod);
+			}
+			else {
+				method = MethodFrame.findMethodInClass(methodHandle.getName(), types, returnType, classMethod);
+			}
 			if (method == null) {
 				throw new JvmException(String.format("Can't find method (%s) in class (%s)",
 						methodHandle.getName(), methodHandle.getDesc(), classMethod));
@@ -71,17 +78,22 @@ public class CallSiteContext {
 			}
 			
 			method.setAccessible(true);
-			final Object obj;
-			final Object[] mArgs;
-			if (Modifier.isStatic(method.getModifiers())) {
-				obj = classMethod;
-				mArgs = args;
+			if (method instanceof Constructor) {
+				objReturn = ((Constructor<?>) method).newInstance(args);
 			}
 			else {
-				obj = args[0];
-				mArgs = Arrays.copyOfRange(args, 1, args.length);
+				final Object obj;
+				final Object[] mArgs;
+				if (Modifier.isStatic(method.getModifiers())) {
+					obj = classMethod;
+					mArgs = args;
+				}
+				else {
+					obj = args[0];
+					mArgs = Arrays.copyOfRange(args, 1, args.length);
+				}
+				objReturn = ((Method) method).invoke(obj, mArgs);
 			}
-			objReturn = method.invoke(obj, mArgs);
 		}
 		else {
 			final int opcodeInvoke = lookupInvokeOpcode(classOwner, methodHandle);

@@ -2426,6 +2426,38 @@ whileSuperClass:
 	}
 
 	/**
+	 * Searches for a constructor in the given class or one of its parents.
+	 * @param types argument-types of the constructor
+	 * @param cClassObj class 
+	 * @return constructor or <code>null</code>
+	 */
+	public static Constructor<?> findConstrInClass(final Type[] types, final Class<?> cClassObj) {
+		Constructor<?> invConstr = null;
+		Class<?> classObj = cClassObj;
+whileSuperClass:
+		while (classObj != null) {
+loopDeclMeth:
+			for (Constructor<?> constrLoop : classObj.getDeclaredConstructors()) {
+				final String descConstr = Type.getConstructorDescriptor(constrLoop);
+				final Type[] argumentTypes = Type.getArgumentTypes(descConstr);
+				boolean found = argumentTypes.length == types.length;
+				if (!found) {
+					continue;
+				}
+				for (int i = 0; i < argumentTypes.length; i++) {
+					if (!argumentTypes[i].equals(types[i])) {
+						continue loopDeclMeth;
+					}
+				}
+				invConstr = constrLoop;
+				break whileSuperClass;
+			}
+			classObj = classObj.getSuperclass();
+		}
+		return invConstr;
+	}
+
+	/**
 	 * Searches for a method in the given class or one of its parents.
 	 * @param invName name of the method
 	 * @param types argument-types of the method
