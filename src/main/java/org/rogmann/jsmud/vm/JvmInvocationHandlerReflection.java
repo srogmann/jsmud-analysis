@@ -487,7 +487,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 loopClassIh:
 				while (true) {
 					for (final Method method : classProxy.getDeclaredMethods()) {
-						if (miDesc.equals(Type.getMethodDescriptor(method))) {
+						if (method.getName().equals(miName)
+								&& miDesc.equals(Type.getMethodDescriptor(method))) {
 							methodIh = method;
 							break loopClassIh;
 						}
