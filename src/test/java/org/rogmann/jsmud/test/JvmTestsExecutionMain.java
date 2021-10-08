@@ -41,6 +41,9 @@ public class JvmTestsExecutionMain {
 			
 			LoggerFactory.setLoggerSpi(new LoggerFactorySystemOut(psOut, false, true));
 			boolean dumpInstructions = false;
+			//if (!"testsProxyViaReflection".equals(method.getName())) {
+			//	continue;
+			//}
 			psOut.println("Test: " + method.getName());
 			try {
 				executeTestMethod(classTest, method, psOut, dumpInstructions);
@@ -80,7 +83,7 @@ public class JvmTestsExecutionMain {
 		visitorProvider.setShowOutput(dumpInstructions);
 		visitorProvider.setShowStatisticsAfterExecution(false);
 
-		final String packageTests = classTest.getName().replaceFirst("[.][^.]*", "");
+		final String packageTests = classTest.getName().replaceFirst("[.][^.]*$", "");
 		final ClassLoader classLoader = classTest.getClassLoader();
 		final boolean simulateReflection = true;
 		ClassExecutionFilter filter = (c -> c.getName().startsWith(packageTests));
