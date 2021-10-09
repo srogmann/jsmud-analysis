@@ -67,7 +67,7 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 			}
 			@Override
 			public void dump(Throwable e) {
-				e.printStackTrace();
+				e.printStackTrace(psOut);
 			}
 		};
 		final InstructionVisitor visitor = new InstructionVisitor(printer,
