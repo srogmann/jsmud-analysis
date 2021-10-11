@@ -479,51 +479,105 @@ whileInstr:
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final int[] aPrimitives = (int[]) stack.pop();
-						stack.push(Integer.valueOf(aPrimitives[index]));
+						try {
+							stack.push(Integer.valueOf(aPrimitives[index]));
+						}
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("IALOAD-AIOOBE", e);
+						}
 					}
 					break;
 				case Opcodes.LALOAD: // 0x2f
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final long[] aPrimitives = (long[]) stack.pop();
-						stack.push(Long.valueOf(aPrimitives[index]));
+						try {
+							stack.push(Long.valueOf(aPrimitives[index]));
+						}
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("LALOAD-AIOOBE", e);
+						}
 					}
 					break;
 				case Opcodes.FALOAD: // 0x30
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final float[] aPrimitives = (float[]) stack.pop();
-						stack.push(Float.valueOf(aPrimitives[index]));
+						try {
+							stack.push(Float.valueOf(aPrimitives[index]));
+						}
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("FALOAD-AIOOBE", e);
+						}
 					}
 					break;
 				case Opcodes.DALOAD: // 0x31
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final double[] aPrimitives = (double[]) stack.pop();
-						stack.push(Double.valueOf(aPrimitives[index]));
+						try {
+							stack.push(Double.valueOf(aPrimitives[index]));
+						}
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("DALOAD-AIOOBE", e);
+						}
 					}
 					break;
 				case Opcodes.AALOAD: // 0x32
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final Object[] aRefs = (Object[]) stack.pop();
-						stack.push(aRefs[index]);
+						try {
+							stack.push(aRefs[index]);
+						}
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("AALOAD-AIOOBE", e);
+						}
 					}
 					break;
 				case Opcodes.BALOAD: // 0x33
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final Object arrB = stack.pop();
-						if (arrB instanceof boolean[]) {
-							final boolean[] aPrimitives = (boolean[]) arrB;
-							final boolean v = aPrimitives[index];
-							stack.push(Integer.valueOf(v ? 1 : 0));
+						try {
+							if (arrB instanceof boolean[]) {
+								final boolean[] aPrimitives = (boolean[]) arrB;
+								final boolean v = aPrimitives[index];
+								stack.push(Integer.valueOf(v ? 1 : 0));
+							}
+							else {
+								final byte[] aPrimitives = (byte[]) arrB;
+								// The byte value will be sign-extended to an int value.
+								final int v = aPrimitives[index];
+								stack.push(Integer.valueOf(v));
+							}
 						}
-						else {
-							final byte[] aPrimitives = (byte[]) arrB;
-							// The byte value will be sign-extended to an int value.
-							final int v = aPrimitives[index];
-							stack.push(Integer.valueOf(v));
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("BALOAD-AIOOBE", e);
 						}
 					}
 					break;
@@ -531,14 +585,32 @@ whileInstr:
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final char[] aPrimitives = (char[]) stack.pop();
-						stack.push(Integer.valueOf(aPrimitives[index]));
+						try {
+							stack.push(Integer.valueOf(aPrimitives[index]));
+						}
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("CALOAD-AIOOBE", e);
+						}
 					}
 					break;
 				case Opcodes.SALOAD: // 0x35
 					{
 						final int index = ((Integer) stack.pop()).intValue();
 						final short[] aPrimitives = (short[]) stack.pop();
-						stack.push(Integer.valueOf(aPrimitives[index]));
+						try {
+							stack.push(Integer.valueOf(aPrimitives[index]));
+						}
+						catch (ArrayIndexOutOfBoundsException e) {
+							final boolean doContinueWhile = handleCatchException(e);
+							if (doContinueWhile) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("SALOAD-AIOOBE", e);
+						}
 					}
 					break;
 				case Opcodes.ISTORE: // 0x36

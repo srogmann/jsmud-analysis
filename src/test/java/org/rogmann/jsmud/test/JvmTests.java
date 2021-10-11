@@ -61,56 +61,57 @@ public class JvmTests {
 
 	/** Executes a simple test-suite */
 	public void tests() {
-		testsBoolean();
-		testsByte();
-		testsChar();
-		testsShort();
-		testsLong();
-		testsFloat();
-		testsDouble();
-		testsArray();
-		testsExceptionHandling();
-		testsRegexp();
-		testsSwitch();
-		testsLambda();
-		testsLambdaBiConsumer();
-		testsLambdaClassMethodReferences();
-		testsLambdaObjectMethodReferences();
-		testsLambdaNonStatic();
-		testsLambdaInterface();
-		testsLambdaSpecialAndThen();
-		testsLambdaStreamCollectOnly();
-		testsLambdaFunctionAndThen();
-		testsLambdaPrimitiveTypes();
-		testsLambdaStreams();
-		testsLambdaStreams2();
-		testsLambdaStreamsThis();
-		testsLambdaBiFunctionAndThen();
-		testsLambdaCollectingAndThen();
-		testsLambdaMultipleFunctions();
-		testsLambdaReuse();
-		testsLambdaAndSecurity();
-		testsMethodChoosing();
-		testsMethodRef();
-		testsMethodArrayArgs();
-		testsSyntheticMethod();
-		testsFields();
-		testsConstructorRef();
-		testsCatchException();
-		testsJavaTime();
-		testsProxy();
-		testsProxySuper();
-		testsProxyViaReflection();
-		testsProxyViaReflectionMethod();
-		testsProxyPublicInterface();
-		testsProxyPublicInterfaceViaReflection();
-		testsProxyPublicInterfaceViaReflectionImpl();
-		testsProxyExecuteInternal();
-		testsReflection();
-		testsReflectionOnInterface();
-		testReflectionDeclaredConstructors();
-		testsClassForName();
-		testsAccessController();
+//		testsBoolean();
+//		testsByte();
+//		testsChar();
+//		testsShort();
+//		testsLong();
+//		testsFloat();
+//		testsDouble();
+//		testsArray();
+//		testsArrayIndex();
+//		testsExceptionHandling();
+//		testsRegexp();
+//		testsSwitch();
+//		testsLambda();
+//		testsLambdaBiConsumer();
+//		testsLambdaClassMethodReferences();
+//		testsLambdaObjectMethodReferences();
+//		testsLambdaNonStatic();
+//		testsLambdaInterface();
+//		testsLambdaSpecialAndThen();
+//		testsLambdaStreamCollectOnly();
+//		testsLambdaFunctionAndThen();
+//		testsLambdaPrimitiveTypes();
+//		testsLambdaStreams();
+//		testsLambdaStreams2();
+//		testsLambdaStreamsThis();
+//		testsLambdaBiFunctionAndThen();
+//		testsLambdaCollectingAndThen();
+//		testsLambdaMultipleFunctions();
+//		testsLambdaReuse();
+//		testsLambdaAndSecurity();
+//		testsMethodChoosing();
+//		testsMethodRef();
+//		testsMethodArrayArgs();
+//		testsSyntheticMethod();
+//		testsFields();
+//		testsConstructorRef();
+//		testsCatchException();
+//		testsJavaTime();
+//		testsProxy();
+//		testsProxySuper();
+//		testsProxyViaReflection();
+//		testsProxyViaReflectionMethod();
+//		testsProxyPublicInterface();
+//		testsProxyPublicInterfaceViaReflection();
+//		testsProxyPublicInterfaceViaReflectionImpl();
+//		testsProxyExecuteInternal();
+//		testsReflection();
+//		testsReflectionOnInterface();
+//		testReflectionDeclaredConstructors();
+//		testsClassForName();
+//		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}
 
@@ -279,6 +280,27 @@ public class JvmTests {
 		a123[0][1][2] = 1024;
 		assertEquals("array a123.000", Long.valueOf(512), Long.valueOf(a123[0][0][0]));
 		assertEquals("array a123.012", Long.valueOf(1024), Long.valueOf(a123[0][1][2]));
+	}
+
+	@JsmudTest
+	public void testsArrayIndex() {
+		final int[] aOrder = { 0, 1, 1, 1, 1, 1, 1, 28 };
+		final int dim = 8;
+		try {
+			final int order = aOrder[dim];
+			assertTrue("not reached", order == -1);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			assertTrue("AIOOBE-int", true);
+		}
+
+		final short[] aShort = { (short) 6, (short) 2 };
+		try {
+			final short s = aShort[dim];
+			assertTrue("not reached", s == -1);
+		} catch (ArrayIndexOutOfBoundsException e) {
+			assertTrue("AIOOBE-short", true);
+		}
+
 	}
 
 	@JsmudTest
