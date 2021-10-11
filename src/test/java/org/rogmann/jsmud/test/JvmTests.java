@@ -52,7 +52,7 @@ public class JvmTests {
 	private final Map<String, Integer> testMap = new HashMap<>();
 	
 	/** int-instance */
-	private final int fIntField;
+	final int fIntField;
 	
 	public static void main(String[] args) {
 		final JvmTests jvmTests = new JvmTests();
@@ -100,6 +100,7 @@ public class JvmTests {
 //		testsCatchException();
 //		testsJavaTime();
 //		testsProxy();
+		testsProxyThisS0();
 //		testsProxySuper();
 //		testsProxyViaReflection();
 //		testsProxyViaReflectionMethod();
@@ -738,6 +739,41 @@ public class JvmTests {
 		
 		// Can we invoke a Object-method in the proxy-instance?
 		assertTrue("Proxy getClass", worker.getClass().getName().contains("$Proxy"));
+	}
+
+	/**
+	 * Creates a proxy which executes GETFIELD with this$0.
+	 */
+	@JsmudTest
+	public void testsProxyThisS0() {
+		final ClassLoader cl = WorkExampleNonPublic.class.getClassLoader();
+		final Class<?>[] aInterfaces = { WorkExampleNonPublic.class };
+		final InvocationHandler ih = new InvocationHandler() {
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+				final String name = method.getName();
+				if ("addA".equals(name)) {
+					final String p = (String) args[0];
+					// fIntField is accessed via GETFIELD this$0.
+					return p + fIntField;
+				}
+				return null;
+			}
+		};
+		final WorkExampleNonPublic worker = (WorkExampleNonPublic) Proxy.newProxyInstance(cl, aInterfaces, ih);
+
+		final String result1 = worker.addA("Beta");
+		assertEquals("ProxyThisS0: -1", "Beta-1", result1);
+		
+		Object oReturnRefl;
+		try {
+			final Method methodAddA = WorkExampleNonPublic.class.getDeclaredMethod("addA", String.class);
+			oReturnRefl = methodAddA.invoke(worker, "BetaReflection");
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException("Reflection-exception in addA", e);
+		}
+		assertEquals("ProxyThisS0: Refl-1", "BetaReflection-1", oReturnRefl);
 	}
 
 	/**
