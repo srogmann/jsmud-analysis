@@ -774,6 +774,33 @@ public class JvmTests {
 			throw new RuntimeException("Reflection-exception in addA", e);
 		}
 		assertEquals("ProxyThisS0: Refl-1", "BetaReflection-1", oReturnRefl);
+		
+		final InvocationHandler ihMeta = new ProxyThis0Handler(worker).createInvocationHandler();
+		final WorkExampleNonPublic workerMeta = (WorkExampleNonPublic) Proxy.newProxyInstance(cl, aInterfaces, ihMeta);
+		assertEquals("Proxy$0", "Meta-1", workerMeta.addA("Meta"));
+	}
+
+	static class ProxyThis0Handler {
+		WorkExampleNonPublic fProxy;
+		public ProxyThis0Handler(final WorkExampleNonPublic proxy) {
+			fProxy = proxy;
+		}
+
+		public InvocationHandler createInvocationHandler() {
+			return new InvocationHandler() {
+				@Override
+				public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+					final String name = method.getName();
+					if ("addA".equals(name)) {
+						return fProxy.addA((String) args[0]);
+					}
+					else if ("add5".equals(name)) {
+						return Integer.valueOf(fProxy.add5(((Integer) args[1]).intValue()));
+					}
+					return null;
+				}
+			};
+		}
 	}
 
 	/**
