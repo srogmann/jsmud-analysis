@@ -91,6 +91,7 @@ public class JvmTests {
 //		testsLambdaMultipleFunctions();
 //		testsLambdaReuse();
 //		testsLambdaAndSecurity();
+		testsLambdaThreadLocal();
 //		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
@@ -100,7 +101,7 @@ public class JvmTests {
 //		testsCatchException();
 //		testsJavaTime();
 //		testsProxy();
-		testsProxyThisS0();
+//		testsProxyThisS0();
 //		testsProxySuper();
 //		testsProxyViaReflection();
 //		testsProxyViaReflectionMethod();
@@ -651,6 +652,17 @@ public class JvmTests {
 			throw new RuntimeException("Unexpected PAE", e);
 		}
 		assertEquals("AccessController:PrExAc", "65", resultExc);
+	}
+
+	/**
+	 * ThreadLocal-Initializer with package-private class.
+	 */
+	@JsmudTest
+	public void testsLambdaThreadLocal() {
+		final String text = "initWord";
+		final ThreadLocal<TestMethodReference> tl = ThreadLocal.withInitial(() -> new TestMethodReference(text));
+		final TestMethodReference initRef = tl.get();
+		assertEquals("LambdaThreadLocal", text, initRef.getValue());
 	}
 
 	@JsmudTest
@@ -1347,7 +1359,7 @@ public class JvmTests {
 	/**
 	 * Tests of method-references.
 	 */
-	static class TestMethodReference {
+	private static class TestMethodReference {
 		final String value;
 		public TestMethodReference(final String value) {
 			this.value = value;
