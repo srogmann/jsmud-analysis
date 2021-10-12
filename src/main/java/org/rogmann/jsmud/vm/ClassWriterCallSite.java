@@ -6,7 +6,8 @@ import org.objectweb.asm.Type;
 /**
  * ClassWriter for generating classes whose super-class is {@link Object}.
  * 
- * <p>The class is helpful if there are errors in the bytecode-generation of CallSiteGenerator.<p>
+ * <p>The class is helpful if there are errors in the bytecode-generation of CallSiteGenerator
+ * when converting return-types in call-site-method.<p>
  */
 class ClassWriterCallSite extends ClassWriter {
 

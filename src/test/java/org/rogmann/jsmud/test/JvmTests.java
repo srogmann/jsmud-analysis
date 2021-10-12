@@ -90,8 +90,9 @@ public class JvmTests {
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
 //		testsLambdaReuse();
+		testsLambdaCommonSubclass();
 //		testsLambdaAndSecurity();
-		testsLambdaThreadLocal();
+//		testsLambdaThreadLocal();
 //		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
@@ -627,6 +628,16 @@ public class JvmTests {
 			}
 			lastToHex = toHex;
 		}
+	}
+
+	@JsmudTest
+	public void testsLambdaCommonSubclass() {
+		final int a = 5;
+		final int b = 8;
+		// TestConstructor extends TestConstructorBase.
+		final Supplier<TestConstructorBase> supplier = () -> new TestConstructor(a, b);
+		final TestConstructorBase base = supplier.get();
+		assertEquals("LambdaCommonSubclass", Integer.valueOf(5), Integer.valueOf(base.getSumBase()));
 	}
 
 	/** lambda-tests with java.security */
