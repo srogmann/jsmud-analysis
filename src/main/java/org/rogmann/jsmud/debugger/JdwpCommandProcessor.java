@@ -2110,7 +2110,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			offset += field.length();
 		}
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("EventOut: " + printHexBinary(buf, 0, length));
+			LOG.debug(String.format("EventOut (policy=%s, type=%s): %s", policy, eventType, printHexBinary(buf, 0, length)));
 			LOG.debug("EventOut: '" + new String(buf, 0, length, StandardCharsets.ISO_8859_1).replaceAll("[^\u0020-\u007f\u00a0-\u00ff]", "°") + "'");
 		}
 		os.write(buf, 0, length);

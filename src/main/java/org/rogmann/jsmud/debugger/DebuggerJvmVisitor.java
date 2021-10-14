@@ -51,6 +51,11 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(DebuggerJvmVisitor.class);
 
+	/** step-depths */
+	private static final String[] STEP_DEPTHS = { "INTO", "OVER", "OUT" };
+	/** step-sizes */
+	private static final String[] STEP_SIZES = { "MIN", "LINE" };
+
 	/** VM-simulator */
 	private ClassRegistry vm;
 
@@ -204,16 +209,17 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 				final JdwpModifierStep modStep = (JdwpModifierStep) mod;
 				if (vm.getCurrentThreadId().equals(modStep.getThreadID())) {
 					// A step starts.
+					final int ss = modStep.getStepSize();
+					final int sd = modStep.getStepDepth();
 					if (currFrame == null) {
 						if (LOG.isDebugEnabled()) {
-							LOG.debug(String.format("STEP-start (req-id %d, not in execution yet): size=%d, depth=%d",
+							LOG.debug(String.format("STEP-start (req-id %d, not in execution yet): size=%s, depth=%s",
 									Integer.valueOf(evReq.getRequestId()),
-									Integer.valueOf(modStep.getStepSize()),
-									Integer.valueOf(modStep.getStepDepth())));
+									computeName(STEP_SIZES, ss), computeName(STEP_DEPTHS, sd)));
 						}
 					}
 					else {
-						if (modStep.getStepDepth() == JdwpModifierStep.STEP_DEPTH_OUT) {
+						if (sd == JdwpModifierStep.STEP_DEPTH_OUT) {
 							currFrame.eventRequestStepUp = evReq;
 							currFrame.modStepUp = modStep;
 						}
@@ -223,11 +229,10 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 							currFrame.stepLine = currFrame.frame.getCurrLineNum();
 						}
 						if (LOG.isDebugEnabled()) {
-							LOG.debug(String.format("STEP-start (req-id %d, method %s): size=%d, depth=%d, startLine=%d",
+							LOG.debug(String.format("STEP-start (req-id %d, method %s): size=%s, depth=%s, startLine=%d",
 									Integer.valueOf(evReq.getRequestId()),
 									currFrame.frame.getMethod(),
-									Integer.valueOf(modStep.getStepSize()),
-									Integer.valueOf(modStep.getStepDepth()),
+									computeName(STEP_SIZES, ss), computeName(STEP_DEPTHS, sd),
 									Integer.valueOf(currFrame.stepLine)));
 						}
 					}
@@ -235,6 +240,23 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Computes the name of a constant.
+	 * @param sNames array of names
+	 * @param idx index
+	 * @return
+	 */
+	static String computeName(String[] sNames, final int idx) {
+		final String name;
+		if (idx >= 0 && idx < sNames.length) {
+			name = sNames[idx];
+		}
+		else {
+			name = Integer.toString(idx);
+		}
+		return name;
 	}
 
 	/**
@@ -383,8 +405,6 @@ loopEvents:
 					}
 				}
 				if (isThreadOk) {
-					//eventRequests.remove(Integer.valueOf(evReq.getRequestId()));
-					
 					final JdwpSuspendPolicy suspendPolicy = evReq.getSuspendPolicy();
 					sendThreadLocEvent(suspendPolicy, evReq, curThreadId, frame);
 					
@@ -553,7 +573,7 @@ stepSearch:
 			}
 			
 			if ((modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_MIN && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
-					|| (modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_LINE && currFrame.frame.getCurrLineNum() > currFrame.stepLine && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
+					|| (modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_LINE && currFrame.frame.getCurrLineNum() == currFrame.stepLine && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
 					|| (currStepReq != null && modStep.getStepDepth() == JdwpModifierStep.STEP_DEPTH_INTO)) {
 				final VMThreadID threadId = vm.getCurrentThreadId();
 				final MethodFrame curMFrame = currFrame.frame;
@@ -697,6 +717,12 @@ stepSearch:
 						curMFrame.getMethod(), frameClass, Integer.valueOf(curMFrame.getCurrLineNum())));
 			}
 			final VMDataField vIndex = new VMLong(curMFrame.instrNum);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("sendVMEvent: suspPol=%s, type=%s, reqId=0x%x, thread=%s, typeTag=%s, classId=%s, methodId=%s, vIndex=%d, hasReturnObj=%s",
+						suspendPolicy, evReq.getEventType(), Integer.valueOf(evReq.getRequestId()),
+						refTypeBean.getTypeTag(), threadId, classId, methodId,
+						Long.valueOf(curMFrame.instrNum), Boolean.toString(hasReturnObj)));
+			}
 			if (hasReturnObj && currFrame.frame.getMethod() instanceof Method) {
 				Class<?> typeValue = ((Method) currFrame.frame.getMethod()).getReturnType();
 				final VMValue vmReturn = vm.getVMValue(typeValue, objReturn);
