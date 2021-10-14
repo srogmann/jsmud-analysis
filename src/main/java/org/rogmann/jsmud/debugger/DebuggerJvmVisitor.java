@@ -573,7 +573,7 @@ stepSearch:
 			}
 			
 			if ((modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_MIN && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
-					|| (modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_LINE && currFrame.frame.getCurrLineNum() == currFrame.stepLine && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
+					|| (modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_LINE && currFrame.frame.getCurrLineNum() != currFrame.stepLine && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
 					|| (currStepReq != null && modStep.getStepDepth() == JdwpModifierStep.STEP_DEPTH_INTO)) {
 				final VMThreadID threadId = vm.getCurrentThreadId();
 				final MethodFrame curMFrame = currFrame.frame;
