@@ -177,7 +177,12 @@ public class OpcodeDisplay {
 	public static final String lookup(final int opcode) {
 		String name = (opcode >= 0 && opcode < NAMES.length) ? NAMES[opcode] : null;
 		if (name == null) {
-			name = String.format("Opcode_%02x", Integer.valueOf(opcode));
+			if (opcode == -1) {
+				name = "//";
+			}
+			else {
+				name = String.format("Opcode_%02x", Integer.valueOf(opcode));
+			}
 		}
 		return name;
 	}
