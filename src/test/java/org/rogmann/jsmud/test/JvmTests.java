@@ -90,7 +90,8 @@ public class JvmTests {
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
 //		testsLambdaReuse();
-		testsLambdaCommonSubclass();
+//		testsLambdaCommonSubclass();
+		testsLambdaReturnPrivate();
 //		testsLambdaAndSecurity();
 //		testsLambdaThreadLocal();
 //		testsMethodChoosing();
@@ -400,6 +401,7 @@ public class JvmTests {
 		final String packageGen = JsmudGeneratedClasses.class.getName().replaceFirst("[.][^.]*$", "");
 		final String iFctClass = iFkt.getClass().getName();
 		assertTrue("iFkt.class", iFctClass.contains("$Lambda") 
+				|| iFctClass.contains("$jsmudLambda")
 				|| iFctClass.contains("$Proxy")
 				|| iFctClass.startsWith(packageGen));
 	}
@@ -638,6 +640,18 @@ public class JvmTests {
 		final Supplier<TestConstructorBase> supplier = () -> new TestConstructor(a, b);
 		final TestConstructorBase base = supplier.get();
 		assertEquals("LambdaCommonSubclass", Integer.valueOf(5), Integer.valueOf(base.getSumBase()));
+	}
+
+	/** lambda-tests with returning of a private-interface. */
+	@JsmudTest
+	public void testsLambdaReturnPrivate() {
+		final PrivateInterface pi = (s -> "private-" + s);
+		assertEquals("LambdaCommonSubclass", "private-value", pi.apply("value"));
+	}
+
+	/** private interface */
+	private static interface PrivateInterface {
+		String apply(String s);
 	}
 
 	/** lambda-tests with java.security */

@@ -4,10 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.objectweb.asm.ClassWriter;
@@ -34,6 +37,15 @@ public class CallSiteGenerator {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
+	/** number of generated call-site-classes in a original-classloader */
+	private final AtomicInteger COUNTER_CALLSITES_ORIG_CL = new AtomicInteger();
+
+	/** <code>true</code> if an original classloader had been used (e.g. private interface) */
+	private final AtomicBoolean USED_ORIGINAL_CL = new AtomicBoolean(false);
+	
+	/** <code>true</code> if defining of classes in original class-loader is forbidden */
+	private static final boolean DONT_USE_ORIG_CL = Boolean.getBoolean(CallSiteGenerator.class.getName() + ".dontUseOriginalClassLoader");
+
 	/** optional folder used to dump generated class-site-classes */
 	private static final String FOLDER_DUMP_CALL_SITES = System.getProperty(CallSiteGenerator.class.getName() + ".folderCallSites");
 
@@ -52,7 +64,7 @@ public class CallSiteGenerator {
 	/** number of generated call-site-classes */
 	private final AtomicInteger numCallSites = new AtomicInteger();
 
-	// private-lambda-methods can't be access via other packages.
+	// private-lambda-methods can't be access via other packages or other class-loaders.
 	/** default-package of generated call-site-classes */
 	private final String callSitePackage = System.getProperty(CallSiteGenerator.class.getName() + ".callSitePackage",
 			JsmudGeneratedClasses.class.getName().replaceFirst("[.][^.]*$", ""));
@@ -175,22 +187,37 @@ public class CallSiteGenerator {
 			throw new JvmException(String.format("Unexpected return-type of idin-method %s%s in owner-class %s: bsm.tag=%d, bsm.args=%s",
 					idin.name, idin.desc, classOwner, Integer.valueOf(tag), Arrays.toString(idin.bsmArgs)));
 		}
-		// Uncommented code to load the interface-class.
-		//ClassLoader clInterface = classOwner.getClassLoader();
-		//if (clInterface == null) {
-		//	clInterface = classLoader;
-		//}
-		//final Class<?> classIntf;
-		//try {
-		//	classIntf = clInterface.loadClass(typeInterface.getClassName());
-		//} catch (ClassNotFoundException e1) {
-		//	throw new JvmException(String.format("Can't load class (%s) of idin-method %s%s in owner-class %s: bsm.tag=%d, bsm.args=%s",
-		//			typeInterface.getClassName(), idin.name, idin.desc, classOwner, Integer.valueOf(tag), Arrays.toString(idin.bsmArgs)));
-		//}
-		//final String cCallSitePackage = classOwner.getName().replaceFirst("[.][^.]*$", "");
-		final int callSiteIdx = numCallSites.incrementAndGet();
-		final String callSiteName = String.format("%s.CallSite%d_%s", callSitePackage,
-				Integer.valueOf(callSiteIdx), classOwner.getSimpleName());
+		// Load the interface-class.
+		ClassLoader clInterface = classOwner.getClassLoader();
+		if (clInterface == null) {
+			clInterface = classLoader;
+		}
+		final Class<?> classIntf;
+		try {
+			classIntf = clInterface.loadClass(typeInterface.getClassName());
+		} catch (ClassNotFoundException e1) {
+			throw new JvmException(String.format("Can't load class (%s) of idin-method %s%s in owner-class %s: bsm.tag=%d, bsm.args=%s",
+					typeInterface.getClassName(), idin.name, idin.desc, classOwner, Integer.valueOf(tag), Arrays.toString(idin.bsmArgs)));
+		}
+		final String callSiteName;
+		final boolean isInterfacePrivate = Modifier.isPrivate(classIntf.getModifiers());
+		if (isInterfacePrivate) {
+			final int callSiteIdx = COUNTER_CALLSITES_ORIG_CL.incrementAndGet();
+			callSiteName = String.format("%s$jsmudLambda$%d", classOwner.getName(),
+					Integer.valueOf(callSiteIdx));
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("Interface (%s) of call-site in (%s) is private", classIntf, classOwner));
+			}
+			if (DONT_USE_ORIG_CL) {
+				throw new JvmException(String.format("Defining call-sites in original classloader has been disabled (interface %s in %s)",
+						clInterface, classOwner));
+			}
+		}
+		else {
+			final int callSiteIdx = numCallSites.incrementAndGet();
+			callSiteName = String.format("%s.CallSite%d_%s", callSitePackage,
+					Integer.valueOf(callSiteIdx), classOwner.getSimpleName());
+		}
 		// Appending the class-name is not allowed in JRE-classes.
 		//final String callSiteName = String.format("%s$$Lambda$%d", classOwner.getName(),
 		//		Integer.valueOf(callSiteIdx), classOwner.getSimpleName());
@@ -257,7 +284,27 @@ public class CallSiteGenerator {
 						callSiteName, fileCallSiteClass), e);
 			}
 		}
-		final Class<?> classCallSite = classLoader.defineJsmudClass(callSiteName, bufClass);
+		final Class<?> classCallSite;
+		if (isInterfacePrivate) {
+			if (!USED_ORIGINAL_CL.getAndSet(true)) {
+				LOG.error(String.format("Warning: Private interface (%s) in (%s), generate call-site in original class-loader (%s)",
+						classIntf, classOwner, clInterface));
+			}
+			final Object oClassCallSite;
+			try {
+				final Method methodDefine = ClassLoader.class.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class);
+				methodDefine.setAccessible(true);
+				oClassCallSite = methodDefine.invoke(clInterface, callSiteName,
+						bufClass, Integer.valueOf(0), Integer.valueOf(bufClass.length));
+			} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				throw new JvmException(String.format("Error when trying to define a call-site (%s) in original class-loader (%s)",
+						callSiteName, clInterface), e);
+			}
+			classCallSite = (Class<?>) oClassCallSite;
+		}
+		else {
+			classCallSite = classLoader.defineJsmudClass(callSiteName, bufClass);
+		}
 		mapBytecodes.put(classCallSite, bufClass);
 		return classCallSite;
 	}
