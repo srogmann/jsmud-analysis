@@ -71,6 +71,7 @@ public class JvmTests {
 //		testsArray();
 //		testsArrayIndex();
 //		testsExceptionHandling();
+		testsExceptionHandlingFinally();
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
@@ -91,7 +92,7 @@ public class JvmTests {
 //		testsLambdaMultipleFunctions();
 //		testsLambdaReuse();
 //		testsLambdaCommonSubclass();
-		testsLambdaReturnPrivate();
+//		testsLambdaReturnPrivate();
 //		testsLambdaAndSecurity();
 //		testsLambdaThreadLocal();
 //		testsMethodChoosing();
@@ -331,7 +332,36 @@ public class JvmTests {
 		if (method != null) {
 			assertEquals("ExceptionHandling-2b", "getMethod", method.getName());
 		}
+	}
 
+	@JsmudTest
+	public void testsExceptionHandlingFinally() {
+		String s = "i";
+		try {
+			try {
+				s += "-t";
+				Integer.parseInt("Frosch");
+			}
+			catch (NumberFormatException e) {
+				s += "-nfe";
+				throw e;
+			}
+			catch (RuntimeException e) {
+				s += "-rte";
+				throw e;
+			}
+			catch (Exception e) {
+				s += "-e";
+				throw e;
+			}
+			finally {
+				s += "-fin";
+			}
+		}
+		catch (Exception e) {
+			s += "-outerExc";
+		}
+		assertEquals("EHFinally", "i-t-nfe-fin-outerExc", s);
 	}
 
 	private static Method searchMethod(Class<?> clazz, String name) throws NoSuchMethodException {

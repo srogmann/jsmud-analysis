@@ -2691,40 +2691,40 @@ loopDeclMeth:
 		visitor.invokeException(eCause);
 
 		for (final TryCatchBlockNode tcb : method.tryCatchBlocks) {
-			// fLog.println("Check TCB: " + tcb.type + " / " + tcb.start.getLabel() + " - " + tcb.end.getLabel());
-			if (tcb.type == null) {
-				continue;
+			// tcb.type == null: type "any"), e.g. finally-block 
+			if (tcb.type != null) {
+				Class<?> classTcb;
+				try {
+					classTcb = registry.loadClass(tcb.type.replace("/", "."), clazz);
+				} catch (ClassNotFoundException cnfe) {
+					throw new JvmException(String.format("Throwable %s in catch-block of %s is unknown",
+							tcb.type, methodName), cnfe);
+				}
+				if (!classTcb.isAssignableFrom(eCause.getClass())) {
+					continue;
+				}
 			}
-			Class<?> classTcb;
-			try {
-				classTcb = registry.loadClass(tcb.type.replace("/", "."), clazz);
-			} catch (ClassNotFoundException cnfe) {
-				throw new JvmException(String.format("Throwable %s in catch-block of %s is unknown",
-						tcb.type, methodName), cnfe);
+			final Integer instrStart = mapLabel.get(tcb.start.getLabel());
+			final Integer instrEnd = mapLabel.get(tcb.end.getLabel());
+			if (instrStart == null) {
+				throw new JvmException(String.format("Unknown start-label in tcb of %s: %s, %s - %s",
+						methodName, tcb.type, tcb.start.getLabel(), tcb.end.getLabel()));
 			}
-			if (classTcb.isAssignableFrom(eCause.getClass())) {
-				final Integer instrStart = mapLabel.get(tcb.start.getLabel());
-				final Integer instrEnd = mapLabel.get(tcb.end.getLabel());
-				if (instrStart == null) {
-					throw new JvmException(String.format("Unknown start-label in tcb of %s: %s, %s - %s",
-							methodName, tcb.type, tcb.start.getLabel(), tcb.end.getLabel()));
+			if (instrEnd == null) {
+				throw new JvmException(String.format("Unknown end-label in tcb of %s: %s, %s - %s",
+						methodName, tcb.type, tcb.start.getLabel(), tcb.end.getLabel()));
+			}
+			if (instrStart.intValue() <= instrNum && instrNum < instrEnd.intValue()) {
+				final Integer instrHandler = mapLabel.get(tcb.handler.getLabel());
+				if (instrHandler == null) {
+					throw new JvmException(String.format("Unknown handler-label (%s) in tcb of %s: %s, %s - %s",
+							tcb.handler.getLabel(), methodName,
+							tcb.type, tcb.start.getLabel(), tcb.end.getLabel()));
 				}
-				if (instrEnd == null) {
-					throw new JvmException(String.format("Unknown end-label in tcb of %s: %s, %s - %s",
-							methodName, tcb.type, tcb.start.getLabel(), tcb.end.getLabel()));
-				}
-				if (instrStart.intValue() <= instrNum && instrNum < instrEnd.intValue()) {
-					final Integer instrHandler = mapLabel.get(tcb.handler.getLabel());
-					if (instrHandler == null) {
-						throw new JvmException(String.format("Unknown handler-label (%s) in tcb of %s: %s, %s - %s",
-								tcb.handler.getLabel(), methodName,
-								tcb.type, tcb.start.getLabel(), tcb.end.getLabel()));
-					}
-					stack.clear();
-					stack.push(eCause);
-					instrNum = instrHandler.intValue();
-					return true; // continue while
-				}
+				stack.clear();
+				stack.push(eCause);
+				instrNum = instrHandler.intValue();
+				return true; // continue while
 			}
 		}
 		return false;
