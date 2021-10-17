@@ -84,7 +84,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			catch (JvmUncaughtException e) {
 				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e.getCause()));
 				if (doContinueWhile.booleanValue()) {
-					doContinueWhile = Boolean.TRUE;
+					return Boolean.TRUE;
 				}
 				// This exception isn't handled here.
 				throw e;
@@ -92,7 +92,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			catch (Exception e) {
 				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e));
 				if (doContinueWhile.booleanValue()) {
-					doContinueWhile = Boolean.TRUE;
+					return Boolean.TRUE;
 				}
 				// This exception isn't handled here.
 				throw e;

@@ -71,7 +71,7 @@ public class JvmTests {
 //		testsArray();
 //		testsArrayIndex();
 //		testsExceptionHandling();
-		testsExceptionHandlingFinally();
+//		testsExceptionHandlingFinally();
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
@@ -115,7 +115,7 @@ public class JvmTests {
 //		testsReflection();
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
-//		testsClassForName();
+		testsClassForName();
 //		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}
@@ -1198,6 +1198,16 @@ public class JvmTests {
 		// We expect that the class-loaders are identical: Either both application-classloader or
 		// both JsmudClassLoader.
 		assertEquals("Test Class.forName class-loader", JvmTests.class.getClassLoader(), classJvmTests.getClassLoader());
+		
+		String s;
+		try {
+			// Spring checks for classes in this way.
+			Class.forName("nothing.ThisClassDoesntExist");
+			s = "unexpected";
+		} catch (ClassNotFoundException e) {
+			s = "expectedCNFE";
+		}
+		assertEquals("Test CNFE", "expectedCNFE", s);
 	}
 
 	@JsmudTest
