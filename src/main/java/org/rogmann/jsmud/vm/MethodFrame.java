@@ -417,9 +417,9 @@ whileInstr:
 					break;
 				}
 				case 0x13: // 0x13, via LDC in ASM
-					throw new UnsupportedOperationException("Opcode 0x13 (Opcode_13) not yet supported, expected LDC.");
+					throw new JvmException("Opcode 0x13 (Opcode_13) not yet supported, expected LDC.");
 				case 0x14: // 0x14, via LDC in ASM
-					throw new UnsupportedOperationException("Opcode 0x14 (Opcode_14) not yet supported, expected LDC.");
+					throw new JvmException("Opcode 0x14 (Opcode_14) not yet supported, expected LDC.");
 				case Opcodes.ILOAD: // 0x15
 					stack.push(aLocals[((VarInsnNode) instr).var]);
 					break;
@@ -436,45 +436,45 @@ whileInstr:
 					stack.push(aLocals[((VarInsnNode) instr).var]);
 					break;
 				case 0x1a: // 0x1a, via ILOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x1a (Opcode_1a) not yet supported, expected ILOAD.");
+					throw new JvmException("Opcode 0x1a (Opcode_1a) not yet supported, expected ILOAD.");
 				case 0x1b: // 0x1b, via ILOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x1b (Opcode_1b) not yet supported, expected ILOAD.");
+					throw new JvmException("Opcode 0x1b (Opcode_1b) not yet supported, expected ILOAD.");
 				case 0x1c: // 0x1c, via ILOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x1c (Opcode_1c) not yet supported, expected ILOAD.");
+					throw new JvmException("Opcode 0x1c (Opcode_1c) not yet supported, expected ILOAD.");
 				case 0x1d: // 0x1d, via ILOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x1d (Opcode_1d) not yet supported, expected ILOAD.");
+					throw new JvmException("Opcode 0x1d (Opcode_1d) not yet supported, expected ILOAD.");
 				case 0x1e: // 0x1e, via LLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x1e (Opcode_1e) not yet supported, expected LLOAD.");
+					throw new JvmException("Opcode 0x1e (Opcode_1e) not yet supported, expected LLOAD.");
 				case 0x1f: // 0x1f, via LLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x1f (Opcode_1f) not yet supported, expected LLOAD.");
+					throw new JvmException("Opcode 0x1f (Opcode_1f) not yet supported, expected LLOAD.");
 				case 0x20: // 0x20, via LLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x20 (Opcode_20) not yet supported, expected LLOAD.");
+					throw new JvmException("Opcode 0x20 (Opcode_20) not yet supported, expected LLOAD.");
 				case 0x21: // 0x21, via LLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x21 (Opcode_21) not yet supported, expected LLOAD.");
+					throw new JvmException("Opcode 0x21 (Opcode_21) not yet supported, expected LLOAD.");
 				case 0x22: // 0x22, via FLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x22 (Opcode_22) not yet supported, expected FLOAD.");
+					throw new JvmException("Opcode 0x22 (Opcode_22) not yet supported, expected FLOAD.");
 				case 0x23: // 0x23, via FLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x23 (Opcode_23) not yet supported, expected FLOAD.");
+					throw new JvmException("Opcode 0x23 (Opcode_23) not yet supported, expected FLOAD.");
 				case 0x24: // 0x24, via FLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x24 (Opcode_24) not yet supported, expected FLOAD.");
+					throw new JvmException("Opcode 0x24 (Opcode_24) not yet supported, expected FLOAD.");
 				case 0x25: // 0x25, via FLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x25 (Opcode_25) not yet supported, expected FLOAD.");
+					throw new JvmException("Opcode 0x25 (Opcode_25) not yet supported, expected FLOAD.");
 				case 0x26: // 0x26, via DLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x26 (Opcode_26) not yet supported, expected DLOAD.");
+					throw new JvmException("Opcode 0x26 (Opcode_26) not yet supported, expected DLOAD.");
 				case 0x27: // 0x27, via DLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x27 (Opcode_27) not yet supported, expected DLOAD.");
+					throw new JvmException("Opcode 0x27 (Opcode_27) not yet supported, expected DLOAD.");
 				case 0x28: // 0x28, via DLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x28 (Opcode_28) not yet supported, expected DLOAD.");
+					throw new JvmException("Opcode 0x28 (Opcode_28) not yet supported, expected DLOAD.");
 				case 0x29: // 0x29, via DLOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x29 (Opcode_29) not yet supported, expected DLOAD.");
+					throw new JvmException("Opcode 0x29 (Opcode_29) not yet supported, expected DLOAD.");
 				case 0x2a: // 0x2a, via ALOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x2a (Opcode_2a) not yet supported, expected ALOAD.");
+					throw new JvmException("Opcode 0x2a (Opcode_2a) not yet supported, expected ALOAD.");
 				case 0x2b: // 0x2b, via ALOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x2b (Opcode_2b) not yet supported, expected ALOAD.");
+					throw new JvmException("Opcode 0x2b (Opcode_2b) not yet supported, expected ALOAD.");
 				case 0x2c: // 0x2c, via ALOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x2c (Opcode_2c) not yet supported, expected ALOAD.");
+					throw new JvmException("Opcode 0x2c (Opcode_2c) not yet supported, expected ALOAD.");
 				case 0x2d: // 0x2d, via ALOAD in ASM
-					throw new UnsupportedOperationException("Opcode 0x2d (Opcode_2d) not yet supported, expected ALOAD.");
+					throw new JvmException("Opcode 0x2d (Opcode_2d) not yet supported, expected ALOAD.");
 				case Opcodes.IALOAD: // 0x2e
 					{
 						final int index = ((Integer) stack.pop()).intValue();
@@ -629,45 +629,45 @@ whileInstr:
 					aLocals[((VarInsnNode) instr).var] = stack.pop();
 					break;
 				case 0x3b: // 0x3b, via ISTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x3b (Opcode_3b) not yet supported, expected ISTORE.");
+					throw new JvmException("Opcode 0x3b (Opcode_3b) not yet supported, expected ISTORE.");
 				case 0x3c: // 0x3c, via ISTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x3c (Opcode_3c) not yet supported, expected ISTORE.");
+					throw new JvmException("Opcode 0x3c (Opcode_3c) not yet supported, expected ISTORE.");
 				case 0x3d: // 0x3d, via ISTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x3d (Opcode_3d) not yet supported, expected ISTORE.");
+					throw new JvmException("Opcode 0x3d (Opcode_3d) not yet supported, expected ISTORE.");
 				case 0x3e: // 0x3e, via ISTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x3e (Opcode_3e) not yet supported, expected ISTORE.");
+					throw new JvmException("Opcode 0x3e (Opcode_3e) not yet supported, expected ISTORE.");
 				case 0x3f: // 0x3f, via LSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x3f (Opcode_3f) not yet supported, expected LSTORE.");
+					throw new JvmException("Opcode 0x3f (Opcode_3f) not yet supported, expected LSTORE.");
 				case 0x40: // 0x40, via LSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x40 (Opcode_40) not yet supported, expected LSTORE.");
+					throw new JvmException("Opcode 0x40 (Opcode_40) not yet supported, expected LSTORE.");
 				case 0x41: // 0x41, via LSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x41 (Opcode_41) not yet supported, expected LSTORE.");
+					throw new JvmException("Opcode 0x41 (Opcode_41) not yet supported, expected LSTORE.");
 				case 0x42: // 0x42, via LSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x42 (Opcode_42) not yet supported, expected LSTORE.");
+					throw new JvmException("Opcode 0x42 (Opcode_42) not yet supported, expected LSTORE.");
 				case 0x43: // 0x43, via FSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x43 (Opcode_43) not yet supported, expected FSTORE.");
+					throw new JvmException("Opcode 0x43 (Opcode_43) not yet supported, expected FSTORE.");
 				case 0x44: // 0x44, via FSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x44 (Opcode_44) not yet supported, expected FSTORE.");
+					throw new JvmException("Opcode 0x44 (Opcode_44) not yet supported, expected FSTORE.");
 				case 0x45: // 0x45, via FSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x45 (Opcode_45) not yet supported, expected FSTORE.");
+					throw new JvmException("Opcode 0x45 (Opcode_45) not yet supported, expected FSTORE.");
 				case 0x46: // 0x46, via FSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x46 (Opcode_46) not yet supported, expected FSTORE.");
+					throw new JvmException("Opcode 0x46 (Opcode_46) not yet supported, expected FSTORE.");
 				case 0x47: // 0x47, via DSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x47 (Opcode_47) not yet supported, expected DSTORE.");
+					throw new JvmException("Opcode 0x47 (Opcode_47) not yet supported, expected DSTORE.");
 				case 0x48: // 0x48, via DSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x48 (Opcode_48) not yet supported, expected DSTORE.");
+					throw new JvmException("Opcode 0x48 (Opcode_48) not yet supported, expected DSTORE.");
 				case 0x49: // 0x49, via DSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x49 (Opcode_49) not yet supported, expected DSTORE.");
+					throw new JvmException("Opcode 0x49 (Opcode_49) not yet supported, expected DSTORE.");
 				case 0x4a: // 0x4a, via DSTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x4a (Opcode_4a) not yet supported, expected DSTORE.");
+					throw new JvmException("Opcode 0x4a (Opcode_4a) not yet supported, expected DSTORE.");
 				case 0x4b: // 0x4b, via ASTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x4b (Opcode_4b) not yet supported, expected ASTORE.");
+					throw new JvmException("Opcode 0x4b (Opcode_4b) not yet supported, expected ASTORE.");
 				case 0x4c: // 0x4c, via ASTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x4c (Opcode_4c) not yet supported, expected ASTORE.");
+					throw new JvmException("Opcode 0x4c (Opcode_4c) not yet supported, expected ASTORE.");
 				case 0x4d: // 0x4d, via ASTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x4d (Opcode_4d) not yet supported, expected ASTORE.");
+					throw new JvmException("Opcode 0x4d (Opcode_4d) not yet supported, expected ASTORE.");
 				case 0x4e: // 0x4e, via ASTORE in ASM
-					throw new UnsupportedOperationException("Opcode 0x4e (Opcode_4e) not yet supported, expected ASTORE.");
+					throw new JvmException("Opcode 0x4e (Opcode_4e) not yet supported, expected ASTORE.");
 				case Opcodes.IASTORE: // 0x4f
 					{
 						final int value = ((Integer) stack.pop()).intValue();
@@ -1455,9 +1455,9 @@ whileInstr:
 						continue whileInstr;
 					}
 				case Opcodes.JSR: // 0xa8
-					throw new UnsupportedOperationException("Opcode 0xa8 (JSR) not yet supported.");
+					throw new JvmException("Opcode 0xa8 (JSR) not yet supported.");
 				case Opcodes.RET: // 0xa9
-					throw new UnsupportedOperationException("Opcode 0xa9 (RET) not yet supported.");
+					throw new JvmException("Opcode 0xa9 (RET) not yet supported.");
 				case Opcodes.TABLESWITCH: // 0xaa
 				{
 					final TableSwitchInsnNode tsi = (TableSwitchInsnNode) instr;
@@ -1822,7 +1822,7 @@ whileInstr:
 					break;
 				}
 				case 0xc4: // 0xc4
-					throw new UnsupportedOperationException("Opcode 0xc4 (Opcode_c4) not yet supported.");
+					throw new JvmException("Opcode 0xc4 (Opcode_c4) not yet supported.");
 				case Opcodes.MULTIANEWARRAY: // 0xc5
 				{
 					final MultiANewArrayInsnNode manai = (MultiANewArrayInsnNode) instr;
