@@ -1455,9 +1455,42 @@ whileInstr:
 						continue whileInstr;
 					}
 				case Opcodes.JSR: // 0xa8
-					throw new JvmException("Opcode 0xa8 (JSR) not yet supported.");
+				{
+					final JumpInsnNode ji = (JumpInsnNode) instr;
+					final JvmReturnAddress returnAddress = new JvmReturnAddress(instrNum + 1);
+					stack.push(returnAddress);
+
+					final Label labelDest = ji.label.getLabel();
+					final Integer instrLabel = mapLabel.get(labelDest);
+					assert instrLabel != null : "unknown label " + labelDest;
+					
+					instrNum = instrLabel.intValue();
+					continue whileInstr;
+				}
 				case Opcodes.RET: // 0xa9
-					throw new JvmException("Opcode 0xa9 (RET) not yet supported.");
+				{
+					final VarInsnNode vi = (VarInsnNode) instr;
+					final JvmReturnAddress returnAddress;
+					final Object oReturnAddress;
+					try {
+						oReturnAddress = aLocals[vi.var];
+					} catch (ArrayIndexOutOfBoundsException e) {
+						throw new JvmException(String.format("Unexpected local-var-index (%d) in RET-instruction, #local=%d",
+								Integer.valueOf(vi.var), Integer.valueOf(aLocals.length)));
+					}
+					try {
+						returnAddress = (JvmReturnAddress) oReturnAddress;
+					} catch (ClassCastException e) {
+						throw new JvmException(String.format("Unexpected value (%s) instead of returnAddress in RET %d-instruction",
+								oReturnAddress, Integer.valueOf(vi.var)));
+					}
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("RET %d: jump to instr 0x%02x",
+								Integer.valueOf(vi.var), Integer.valueOf(returnAddress.getAddress())));
+					}
+					instrNum = returnAddress.getAddress();
+					continue whileInstr;
+				}
 				case Opcodes.TABLESWITCH: // 0xaa
 				{
 					final TableSwitchInsnNode tsi = (TableSwitchInsnNode) instr;
