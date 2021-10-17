@@ -675,11 +675,13 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			}
 			else {
 				vm.disableCollection(cObjectId, vmObject);
+				sendReplyData(id);
 			}
 		}
 		else if (cmd == JdwpCommand.ENABLE_COLLECTION) {
 			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
 			vm.enableCollection(cObjectId);
+			sendReplyData(id);
 		}
 		else if (cmd == JdwpCommand.IS_COLLECTED) {
 			final VMObjectID cObjectId = new VMObjectID(cmdBuf.readLong());
