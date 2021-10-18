@@ -72,7 +72,14 @@ import org.rogmann.jsmud.vm.VM;
 public class JdwpCommandProcessor implements DebuggerInterface {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JdwpCommandProcessor.class);
-	
+
+	/** Java 1.8 */
+	static final int MAJOR_VERSION_1_8 = 52;
+	/** Java 11 */
+	static final int MAJOR_VERSION_11 = 55;
+	/** Java 17 */
+	static final int MAJOR_VERSION_17 = 61;
+
 	/** Buffer containing Handshake-eyecatcher "JDWP-Handshake" */
 	private static final byte[] BUF_HANDSHAKE = "JDWP-Handshake".getBytes(StandardCharsets.US_ASCII);
 	
@@ -301,8 +308,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			final VMThreadID threadId) throws IOException {
 		if (cmd == JdwpCommand.VERSION) {
 			String description = ClassRegistry.VERSION;
-			int jdwpMajor = 1;
-			int jdwpMinor = 8;
+			int jdwpMajor = MAJOR_VERSION_1_8;
+			int jdwpMinor = 0;
 			String vmVersion = System.getProperty("java.version");
 			String vmName = System.getProperty("java.vm.name");
 			sendReplyData(id, new VMString(description),
