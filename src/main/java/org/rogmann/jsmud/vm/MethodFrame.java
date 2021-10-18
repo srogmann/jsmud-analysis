@@ -2849,7 +2849,7 @@ loopDeclMeth:
 				sValue = convertDeclTypeIntoJvmType(curType, sValue);
 				aLocals[j] = sValue;
 			} catch (ArrayIndexOutOfBoundsException e) {
-				throw new ArrayIndexOutOfBoundsException(String.format("Stack small (%s): i=%d, j=%d, argDefs=%s, aLocals.length=%d, stack=(%s), method=%s",
+				throw new JvmException(String.format("Stack small (%s): i=%d, j=%d, argDefs=%s, aLocals.length=%d, stack=(%s), method=%s",
 						e.getMessage(), Integer.valueOf(i), Integer.valueOf(j),
 						Arrays.toString(argDefs), Integer.valueOf(aLocals.length), args, pMethod));
 			}
