@@ -313,17 +313,17 @@ public class ClassRegistry implements VM, ObjectMonitor {
 					LOG.debug(String.format("load class (%s) via (%s)", className, classLoaderClass));
 				}
 			}
-			if (classLoaderDefault instanceof JsmudClassLoader) {
-				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoaderDefault;
-				clazz = jsmudClassLoader.findClass(className, classLoaderClass);
-			}
-			else if (className.charAt(0) == '[') {
+			if (className.charAt(0) == '[') {
 				final Type type = Type.getObjectType(className);
 				final int dims = type.getDimensions();
 				final int[] aDims = new int[dims];
 				final Class<?> elClass = MethodFrame.getClassArrayViaType(type, this, ctxClass);
 				final Object oArray = Array.newInstance(elClass, aDims);
 				clazz = oArray.getClass();
+			}
+			else if (classLoaderDefault instanceof JsmudClassLoader) {
+				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoaderDefault;
+				clazz = jsmudClassLoader.findClass(className, classLoaderClass);
 			}
 			else {
 				try {
@@ -1578,8 +1578,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			dfResAndExc[0] = new VMValue(tag.getTag(), dfValue);
 			dfResAndExc[1] = new VMTaggedObjectId(new VMObjectID(0L));
 			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("Execute: oResult=%s, result=%s.%s",
-						oResult, tag, dfResAndExc[0]));
+				LOG.debug(String.format("Execute: oResult=%s, result=%s",
+						oResult, dfResAndExc[0]));
 			}
 		}
 		catch (IllegalAccessException | IllegalArgumentException e) {
