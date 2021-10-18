@@ -78,6 +78,7 @@ public class JvmTests {
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
+		testsLambdaInterfaceMethodReferences();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
 //		testsLambdaSpecialAndThen();
@@ -115,7 +116,7 @@ public class JvmTests {
 //		testsReflection();
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
-		testsClassForName();
+//		testsClassForName();
 //		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}
@@ -226,7 +227,8 @@ public class JvmTests {
 		assertEquals("m ^ n", Long.valueOf(7L), Long.valueOf(m ^ n));
 		assertEquals("n % m", Long.valueOf(3L), Long.valueOf(n % m));
 		
-		assertEquals("long-test 4096", Long.valueOf(4096L), Long.valueOf(testsLong2(6L, 9L, 0L, 4L)));
+		final Long val4096Expected = Long.valueOf(4096L);
+		assertEquals("long-test 4096", val4096Expected, Long.valueOf(testsLong2(6L, 9L, 0L, 4L)));
 	}
 	
 	/**
@@ -477,6 +479,21 @@ public class JvmTests {
 
 		final Supplier<String> supplierTriple = supplierDoubled::get;
 		assertEquals("obj::method::method::method", "cat", supplierTriple.get());
+	}
+
+	/**
+	 * Example of a lambda-function with method-references on an interface.
+	 */
+	@JsmudTest
+	public void testsLambdaInterfaceMethodReferences() {
+		// instance::instanceMethod, bsm_tag H_INVOKEVIRTUAL.
+		final SimpleConcat sc = (s -> s.concat("-cat"));
+		final Function<String, String> fct = sc::add;
+		assertEquals("intf::method", "meow-cat", fct.apply("meow"));
+	}
+
+	static interface SimpleConcat {
+		String add(String s);
 	}
 
 	/**
@@ -1421,14 +1438,19 @@ public class JvmTests {
 		String executeMethod(String a, String b);
 	}
 
+	static interface TestMethodInterface {
+		String getValue();
+	}
+
 	/**
 	 * Tests of method-references.
 	 */
-	private static class TestMethodReference {
+	private static class TestMethodReference implements TestMethodInterface {
 		final String value;
 		public TestMethodReference(final String value) {
 			this.value = value;
 		}
+		@Override
 		public String getValue() {
 			return value;
 		}

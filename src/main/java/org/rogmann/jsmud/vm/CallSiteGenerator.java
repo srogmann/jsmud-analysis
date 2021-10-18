@@ -200,8 +200,9 @@ public class CallSiteGenerator {
 					typeInterface.getClassName(), idin.name, idin.desc, classOwner, Integer.valueOf(tag), Arrays.toString(idin.bsmArgs)));
 		}
 		final String callSiteName;
-		final boolean isInterfacePrivate = Modifier.isPrivate(classIntf.getModifiers());
-		if (isInterfacePrivate) {
+		final boolean isInterfacePrivateOrPackage = !(Modifier.isPublic(classIntf.getModifiers())
+				|| Modifier.isProtected(classIntf.getModifiers()));
+		if (isInterfacePrivateOrPackage) {
 			final int callSiteIdx = COUNTER_CALLSITES_ORIG_CL.incrementAndGet();
 			callSiteName = String.format("%s$jsmudLambda$%d", classOwner.getName(),
 					Integer.valueOf(callSiteIdx));
@@ -285,7 +286,7 @@ public class CallSiteGenerator {
 			}
 		}
 		final Class<?> classCallSite;
-		if (isInterfacePrivate) {
+		if (isInterfacePrivateOrPackage) {
 			if (!USED_ORIGINAL_CL.getAndSet(true)) {
 				LOG.error(String.format("Warning: Private interface (%s) in (%s), generate call-site in original class-loader (%s)",
 						classIntf, classOwner, clInterface));
