@@ -64,7 +64,7 @@ public class JvmTests {
 //		testsBoolean();
 //		testsByte();
 //		testsChar();
-//		testsShort();
+		testsShort();
 //		testsLong();
 //		testsFloat();
 //		testsDouble();
@@ -75,7 +75,7 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
-		testsLambdaOnArray();
+//		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
@@ -209,8 +209,15 @@ public class JvmTests {
 		final short[] aShorts = { a, b, SHORT_20000, 0 }; // SASTORE
 		aShorts[3] = aShorts[1];
 		assertEquals("short[3]", Short.valueOf((short) -1), Short.valueOf(aShorts[3]));
+
+		final int iShort_minus1 = Integer.parseInt("65535");
+		final short sMinus1 = (short) iShort_minus1; // I2S
+		final int iSum = sMinus1 + (-1);
+		assertEquals("short ((short)65535)-1", Integer.valueOf((short) -2), Integer.valueOf(iSum));
+		final int iMinus1 = sMinus1;
+		assertEquals("short (int)(short)-1)", Integer.valueOf(-1), Integer.valueOf(iMinus1));
 	}
-	
+
 	static short doubleShort(short a) {
 		return (short) (2 * a);
 	}

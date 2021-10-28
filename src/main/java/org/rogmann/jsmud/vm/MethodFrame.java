@@ -1161,7 +1161,8 @@ whileInstr:
 					stack.push(Integer.valueOf((char) ((Integer) stack.pop()).intValue()) );
 					break;
 				case Opcodes.I2S: // 0x93
-					stack.push(Short.valueOf(((Integer) stack.pop()).shortValue()) );
+					// truncation of int into short and sign-extension to an int-result.
+					stack.push(Integer.valueOf(((Integer) stack.pop()).shortValue()) );
 					break;
 				case Opcodes.LCMP: // 0x94
 				{
