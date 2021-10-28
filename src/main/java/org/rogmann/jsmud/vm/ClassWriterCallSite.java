@@ -11,7 +11,7 @@ import org.objectweb.asm.Type;
  */
 class ClassWriterCallSite extends ClassWriter {
 
-	/** default class-loader */
+	/** class-loader of the call-site's owner-class */
 	private ClassLoader classLoader;
 	/** internal name of class to be generated */
 	private String classNameInt;
@@ -20,7 +20,7 @@ class ClassWriterCallSite extends ClassWriter {
 	 * Constructs a new {@link ClassWriter} object.
 	 * @param flags option flags that can be used to modify the default behavior of this class. Must
 	 *     be zero or more of {@link #COMPUTE_MAXS} and {@link #COMPUTE_FRAMES}.
-	 * @param classLoader default class-loader
+	 * @param classLoader class-loader of the call-site's owner-class
 	 * @param classNameInt internal name of the class to be generated
 	 */
 	public ClassWriterCallSite(final int flags, final ClassLoader classLoader, final String classNameInt) {

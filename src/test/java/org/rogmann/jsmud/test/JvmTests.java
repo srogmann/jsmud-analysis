@@ -75,7 +75,7 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
-		testsLambdaOnArray();
+//		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
@@ -93,7 +93,7 @@ public class JvmTests {
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
 //		testsLambdaReuse();
-//		testsLambdaCommonSubclass();
+		testsLambdaCommonSubclass();
 //		testsLambdaReturnPrivate();
 //		testsLambdaAndSecurity();
 //		testsLambdaThreadLocal();
@@ -707,13 +707,20 @@ public class JvmTests {
 		final Supplier<TestConstructorBase> supplier = () -> new TestConstructor(a, b);
 		final TestConstructorBase base = supplier.get();
 		assertEquals("LambdaCommonSubclass", Integer.valueOf(5), Integer.valueOf(base.getSumBase()));
+		
+		// Calls org.rogmann.jsmud.vm.ClassWriterCallSite.getCommonSuperClass(String, String) with
+		// TestExtendedConsumerImpl and TestExtendedConsumerImpl.
+		final TestExtendedConsumerSupplier<TestExtendedConsumerImpl> supplierT = () -> new TestExtendedConsumerImpl();
+		final TestExtendedConsumer extConsumer = supplierT.get();
+		extConsumer.accept("JSB");
+		assertEquals("LambdaCommonSubclass/TEC", "JSB", extConsumer.getName());
 	}
 
 	/** lambda-tests with returning of a private-interface. */
 	@JsmudTest
 	public void testsLambdaReturnPrivate() {
 		final PrivateInterface pi = (s -> "private-" + s);
-		assertEquals("LambdaCommonSubclass", "private-value", pi.apply("value"));
+		assertEquals("LambdaReturnPrivate", "private-value", pi.apply("value"));
 	}
 
 	/** private interface */
@@ -1318,6 +1325,10 @@ public class JvmTests {
 		String getName();
 	}
 
+	public interface TestExtendedConsumerSupplier<T extends TestExtendedConsumer> {
+		T get();
+	}
+
 	/**
 	 * Test-class for getting an instance of TestExtendedConsumer.
 	 */
@@ -1333,6 +1344,10 @@ public class JvmTests {
 		public String getName() {
 			return name;
 		}
+	}
+
+	TestExtendedConsumer getExtendedConsumer() {
+		return new TestExtendedConsumerImpl();
 	}
 
 	/**
