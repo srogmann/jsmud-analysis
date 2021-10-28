@@ -75,10 +75,11 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
+		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
-		testsLambdaInterfaceMethodReferences();
+//		testsLambdaInterfaceMethodReferences();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
 //		testsLambdaSpecialAndThen();
@@ -436,6 +437,18 @@ public class JvmTests {
 				|| iFctClass.contains("$jsmudLambda")
 				|| iFctClass.contains("$Proxy")
 				|| iFctClass.startsWith(packageGen));
+	}
+
+	@JsmudTest
+	public void testsLambdaOnArray() {
+		final Function<int[], Integer> intArrLen = (a -> Integer.valueOf(a.length));
+		
+		final int[] ints = { 5, 6, 7};
+		assertEquals("testLambdaOnArray1", Integer.valueOf(3), intArrLen.apply(ints));
+
+		final IntConsumer intsClearer = i -> {ints[i] = 0;};
+		intsClearer.accept(1);
+		assertEquals("testLambdaOnArray2", Integer.valueOf(0), Integer.valueOf(ints[1]));
 	}
 
 	@JsmudTest
