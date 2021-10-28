@@ -109,6 +109,10 @@ public class CallSiteContext {
 			for (int i = 0; i < args.length; i++) {
 				stack.push(args[i]);
 			}
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("executeMethod: opcode=%s, method=%s, %s",
+						OpcodeDisplay.lookup(opcodeInvoke), method, stack));
+			}
 			objReturn = executor.executeMethod(opcodeInvoke, method, methodHandle.getDesc(), stack);
 		}
 		return objReturn;
