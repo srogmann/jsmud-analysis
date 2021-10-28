@@ -97,6 +97,7 @@ I wrote this project in my free time and I like my free time so support is given
  * [ASM, the all purpose Java bytecode manipulation and analysis framework](https://asm.ow2.io/)
 
 ## Changelog
+ * V 0.4.1, 2021-10-28: Simulation of SwitchBootstraps (used in pattern-matching for switch), bugfixes (class-loading, AIOOBE-handling, I2S-instruction, ...), implementation of jdwp-command ObjectReference/SetValues.
  * V 0.4.0, 2021-09-26: Respect several threads, hot-code-replace while debugging.
  * V 0.3.0, 2021-08-30: Switch to using generated class-files as INVOKEDYNAMIC-call-sites. On-the-fly-disassembler for debugging bytecode.
  * V 0.2.4, 2021-08-01: Optional method-call-trace, mock-support of AccessController, classloader-determination in INVOKEDYNAMIC, bug-fixes (see history).
