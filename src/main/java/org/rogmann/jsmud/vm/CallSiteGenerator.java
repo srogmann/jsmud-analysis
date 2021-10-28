@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Handle;
@@ -38,10 +39,10 @@ public class CallSiteGenerator {
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
 	/** number of generated call-site-classes in a original-classloader */
-	private final AtomicInteger COUNTER_CALLSITES_ORIG_CL = new AtomicInteger();
+	private static final AtomicLong COUNTER_CALLSITES_ORIG_CL = new AtomicLong();
 
 	/** <code>true</code> if an original classloader had been used (e.g. private interface) */
-	private final AtomicBoolean USED_ORIGINAL_CL = new AtomicBoolean(false);
+	private final AtomicBoolean usedOriginalCl = new AtomicBoolean(false);
 	
 	/** <code>true</code> if defining of classes in original class-loader is forbidden */
 	private static final boolean DONT_USE_ORIG_CL = Boolean.getBoolean(CallSiteGenerator.class.getName() + ".dontUseOriginalClassLoader");
@@ -203,9 +204,9 @@ public class CallSiteGenerator {
 		final boolean isInterfacePrivateOrPackage = !(Modifier.isPublic(classIntf.getModifiers())
 				|| Modifier.isProtected(classIntf.getModifiers()));
 		if (isInterfacePrivateOrPackage) {
-			final int callSiteIdx = COUNTER_CALLSITES_ORIG_CL.incrementAndGet();
+			final long callSiteIdx = COUNTER_CALLSITES_ORIG_CL.incrementAndGet();
 			callSiteName = String.format("%s$jsmudLambda$%d", classOwner.getName(),
-					Integer.valueOf(callSiteIdx));
+					Long.valueOf(callSiteIdx));
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Interface (%s) of call-site in (%s) is private", classIntf, classOwner));
 			}
@@ -287,7 +288,7 @@ public class CallSiteGenerator {
 		}
 		final Class<?> classCallSite;
 		if (isInterfacePrivateOrPackage) {
-			if (!USED_ORIGINAL_CL.getAndSet(true)) {
+			if (!usedOriginalCl.getAndSet(true)) {
 				LOG.error(String.format("Warning: Private interface (%s) in (%s), generate call-site in original class-loader (%s)",
 						classIntf, classOwner, clInterface));
 			}
@@ -686,6 +687,12 @@ public class CallSiteGenerator {
 	 */
 	public static void loadLocalVariable(final MethodVisitor mv, final int indexInLocals, final Type arg, final Type argCompile) throws JvmException {
 		if (arg.getSort() == Type.OBJECT) {
+			mv.visitVarInsn(Opcodes.ALOAD, indexInLocals);
+			if (argCompile != null && "java/lang/Object".equals(arg.getInternalName()) && !arg.equals(argCompile)) {
+				mv.visitTypeInsn(Opcodes.CHECKCAST, argCompile.getInternalName());
+			}
+		}
+		else if (arg.getSort() == Type.ARRAY) {
 			mv.visitVarInsn(Opcodes.ALOAD, indexInLocals);
 			if (argCompile != null && "java/lang/Object".equals(arg.getInternalName()) && !arg.equals(argCompile)) {
 				mv.visitTypeInsn(Opcodes.CHECKCAST, argCompile.getInternalName());

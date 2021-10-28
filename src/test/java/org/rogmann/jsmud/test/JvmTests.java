@@ -64,7 +64,7 @@ public class JvmTests {
 //		testsBoolean();
 //		testsByte();
 //		testsChar();
-		testsShort();
+//		testsShort();
 //		testsLong();
 //		testsFloat();
 //		testsDouble();
@@ -75,7 +75,7 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
-//		testsLambdaOnArray();
+		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
 //		testsLambdaObjectMethodReferences();
