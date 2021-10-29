@@ -256,7 +256,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				&& frame.registry.isSimulateReflection()
 				&& Proxy.class.isAssignableFrom(((Method) stack.peek(2)).getDeclaringClass())
 				&& filterProxy != null) {
-			// Reflection on a proxy.
+			// Reflection on a method of a proxy-implementation.
 			// We have on stack: method, proxy-object, method-arguments.
 			final Method reflMethod = (Method) stack.peek(2);
 			final Proxy oProxy = (Proxy) stack.peek(1);
@@ -271,8 +271,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				stack.pop();
 				stack.pop();
 				final Method intfMethod = findInterfaceMethodOfProxy(oProxy, reflMethod);
-				// We need on stack: proxy-object, proxy-object, interface-method, method-arguments.
-				final Object[] oIhArgs = { oProxy };
+				// We need on stack: invocation-handler, proxy-object, interface-method, method-arguments.
+				final Object[] oIhArgs = { ih };
 				stack.pushAndResize(0, oIhArgs);
 				stack.push(oProxy);
 				stack.push(intfMethod);

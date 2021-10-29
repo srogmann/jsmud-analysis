@@ -93,7 +93,7 @@ public class JvmTests {
 //		testsLambdaCollectingAndThen();
 //		testsLambdaMultipleFunctions();
 //		testsLambdaReuse();
-		testsLambdaCommonSubclass();
+//		testsLambdaCommonSubclass();
 //		testsLambdaReturnPrivate();
 //		testsLambdaAndSecurity();
 //		testsLambdaThreadLocal();
@@ -106,7 +106,7 @@ public class JvmTests {
 //		testsCatchException();
 //		testsJavaTime();
 //		testsProxy();
-//		testsProxyThisS0();
+		testsProxyThisS0();
 //		testsProxySuper();
 //		testsProxyViaReflection();
 //		testsProxyViaReflectionMethod();
@@ -873,19 +873,31 @@ public class JvmTests {
 		};
 		final WorkExampleNonPublic worker = (WorkExampleNonPublic) Proxy.newProxyInstance(cl, aInterfaces, ih);
 
+		// Call proxy-method without reflection.
 		final String result1 = worker.addA("Beta");
 		assertEquals("ProxyThisS0: -1", "Beta-1", result1);
 		
+		// Call proxy-method with reflection on interface-method.
 		Object oReturnRefl;
 		try {
 			final Method methodAddA = WorkExampleNonPublic.class.getDeclaredMethod("addA", String.class);
 			oReturnRefl = methodAddA.invoke(worker, "BetaReflection");
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 				| InvocationTargetException e) {
-			throw new RuntimeException("Reflection-exception in addA", e);
+			throw new RuntimeException("Reflection-exception in addA on interface", e);
 		}
-		assertEquals("ProxyThisS0: Refl-1", "BetaReflection-1", oReturnRefl);
-		
+		assertEquals("ProxyThisS0-on-Interface: Refl-1", "BetaReflection-1", oReturnRefl);
+
+		// Call proxy-method with reflection on proxy-method.
+		try {
+			final Method methodAddA = worker.getClass().getDeclaredMethod("addA", String.class);
+			oReturnRefl = methodAddA.invoke(worker, "BetaReflection");
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+				| InvocationTargetException e) {
+			throw new RuntimeException("Reflection-exception in addA on proxy", e);
+		}
+		assertEquals("ProxyThisS0-on-Proxy: Refl-1", "BetaReflection-1", oReturnRefl);
+
 		final InvocationHandler ihMeta = new ProxyThis0Handler(worker).createInvocationHandler();
 		final WorkExampleNonPublic workerMeta = (WorkExampleNonPublic) Proxy.newProxyInstance(cl, aInterfaces, ihMeta);
 		assertEquals("Proxy$0", "Meta-1", workerMeta.addA("Meta"));
