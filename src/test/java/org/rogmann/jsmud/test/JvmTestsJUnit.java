@@ -1,7 +1,10 @@
 package org.rogmann.jsmud.test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.URL;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -19,6 +22,27 @@ public class JvmTestsJUnit {
 	@BeforeAll
 	static void beforeClass() {
 		LoggerFactory.setLoggerSpi(new LoggerFactorySystemOut(System.out, false, false));
+
+		final String packageClass = JvmTestsJUnit.class.getName().replaceFirst("[.][^.]*$", "");
+		final String nameClassA = packageClass + '.' + "ClassA";
+		final ClassLoader clParent = JvmTestsJUnit.class.getClassLoader();
+
+		// We prepare two class-loaders to be used in some JUnit-tests.
+		try {
+			final ExampleClassLoader cl1 = new ExampleClassLoader("ClassLoader1", clParent);
+			final Class<?> classAin1 = cl1.loadClass(nameClassA);
+			@SuppressWarnings("unchecked")
+			final Supplier<String> supplier1 = (Supplier<String>) classAin1.newInstance();
+			JvmTests.SUPPLIER_CL1 = supplier1;
+
+			final ExampleClassLoader cl2 = new ExampleClassLoader("ClassLoader2", clParent);
+			final Class<?> classAin2 = cl2.loadClass(nameClassA);
+			@SuppressWarnings("unchecked")
+			final Supplier<String> supplier2 = (Supplier<String>) classAin2.newInstance();
+			JvmTests.SUPPLIER_CL2 = supplier2;
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+			throw new RuntimeException("Couldn't initialize suppliers in different class-loaders.", e);
+		}
 	}
 
 	void execute(final Runnable runnable) {
@@ -544,9 +568,23 @@ public class JvmTestsJUnit {
 		execute(runnable);
 	}
 
-	/** JUnit-Test of method {@link JvmTests#testsMethodArrayArgs()} */
+	/** JUnit-Test of method {@link JvmTests#testsLambdaInDifferentClassLoader()} */
 	@Test
 	@Order(37)
+	public void testTestsLambdaInDifferentClassLoader() {
+		final JvmTests jvmTests = new JvmTests();
+		final Runnable runnable = new Runnable() {
+			@Override
+			public void run() {
+				jvmTests.testsLambdaInDifferentClassLoader();
+			}
+		};
+		execute(runnable);
+	}
+
+	/** JUnit-Test of method {@link JvmTests#testsMethodArrayArgs()} */
+	@Test
+	@Order(38)
 	public void testTestsMethodArrayArgs() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -560,7 +598,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsMethodRef()} */
 	@Test
-	@Order(38)
+	@Order(39)
 	public void testTestsMethodRef() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -574,7 +612,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsFields()} */
 	@Test
-	@Order(39)
+	@Order(40)
 	public void testTestsFields() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -588,7 +626,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsConstructorRef()} */
 	@Test
-	@Order(40)
+	@Order(41)
 	public void testTestsConstructorRef() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -602,7 +640,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsMethodChoosing()} */
 	@Test
-	@Order(41)
+	@Order(42)
 	public void testTestsMethodChoosing() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -616,7 +654,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsCatchException()} */
 	@Test
-	@Order(42)
+	@Order(43)
 	public void testTestsCatchException() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -630,7 +668,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxy()} */
 	@Test
-	@Order(43)
+	@Order(44)
 	public void testTestsProxy() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -644,7 +682,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxyThisS0()} */
 	@Test
-	@Order(44)
+	@Order(45)
 	public void testTestsProxyThisS0() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -658,7 +696,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxySuper()} */
 	@Test
-	@Order(45)
+	@Order(46)
 	public void testTestsProxySuper() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -672,7 +710,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxyViaReflection()} */
 	@Test
-	@Order(46)
+	@Order(47)
 	public void testTestsProxyViaReflection() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -686,7 +724,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxyViaReflectionMethod()} */
 	@Test
-	@Order(47)
+	@Order(48)
 	public void testTestsProxyViaReflectionMethod() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -700,7 +738,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxyPublicInterface()} */
 	@Test
-	@Order(48)
+	@Order(49)
 	public void testTestsProxyPublicInterface() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -714,7 +752,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxyPublicInterfaceViaReflection()} */
 	@Test
-	@Order(49)
+	@Order(50)
 	public void testTestsProxyPublicInterfaceViaReflection() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -728,7 +766,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxyPublicInterfaceViaReflectionImpl()} */
 	@Test
-	@Order(50)
+	@Order(51)
 	public void testTestsProxyPublicInterfaceViaReflectionImpl() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -742,7 +780,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsProxyExecuteInternal()} */
 	@Test
-	@Order(51)
+	@Order(52)
 	public void testTestsProxyExecuteInternal() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -756,7 +794,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsReflection()} */
 	@Test
-	@Order(52)
+	@Order(53)
 	public void testTestsReflection() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -770,7 +808,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsReflectionOnInterface()} */
 	@Test
-	@Order(53)
+	@Order(54)
 	public void testTestsReflectionOnInterface() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -784,7 +822,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testReflectionDeclaredConstructors()} */
 	@Test
-	@Order(54)
+	@Order(55)
 	public void testTestReflectionDeclaredConstructors() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -798,7 +836,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsClassForName()} */
 	@Test
-	@Order(55)
+	@Order(56)
 	public void testTestsClassForName() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -812,7 +850,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsAccessController()} */
 	@Test
-	@Order(56)
+	@Order(57)
 	public void testTestsAccessController() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {

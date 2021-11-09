@@ -48,9 +48,14 @@ public class JvmTests {
 	/** internal short: 20000 */
 	private static final short SHORT_20000 = Short.parseShort("20000");
 
+	/** supplier with implementation in a different class-loader */
+	static Supplier<String> SUPPLIER_CL1;
+	/** supplier with implementation in a different class-loader */
+	static Supplier<String> SUPPLIER_CL2;
+
 	/** test-map */
 	private final Map<String, Integer> testMap = new HashMap<>();
-	
+
 	/** int-instance */
 	final int fIntField;
 	
@@ -762,6 +767,23 @@ public class JvmTests {
 		final ThreadLocal<TestMethodReference> tl = ThreadLocal.withInitial(() -> new TestMethodReference(text));
 		final TestMethodReference initRef = tl.get();
 		assertEquals("LambdaThreadLocal", text, initRef.getValue());
+	}
+
+	/**
+	 * Tests if lambda in different class-loaders can be executed.
+	 */
+	@JsmudTest
+	public void testsLambdaInDifferentClassLoader() {
+		final Supplier<String> supplier1 = SUPPLIER_CL1;
+		final Supplier<String> supplier2 = SUPPLIER_CL2;
+		if (supplier1 != null && supplier2 != null) {
+			// We expect the suppliers to be in different class-loaders.
+			assertEquals("CL-Name1", "ClassLoader1", supplier1.getClass().getClassLoader().toString());
+			assertEquals("CL-Name2", "ClassLoader2", supplier2.getClass().getClassLoader().toString());
+			assertEquals("Class-Lambda-Name1", "ClassB", supplier1.get());
+			assertEquals("Class-Lambda-Name2", "ClassB", supplier2.get());
+			System.out.println("Supplier 2: " + supplier2);
+		}
 	}
 
 	@JsmudTest

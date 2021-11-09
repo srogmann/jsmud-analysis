@@ -75,7 +75,7 @@ public class SimpleClassExecutor {
 	/**
 	 * Creates a class-reader.
 	 * @param registry class-registry
-	 * @param classLoader class-loader
+	 * @param classLoader context class-loader (unused)
 	 * @param clazz class to be read
 	 * @return reader
 	 */
@@ -91,7 +91,7 @@ public class SimpleClassExecutor {
 				}
 				if (bufBytecode == null) {
 					throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
-							resName, clazz.getName(), classLoader));
+							resName, clazz.getName(), clazz.getClassLoader()));
 				}
 				classReader = new ClassReader(new ByteArrayInputStream(bufBytecode));
 			}
