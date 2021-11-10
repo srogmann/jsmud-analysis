@@ -1576,7 +1576,11 @@ whileInstr:
 							objField = convertFieldTypeIntoJvmType(field.getType(), objField);
 						} catch (ClassNotFoundException | NoSuchFieldException | SecurityException
 								| IllegalArgumentException | IllegalAccessException e) {
-							throw new JvmException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s) in class-loader (%s)",
+							final boolean doContinueWhileE = handleCatchException(e);
+							if (doContinueWhileE) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s) in class-loader (%s)",
 									fi.name, nameFiOwner, methodName, clazz, clazz.getClassLoader()), e);
 						}
 					}
@@ -1606,7 +1610,11 @@ whileInstr:
 						field.set(classFieldOwner, vField);
 					} catch (ClassNotFoundException | NoSuchFieldException | SecurityException
 							| IllegalArgumentException | IllegalAccessException e) {
-						throw new JvmException(String.format("Error while setting field (%s) of (%s) in method (%s) of class (%s)",
+						final boolean doContinueWhileE = handleCatchException(e);
+						if (doContinueWhileE) {
+							continue whileInstr;
+						}
+						throw new JvmUncaughtException(String.format("Error while setting field (%s) of (%s) in method (%s) of class (%s)",
 								fi.name, nameFiOwner, methodName, clazz), e);
 					}
 					break;
@@ -1629,7 +1637,11 @@ whileInstr:
 						stack.push(fieldValue);
 					} catch (NoSuchFieldException | SecurityException
 							| IllegalArgumentException | IllegalAccessException e) {
-						throw new JvmException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s)",
+						final boolean doContinueWhileE = handleCatchException(e);
+						if (doContinueWhileE) {
+							continue whileInstr;
+						}
+						throw new JvmUncaughtException(String.format("Error while reading field (%s) of (%s) in method (%s) of class (%s)",
 								fi.name, fi.owner, methodName, classFieldOwner), e);
 					}
 					break;
@@ -1662,16 +1674,24 @@ whileInstr:
 						try {
 							field.set(fieldInstance, oValueField);
 						} catch (IllegalArgumentException e) {
+							final boolean doContinueWhileE = handleCatchException(e);
+							if (doContinueWhileE) {
+								continue whileInstr;
+							}
 							final Class<?> classValue = (oValueField != null) ? oValueField.getClass() : null;
 							final ClassLoader clValue = (classValue != null) ? classValue.getClassLoader() : null;
-							throw new JvmException(String.format("Argument-error while setting field (%s) of (%s) of class (%s) of class-loader (%s) to object of class (%s) of (%s) in method (%s)",
+							throw new JvmUncaughtException(String.format("Argument-error while setting field (%s) of (%s) of class (%s) of class-loader (%s) to object of class (%s) of (%s) in method (%s)",
 									fi.name, fi.owner, classFieldOwner, classFieldOwner.getClassLoader(),
 									classValue, clValue,
 									methodName), e);
 						}
 					}
 					catch (NoSuchFieldException | SecurityException | IllegalAccessException e) {
-						throw new JvmException(String.format("Error while setting field (%s) of (%s) for (%s) in method (%s)",
+						final boolean doContinueWhileE = handleCatchException(e);
+						if (doContinueWhileE) {
+							continue whileInstr;
+						}
+						throw new JvmUncaughtException(String.format("Error while setting field (%s) of (%s) for (%s) in method (%s)",
 								fi.name, fi.owner, classFieldOwner, methodName), e);
 					}
 					break;
@@ -1752,7 +1772,11 @@ whileInstr:
 					try {
 						classNew = registry.loadClass(nameNew, clazz);
 					} catch (ClassNotFoundException e) {
-						throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
+						final boolean doContinueWhileE = handleCatchException(e);
+						if (doContinueWhileE) {
+							continue whileInstr;
+						}
+						throw new JvmUncaughtException(String.format("Error while loading class (%s) in method (%s)",
 								nameNew, methodName), e);
 					}
 					stack.push(new UninitializedInstance(classNew));
@@ -1776,7 +1800,17 @@ whileInstr:
 					if (type.getSort() == Type.ARRAY) {
 						final int dims = type.getDimensions();
 						final int[] aDims = new int[dims];
-						final Class<?> elClass = getClassArrayViaType(type, registry, clazz);
+						Class<?> elClass;
+						try {
+							elClass = getClassArrayViaType(type, registry, clazz);
+						} catch (ClassNotFoundException e) {
+							final boolean doContinueWhileE = handleCatchException(e);
+							if (doContinueWhileE) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException(String.format("Error while loading array-class (%s) in method (%s)",
+									type, methodName), e);
+						}
 						final Object oArray = Array.newInstance(elClass, aDims);
 						classArray = oArray.getClass();
 					}
@@ -1785,7 +1819,11 @@ whileInstr:
 						try {
 							classArray = registry.loadClass(nameNew, clazz);
 						} catch (ClassNotFoundException e) {
-							throw new JvmException(String.format("Error while loading class (%s) in method (%s)",
+							final boolean doContinueWhileE = handleCatchException(e);
+							if (doContinueWhileE) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException(String.format("Error while loading class (%s) in method (%s)",
 									nameNew, methodName), e);
 						}
 					}
@@ -2662,7 +2700,7 @@ loopDeclMeth:
 		return invMethod;
 	}
 
-	static Class<?> getClassArrayViaType(final Type aType, final VM vm, final Class<?> clazz) {
+	static Class<?> getClassArrayViaType(final Type aType, final VM vm, final Class<?> clazz) throws ClassNotFoundException {
 		final Type elType = aType.getElementType();
 		final Class<?> classArray;
 		final int sort = elType.getSort();
@@ -2695,7 +2733,7 @@ loopDeclMeth:
 			try {
 				classArray = vm.loadClass(nameNew, clazz);
 			} catch (ClassNotFoundException e) {
-				throw new JvmException(String.format("Error while loading class (%s)", nameNew), e);
+				throw new ClassNotFoundException(String.format("Error while loading class (%s)", nameNew), e);
 			}
 		}
 		return classArray;
@@ -2780,8 +2818,9 @@ loopDeclMeth:
 	 * @param desc type-description
 	 * @param obj object to be checked
 	 * @return <code>true</code>, if obj can be casted
+	 * @throws ClassNotFoundException in case of an unknown class 
 	 */
-	private boolean handleCheckcast(String desc, Object obj) {
+	private boolean handleCheckcast(String desc, Object obj) throws ClassNotFoundException {
 		final Class<?> classDesc;
 		if (desc.startsWith("[")) {
 			if ("[I".equals(desc)) {
