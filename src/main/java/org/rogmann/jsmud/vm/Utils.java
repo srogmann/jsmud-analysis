@@ -42,4 +42,16 @@ public class Utils {
 		return sourceFileGuessed;
 	}
 
+	/**
+	 * Gets the class-loader of a class. Gets the default class-loader if the class is a system-class. 
+	 * @param clazz class
+	 * @param clDefault default class-loader
+	 * @return class-loader
+	 */
+	public static ClassLoader getClassLoader(final Class<?> clazz, final ClassLoader clDefault) {
+		final ClassLoader cl = clazz.getClassLoader();
+		return (cl != null) ? cl : clDefault;
+	}
+	
+
 }

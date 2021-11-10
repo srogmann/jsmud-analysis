@@ -224,7 +224,7 @@ public class CallSiteGenerator {
 		//final String callSiteName = String.format("%s$$Lambda$%d", classOwner.getName(),
 		//		Integer.valueOf(callSiteIdx), classOwner.getSimpleName());
 		final String callSiteNameInt = callSiteName.replace('.', '/');
-		final ClassLoader classLoaderCallSite = (classOwner.getClassLoader() != null) ? classOwner.getClassLoader() : classLoader;
+		final ClassLoader classLoaderCallSite = Utils.getClassLoader(classOwner, classLoader);
 		final ClassWriter cw = new ClassWriterCallSite(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS,
 				classLoaderCallSite, callSiteNameInt);
 		final String[] aInterfaces = { typeInterface.getInternalName() };

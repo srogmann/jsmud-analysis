@@ -1940,7 +1940,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		final String sourceFileGuessed = Utils.guessSourceFile(clazz, sourceFileRequester.getExtension());
 		SourceFileWriter sourceFileWriter = mapSourceSourceFiles.get(sourceFileGuessed);
 		if (sourceFileWriter == null) {
-			final ClassLoader classLoader = (clazz.getClassLoader() != null) ? clazz.getClassLoader() : classLoaderDefault;
+			final ClassLoader classLoader = Utils.getClassLoader(clazz, classLoaderDefault);
 			
 			final Class<?> clazzOuter;
 			final String className = clazz.getName();
