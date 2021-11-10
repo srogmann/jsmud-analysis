@@ -2061,7 +2061,12 @@ whileInstr:
 				isMethodOverriden = true;
 			}
 			else {
-				classOwner = registry.loadClass(miOwnerName, clazz);
+				try {
+					classOwner = registry.loadClass(miOwnerName, clazz);
+				} catch (ClassNotFoundException e) {
+					throw new ClassNotFoundException(String.format("no class (%s) in context-class (%s) of (%s)",
+							miOwnerName, clazz, clazz.getClassLoader()));
+				}
 				objRef = classOwner;
 			}
 		}

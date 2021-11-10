@@ -189,10 +189,8 @@ public class CallSiteGenerator {
 					idin.name, idin.desc, classOwner, Integer.valueOf(tag), Arrays.toString(idin.bsmArgs)));
 		}
 		// Load the interface-class.
-		ClassLoader clInterface = classOwner.getClassLoader();
-		if (clInterface == null) {
-			clInterface = classLoader;
-		}
+		final ClassLoader clInterface = Utils.getClassLoader(classOwner, classLoader);
+		final boolean isDefaultClassLoader = (clInterface == classLoader || clInterface == classLoader.getParent());
 		final Class<?> classIntf;
 		try {
 			classIntf = clInterface.loadClass(typeInterface.getClassName());
@@ -203,16 +201,28 @@ public class CallSiteGenerator {
 		final String callSiteName;
 		final boolean isInterfacePrivateOrPackage = !(Modifier.isPublic(classIntf.getModifiers())
 				|| Modifier.isProtected(classIntf.getModifiers()));
-		if (isInterfacePrivateOrPackage) {
+		final boolean isDifferentClassLoader = isInterfacePrivateOrPackage || !isDefaultClassLoader;
+		if (isDifferentClassLoader) {
 			final long callSiteIdx = COUNTER_CALLSITES_ORIG_CL.incrementAndGet();
 			callSiteName = String.format("%s$jsmudLambda$%d", classOwner.getName(),
 					Long.valueOf(callSiteIdx));
-			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("Interface (%s) of call-site in (%s) is private", classIntf, classOwner));
+			if (isInterfacePrivateOrPackage) {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Interface (%s) of call-site in (%s) is private", classIntf, classOwner));
+				}
+				if (DONT_USE_ORIG_CL) {
+					throw new JvmException(String.format("Defining call-sites in original classloader has been disabled (interface %s in %s)",
+							clInterface, classOwner));
+				}
 			}
-			if (DONT_USE_ORIG_CL) {
-				throw new JvmException(String.format("Defining call-sites in original classloader has been disabled (interface %s in %s)",
-						clInterface, classOwner));
+			else {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("ClassLoader (%s) of call-site in (%s) is not default", clInterface, classOwner));
+				}
+				if (DONT_USE_ORIG_CL) {
+					throw new JvmException(String.format("Defining call-sites in original classloader (%s) has been disabled (for %s)",
+							clInterface, classOwner));
+				}
 			}
 		}
 		else {
@@ -288,7 +298,7 @@ public class CallSiteGenerator {
 			}
 		}
 		final Class<?> classCallSite;
-		if (isInterfacePrivateOrPackage) {
+		if (isDifferentClassLoader) {
 			if (!usedOriginalCl.getAndSet(true)) {
 				LOG.error(String.format("Warning: Private interface (%s) in (%s), generate call-site in original class-loader (%s)",
 						classIntf, classOwner, clInterface));
@@ -304,10 +314,12 @@ public class CallSiteGenerator {
 						callSiteName, clInterface), e);
 			}
 			classCallSite = (Class<?>) oClassCallSite;
+			classLoader.registerJsmudClass(classCallSite, callSiteName, bufClass);
 		}
 		else {
 			classCallSite = classLoader.defineJsmudClass(callSiteName, bufClass);
 		}
+		// TODO remove mapBytecodes?
 		mapBytecodes.put(classCallSite, bufClass);
 		return classCallSite;
 	}

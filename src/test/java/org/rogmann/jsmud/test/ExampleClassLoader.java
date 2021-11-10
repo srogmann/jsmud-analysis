@@ -24,6 +24,9 @@ public class ExampleClassLoader extends ClassLoader {
 	/** map from resource-name to bytecode */
 	private final Map<String, byte[]> fMapClasses = new HashMap<>();
 
+	/** map of defined classes */
+	private final Map<String, Class<?>> fMapDefinedClasses = new HashMap<>();
+
 	/**
 	 * Constructor
 	 * @param name name of the class-loader
@@ -164,13 +167,16 @@ public class ExampleClassLoader extends ClassLoader {
 	/** {@inheritDoc} */
 	@Override
 	public Class<?> loadClass(String name) throws ClassNotFoundException {
-		final Class<?> clazz;
-		final byte[] buf = fMapClasses.get('/' + name.replace('.', '/') + ".class");
-		if (buf != null) {
-			clazz = super.defineClass(name, buf, 0, buf.length);
-		}
-		else {
-			clazz = fClParent.loadClass(name);
+		Class<?> clazz = fMapDefinedClasses.get(name);
+		if (clazz == null) {
+			final byte[] buf = fMapClasses.get('/' + name.replace('.', '/') + ".class");
+			if (buf != null) {
+				clazz = super.defineClass(name, buf, 0, buf.length);
+				fMapDefinedClasses.put(name, clazz);
+			}
+			else {
+				clazz = fClParent.loadClass(name);
+			}
 		}
 		return clazz;
 	}

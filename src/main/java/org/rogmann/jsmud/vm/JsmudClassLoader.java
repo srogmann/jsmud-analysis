@@ -66,10 +66,10 @@ public class JsmudClassLoader extends ClassLoader {
 	/** map from class-name to patched class */
 	protected final ConcurrentMap<String, Class<?>> mapPatchedClasses = new ConcurrentHashMap<>(100);
 
-	/** map from class-name to bytecode of a class defined in {@link JsmudClassLoader#defineJsmudClass(String, byte[])} */
-	protected final ConcurrentMap<String, byte[]> mapJsmudClassBytecode = new ConcurrentHashMap<>();
-	/** map from class-name to class of a class defined in {@link JsmudClassLoader#defineJsmudClass(String, byte[])} */
-	protected final ConcurrentMap<String, Class<?>> mapJsmudClasses = new ConcurrentHashMap<>();
+	/** map from class to bytecode of a class defined in {@link JsmudClassLoader#defineJsmudClass(String, byte[])} */
+	protected final ConcurrentMap<Class<?>, byte[]> mapJsmudClassBytecode = new ConcurrentHashMap<>();
+	/** map from class-loader to class-name to class of a class defined via jsmud */
+	protected final ConcurrentMap<ClassLoader, ConcurrentMap<String, Class<?>>> mapJsmudClasses = new ConcurrentHashMap<>();
 
 	/** map from class-name to flags */
 	protected final ConcurrentMap<String, Integer> mapClassFlags = new ConcurrentHashMap<>(100);
@@ -129,10 +129,22 @@ public class JsmudClassLoader extends ClassLoader {
 	 * @return
 	 */
 	public Class<?> defineJsmudClass(final String name, final byte[] bufBytecode) {
-		Class<?> clazz = defineClass(name, bufBytecode, 0, bufBytecode.length);
-		mapJsmudClassBytecode.put(name, bufBytecode);
-		mapJsmudClasses.put(name, clazz);
+		final Class<?> clazz = defineClass(name, bufBytecode, 0, bufBytecode.length);
+		registerJsmudClass(clazz, name, bufBytecode);
 		return clazz;
+	}
+
+	/**
+	 * Registers a in JSMUD generated class.
+	 * @param clazz class
+	 * @param name fully qualified name of the class
+	 * @param bufBytecode bytecode
+	 */
+	public void registerJsmudClass(final Class<?> clazz, final String name, final byte[] bufBytecode) {
+		final ClassLoader cl = Utils.getClassLoader(clazz, this);
+		mapJsmudClassBytecode.put(clazz, bufBytecode);
+		mapJsmudClasses.computeIfAbsent(cl, clKey -> new ConcurrentHashMap<>())
+			.put(name, clazz);
 	}
 
 	/**
@@ -165,7 +177,10 @@ public class JsmudClassLoader extends ClassLoader {
 	public Class<?> findClass(final String name, final ClassLoader classLoader) throws ClassNotFoundException {
 		Class<?> clazz = mapPatchedClasses.get(name);
 		if (clazz == null) {
-			clazz = mapJsmudClasses.get(name);
+			final ConcurrentMap<String, Class<?>> mapNameClass = mapJsmudClasses.get(classLoader);
+			if (mapNameClass != null) {
+				clazz = mapNameClass.get(name);
+			}
 		}
 		if (clazz == null) {
 			LOG.debug("findClass: looking for " + name);
@@ -214,13 +229,19 @@ public class JsmudClassLoader extends ClassLoader {
 		if (resName.endsWith(SUFFIX_CLASS)) {
 			// Check if resName is a class defined in this class-loader.
 			final String className = resName.substring(0, resName.length() - SUFFIX_CLASS.length()).replace('/', '.');
-			final byte[] bufClass = mapJsmudClassBytecode.get(className);
-			if (bufClass != null) {
-				if (LOG.isDebugEnabled()) {
-					LOG.debug(String.format("Send bytecode (len %d) of defined class (%s)",
-							Integer.valueOf(bufClass.length), className));
+			final ConcurrentMap<String, Class<?>> mapNameClass = mapJsmudClasses.get(this);
+			if (mapNameClass != null) {
+				final Class<?> clazz = mapNameClass.get(className);
+				if (clazz != null) {
+					final byte[] bufClass = mapJsmudClassBytecode.get(clazz);
+					if (bufClass != null) {
+						if (LOG.isDebugEnabled()) {
+							LOG.debug(String.format("Send bytecode (len %d) of defined class (%s)",
+									Integer.valueOf(bufClass.length), className));
+						}
+						return new ByteArrayInputStream(bufClass);
+					}
 				}
-				return new ByteArrayInputStream(bufClass);
 			}
 		}
 		return super.getResourceAsStream(resName);
