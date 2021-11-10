@@ -1815,8 +1815,14 @@ whileInstr:
 					if (obj != null) {
 						boolean canCast = handleCheckcast(tin.desc, obj);
 						if (!canCast) {
-							throw new ClassCastException(String.format("Can't convert object of type (%s) to (%s)",
+							final ClassCastException e = new ClassCastException(String.format("Can't convert object of type (%s) to (%s)",
 									obj.getClass(), tin.desc));
+							final boolean doContinueWhileE = handleCatchException(e);
+							if (doContinueWhileE) {
+								continue whileInstr;
+							}
+							throw new JvmUncaughtException("CHECKCAST in " + getMethod() + "at " + getCurrLineNum(),
+									e);
 						}
 					}
 					break;

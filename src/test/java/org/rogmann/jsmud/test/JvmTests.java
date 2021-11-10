@@ -274,6 +274,7 @@ public class JvmTests {
 		assertTrue("b < a", b < a);
 	}
 
+	@SuppressWarnings("static-method")
 	public int mult(int a, long b) {
 		return a * (int) b;
 	}
@@ -347,8 +348,19 @@ public class JvmTests {
 		if (method != null) {
 			assertEquals("ExceptionHandling-2b", "getMethod", method.getName());
 		}
+
+		final String s = "I'm a string.";
+		try {
+			checkcastInteger(s);
+		} catch (ClassCastException e) {
+			assertTrue("exception handling: CHECKCAST ok", true);
+		}
 	}
 
+	public static Integer checkcastInteger(final Object o) {
+		return (Integer) o;
+	}
+	
 	@JsmudTest
 	public void testsExceptionHandlingFinally() {
 		String s = "i";
@@ -1342,6 +1354,7 @@ public class JvmTests {
 
 	// test-object methods
 
+	@SuppressWarnings("static-method")
 	public int subtract(final int a, final int b) {
 		return a - b;
 	}
