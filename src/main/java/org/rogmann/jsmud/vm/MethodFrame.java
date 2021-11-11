@@ -66,7 +66,7 @@ public class MethodFrame {
 	/** class-registry */
 	public final ClassRegistry registry;
 
-	/** class-loader of the method's class */
+	/** method's class */
 	public final Class<?> clazz;
 
 	/** source-file-writer or <code>null</code> */
