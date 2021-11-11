@@ -146,7 +146,10 @@ public class CallSiteGenerator {
 		final Handle methodHandle = (Handle) idin.bsmArgs[1];
 		final CallSiteContext callSiteContext = new CallSiteContext(registry, classOwner, methodHandle);
 		for (int i = args.length - 1; i > 0; i--) {
-			args[i] = stack.pop();
+			final Object oJvm = stack.pop();
+			// e.g. boolean outside lambda: int -> boolean.
+			final Object oDecl = MethodFrame.convertJvmTypeIntoDeclType(oJvm, callSiteConstrArgs[i - 1]);
+			args[i] = oDecl;
 		}
 		args[0] = callSiteContext;
 		final Object callSite;

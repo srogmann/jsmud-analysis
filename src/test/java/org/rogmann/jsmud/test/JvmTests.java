@@ -80,6 +80,7 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
+		testsLambdaCallSiteConstructor();
 //		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
@@ -111,7 +112,7 @@ public class JvmTests {
 //		testsCatchException();
 //		testsJavaTime();
 //		testsProxy();
-		testsProxyThisS0();
+		//testsProxyThisS0();
 //		testsProxySuper();
 //		testsProxyViaReflection();
 //		testsProxyViaReflectionMethod();
@@ -461,6 +462,17 @@ public class JvmTests {
 				|| iFctClass.contains("$jsmudLambda")
 				|| iFctClass.contains("$Proxy")
 				|| iFctClass.startsWith(packageGen));
+	}
+
+	@JsmudTest
+	public void testsLambdaCallSiteConstructor() {
+		final String s = "test";
+		final boolean b = s.length() > 0;
+		final char c = s.charAt(0);
+		final short s16 = (short) s.charAt(1);
+		final Supplier<String> supplier = () -> String.format("%s: %s %c %d",
+				s, Boolean.toString(b), Character.valueOf(c), Short.valueOf(s16));
+		assertEquals("LambdaCSConstructor", "test: true t 101", supplier.get());
 	}
 
 	@JsmudTest
