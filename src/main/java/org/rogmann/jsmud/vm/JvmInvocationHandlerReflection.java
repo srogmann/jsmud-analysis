@@ -292,12 +292,13 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			final Class<?> classMethod = reflMethod.getDeclaringClass();
 			SimpleClassExecutor executor = frame.registry.getClassExecutor(classMethod);
 			if (executor != null) {
-				// We can invoke the method in the patched class.
+				// We can invoke the method in the declaring class.
 				final Object[] oArgs = (Object[]) stack.pop();
 				final Object oObjRef = stack.pop();
 				// Remove the method-instance.
 				stack.pop();
-				if (!Modifier.isStatic(reflMethod.getModifiers())) {
+				final boolean isNonStatic = !Modifier.isStatic(reflMethod.getModifiers());
+				if (isNonStatic) {
 					// Non-static method. We need an object-instance on the stack.
 					stack.push(oObjRef);
 				}
@@ -311,7 +312,14 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				}
 				final Object objReturn;
 				if (oObjRef instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
+					// Reflection invoke, objRef is proxy, no filter-proxy.
 					doContinueWhile = executeProxyInvokeMethod(frame, (Proxy) oObjRef, stack, reflMethod.getName(), descr);
+					if (doContinueWhile == null) {
+						// e.g. JUnit-test testsReflectionAnnotation.
+						final Type[] types = Type.getArgumentTypes(descr);
+						frame.executeInvokeMethodNative(reflMethod, oObjRef, oArgs.length,
+								types, isNonStatic);
+					}
 				}
 				else {
 					Method invMethod = reflMethod;
@@ -464,7 +472,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	 * @param stack current stack
 	 * @param miName name of the method to be executed
 	 * @param miDesc signature of the method to be executed
-	 * @return continue-while-flag
+	 * @return continue-while-flag, <code>null</code> in case of missing executor
 	 * @throws Throwable
 	 */
 	private Boolean executeProxyInvokeMethod(MethodFrame frame, final Proxy proxy, final OperandStack stack,

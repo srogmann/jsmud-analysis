@@ -13,4 +13,5 @@ import java.lang.annotation.Target;
 @Target({METHOD})
 public @interface JsmudTest {
 
+	String description() default "junit-test of jsmud-analysis";
 }

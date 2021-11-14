@@ -2343,8 +2343,15 @@ whileInstr:
 				throw new JvmException(String.format("JvmException in %s#%d, execution of %s",
 						clazz, Integer.valueOf(getCurrLineNum()), invMethod), e);
 			}
+			final Class<?> classReturnType = invMethod.getReturnType();
+			if (!void.class.equals(classReturnType)) {
+				final Object returnObjStack = convertFieldTypeIntoJvmType(classReturnType, returnObj);
+				stack.push(returnObjStack);
+			}
 		}
 		else {
+			final boolean isRemoveMethodObjectRef = !lIsStatic || isMethodOverriden;
+			Method methodExec = invMethod;
 			final Class<?> classInt;
 			try {
 				classInt = registry.loadClass(miOwnerName, clazz);
@@ -2357,47 +2364,13 @@ whileInstr:
 			}
 			final Method invMethodIntf = findMethodInClass(lMethodName, types, returnType, classInt);
 			if (invMethodIntf != null) {
-				invMethod = invMethodIntf;
+				methodExec = invMethodIntf;
 			}
 
-			final Object[] initargs = new Object[numArgs];
-			int idxArg = numArgs;
-			for (int i = 0; i < numArgs; i++) {
-				idxArg--;
-				Object oStack = stack.pop();
-				try {
-					oStack = convertJvmTypeIntoDeclType(oStack, types[idxArg]);
-				} catch (ArrayIndexOutOfBoundsException e) {
-					throw new JvmException(String.format("Unexpected AIOOBE while converting JVM-types (%s) with stack (%s) and idxArg %d",
-							Arrays.toString(types), stack, Integer.valueOf(idxArg)), e);
-				}
-				initargs[idxArg] = oStack;
+			final Boolean doContinueWhile = executeInvokeMethodNative(methodExec, objRef, numArgs, types, isRemoveMethodObjectRef);
+			if (doContinueWhile != null && doContinueWhile.booleanValue()) {
+				return true;
 			}
-			if (!lIsStatic || isMethodOverriden) {
-				stack.pop(); // remove object-reference
-			}
-			try {
-				invMethod.setAccessible(true);
-				returnObj = invMethod.invoke(objRef, initargs);
-			}
-			catch (IllegalAccessException | IllegalArgumentException e) {
-				throw new JvmException(String.format("invokevirtual: Execution error at %s, %s with %s on object of type %s",
-						invMethod, mi.name, mi.desc, (objRef != null) ? objRef.getClass() : null), e);
-			}
-			catch (InvocationTargetException e) {
-				final Throwable eCause = e.getCause();
-				final boolean doContinueWhile = handleCatchException(eCause);
-				if (doContinueWhile) {
-					return true;
-				}
-				throw new JvmUncaughtException("invokevirtual: InvocationTargetException at " + mi.name + " with " + mi.desc,
-						e.getCause());
-			}
-		}
-		final Class<?> classReturnType = invMethod.getReturnType();
-		if (!void.class.equals(classReturnType)) {
-			final Object returnObjStack = convertFieldTypeIntoJvmType(classReturnType, returnObj);
-			stack.push(returnObjStack);
 		}
 		return false;
 	}
@@ -2429,6 +2402,61 @@ whileSuperClass:
 			classObj = classObj.getSuperclass();
 		}
 		return invMethod;
+	}
+
+	/**
+	 * A method should be executed by original JVM, without jsmud-analysis.
+	 * The optional object-reference and the arguments are on the stack.
+	 * The result will be placed on the stack (if non-void).
+	 * @param methodExec method to be executed
+	 * @param objRef current object (or class)
+	 * @param numArgs number of arguments
+	 * @param types types of method arguments
+	 * @param isRemoveMethodObjectRef <code>true</code> if the object-reference has to be removed from stack.
+	 * @return continue-while-flag in case of a execution, else null for normal continuation
+	 */
+	public Boolean executeInvokeMethodNative(Method methodExec, Object objRef, int numArgs, Type[] types,
+			final boolean isRemoveMethodObjectRef) {
+		final Object[] initargs = new Object[numArgs];
+		int idxArg = numArgs;
+		for (int i = 0; i < numArgs; i++) {
+			idxArg--;
+			Object oStack = stack.pop();
+			try {
+				oStack = convertJvmTypeIntoDeclType(oStack, types[idxArg]);
+			} catch (ArrayIndexOutOfBoundsException e) {
+				throw new JvmException(String.format("Unexpected AIOOBE while converting JVM-types (%s) with stack (%s) and idxArg %d",
+						Arrays.toString(types), stack, Integer.valueOf(idxArg)), e);
+			}
+			initargs[idxArg] = oStack;
+		}
+		if (isRemoveMethodObjectRef) {
+			stack.pop(); // remove object-reference
+		}
+		final Object returnObj;
+		try {
+			methodExec.setAccessible(true);
+			returnObj = methodExec.invoke(objRef, initargs);
+		}
+		catch (IllegalAccessException | IllegalArgumentException e) {
+			throw new JvmException(String.format("invokevirtual: Execution error at %s on object of type %s",
+					methodExec, (objRef != null) ? objRef.getClass() : null), e);
+		}
+		catch (InvocationTargetException e) {
+			final Throwable eCause = e.getCause();
+			final boolean doContinueWhile = handleCatchException(eCause);
+			if (doContinueWhile) {
+				return Boolean.TRUE;
+			}
+			throw new JvmUncaughtException(String.format("invokevirtual: InvocationTargetException at %s", methodExec),
+					e.getCause());
+		}
+		final Class<?> classReturnType = methodExec.getReturnType();
+		if (!void.class.equals(classReturnType)) {
+			final Object returnObjStack = convertFieldTypeIntoJvmType(classReturnType, returnObj);
+			stack.push(returnObjStack);
+		}
+		return null;
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.test;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -80,7 +81,7 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
-		testsLambdaCallSiteConstructor();
+//		testsLambdaCallSiteConstructor();
 //		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
@@ -112,7 +113,7 @@ public class JvmTests {
 //		testsCatchException();
 //		testsJavaTime();
 //		testsProxy();
-		//testsProxyThisS0();
+//		testsProxyThisS0();
 //		testsProxySuper();
 //		testsProxyViaReflection();
 //		testsProxyViaReflectionMethod();
@@ -124,6 +125,7 @@ public class JvmTests {
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
+		testsReflectionAnnotation();
 //		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}
@@ -1275,6 +1277,28 @@ public class JvmTests {
 		assertEquals("testReflectionDeclaredConstructors",
 				String.format("[public %s$%s(int,int)]", JvmTests.class.getName(), TestConstructorWithoutDefault.class.getSimpleName()),
 				Arrays.toString(constrDesc));
+	}
+
+	@JsmudTest(description = "reflection on annotation-method")
+	public void testsReflectionAnnotation() {
+		final Annotation annotation;
+		final Method methodAnnotationType;
+		try {
+			final Method method = getClass().getDeclaredMethod("testsReflectionAnnotation");
+			final Annotation[] annotations = method.getAnnotationsByType(JsmudTest.class);
+			annotation = annotations[0];
+			methodAnnotationType = JsmudTest.class.getDeclaredMethod("description");
+		} catch (NoSuchMethodException | SecurityException e) {
+			throw new RuntimeException("Can't determine annotation-method", e);
+		}
+		final String description;
+		try {
+			// annotation-instance is a proxy.
+			description = (String) methodAnnotationType.invoke(annotation);
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new RuntimeException("Error while execution annotation-method", e);
+		}
+		assertEquals("ReflectionAnnotation", "reflection on annotation-method", description);
 	}
 
 	@JsmudTest
