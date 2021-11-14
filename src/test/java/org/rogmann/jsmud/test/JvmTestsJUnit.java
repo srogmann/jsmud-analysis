@@ -1,9 +1,7 @@
 package org.rogmann.jsmud.test;
 
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.net.URL;
 import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeAll;

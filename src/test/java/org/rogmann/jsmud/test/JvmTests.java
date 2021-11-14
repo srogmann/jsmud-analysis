@@ -115,7 +115,7 @@ public class JvmTests {
 //		testsProxy();
 //		testsProxyThisS0();
 //		testsProxySuper();
-//		testsProxyViaReflection();
+		testsProxyViaReflection();
 //		testsProxyViaReflectionMethod();
 //		testsProxyPublicInterface();
 //		testsProxyPublicInterfaceViaReflection();
@@ -125,7 +125,7 @@ public class JvmTests {
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
 //		testsClassForName();
-		testsReflectionAnnotation();
+//		testsReflectionAnnotation();
 //		testsAccessController();
 		System.out.println("Executed tests: " + executedTests);
 	}

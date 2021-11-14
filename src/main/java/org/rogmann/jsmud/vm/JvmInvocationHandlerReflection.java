@@ -291,10 +291,34 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			final Method reflMethod = (Method) stack.peek(2);
 			final Class<?> classMethod = reflMethod.getDeclaringClass();
 			SimpleClassExecutor executor = frame.registry.getClassExecutor(classMethod);
+			Method invMethod = reflMethod;
+			final Object oObjRef = stack.peek(1);
+			if (invMethod.getDeclaringClass().isInterface() && !(oObjRef instanceof Proxy)) {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("looking for implementation of (%s)", reflMethod));
+				}
+				final String methodName = reflMethod.getName();
+				Type[] paramTypes = Type.getArgumentTypes(reflMethod);
+				Type retType = Type.getReturnType(reflMethod);
+				// We have to look for an implementing method.
+				invMethod = MethodFrame.findMethodInClass(methodName, paramTypes, retType, oObjRef.getClass());
+				if (invMethod == null) {
+					final boolean isVirtual = false;
+					invMethod = MethodFrame.findMethodInInterfaces(oObjRef.getClass(), methodName, paramTypes, isVirtual, oObjRef.getClass());
+				}
+				if (invMethod == null) {
+					throw new JvmException(String.format("No implementing-method for method (%s) in (%s)",
+							reflMethod, oObjRef.getClass()));
+				}
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("method (%s) -> (%s)", reflMethod, invMethod));
+				}
+				executor = frame.registry.getClassExecutor(invMethod.getDeclaringClass());
+			}
 			if (executor != null) {
 				// We can invoke the method in the declaring class.
 				final Object[] oArgs = (Object[]) stack.pop();
-				final Object oObjRef = stack.pop();
+				stack.pop(); // oObjRef
 				// Remove the method-instance.
 				stack.pop();
 				final boolean isNonStatic = !Modifier.isStatic(reflMethod.getModifiers());
@@ -322,29 +346,6 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					}
 				}
 				else {
-					Method invMethod = reflMethod;
-					if (invMethod.getDeclaringClass().isInterface()) {
-						if (LOG.isDebugEnabled()) {
-							LOG.debug(String.format("looking for implementation of (%s)", reflMethod));
-						}
-						final String methodName = reflMethod.getName();
-						Type[] paramTypes = Type.getArgumentTypes(reflMethod);
-						Type retType = Type.getReturnType(reflMethod);
-						// We have to look for an implementing method.
-						invMethod = MethodFrame.findMethodInClass(methodName, paramTypes, retType, oObjRef.getClass());
-						if (invMethod == null) {
-							final boolean isVirtual = false;
-							invMethod = MethodFrame.findMethodInInterfaces(oObjRef.getClass(), methodName, paramTypes, isVirtual, oObjRef.getClass());
-						}
-						if (invMethod == null) {
-							throw new JvmException(String.format("No implementing-method for method (%s) in (%s)",
-									reflMethod, oObjRef.getClass()));
-						}
-						if (LOG.isDebugEnabled()) {
-							LOG.debug(String.format("method (%s) -> (%s)", reflMethod, invMethod));
-						}
-						executor = frame.registry.getClassExecutor(invMethod.getDeclaringClass());
-					}
 					try {
 						objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, invMethod, descr, stack);
 					}
