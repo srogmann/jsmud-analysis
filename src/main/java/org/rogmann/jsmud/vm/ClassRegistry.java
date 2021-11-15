@@ -2,6 +2,7 @@ package org.rogmann.jsmud.vm;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -138,9 +140,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** object-id-counter */
 	private final AtomicLong objectIdCounter = new AtomicLong();
 	
-	/** map from object-id to object */
-	private final ConcurrentMap<VMObjectID, Object> mapObjects = new ConcurrentHashMap<>(5000);
-
+	/** map from object-id to weak-reference(object) */
+	private final ConcurrentMap<VMObjectID, WeakReference<Object>> mapObjects = new ConcurrentHashMap<>(5000);
+	
 	/** map from object-id to object of gc-disabled objects */
 	private final ConcurrentMap<VMObjectID, Object> mapObjectsGcDisabled = new ConcurrentHashMap<>(50);
 	
@@ -185,11 +187,11 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** map from method-frame to ref-frame-bean */
 	private final ConcurrentMap<MethodFrame, RefFrameBean> mapRefFrameBean = new ConcurrentHashMap<>(50);
 	
-	/** map from string to string-id */
-	private final ConcurrentMap<String, VMStringID> mapStrings = new ConcurrentHashMap<>();
+	/** weak map from string to string-id */
+	private final Map<String, VMStringID> mapStrings = Collections.synchronizedMap(new WeakHashMap<>(50));
 	
-	/** map from object to object-id of a variable-value */
-	private final ConcurrentMap<Object, VMObjectID> mapVariableValues = new ConcurrentHashMap<>(100);
+	/** weak map from object to object-id of a variable-value */
+	private final Map<Object, VMObjectID> mapVariableValues = Collections.synchronizedMap(new WeakHashMap<>(100));
 	
 	/** map from thread to current method-stack */
 	private final ConcurrentMap<Thread, Stack<MethodFrame>> mapStacks = new ConcurrentHashMap<>();
@@ -404,7 +406,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		final RefTypeBean refTypeBean = new RefTypeBean(typeTag, refTypeId, signature, genericSignature, status);
 		mapClassSignatures.put(signature, refTypeBean);
 		mapClassRefType.put(clazz, refTypeBean);
-		mapObjects.put(refTypeId, clazz);
+		mapObjects.put(refTypeId, new WeakReference<>(clazz));
 		return refTypeBean;
 	}
 
@@ -491,8 +493,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		if (!mapThreads.containsKey(threadKey)) {
 			final VMThreadID vmThreadID = new VMThreadID(objectIdCounter.incrementAndGet());
 			final VMThreadGroupID vmThreadGroupID = new VMThreadGroupID(objectIdCounter.incrementAndGet());
-			mapObjects.put(vmThreadID, thread);
-			mapObjects.put(vmThreadGroupID, thread.getThreadGroup());
+			mapObjects.put(vmThreadID, new WeakReference<>(thread));
+			mapObjects.put(vmThreadGroupID, new WeakReference<>(thread.getThreadGroup()));
 
 			mapThreads.put(threadKey, vmThreadID);
 			mapThreadGroups.put(threadKey, vmThreadGroupID);		
@@ -515,7 +517,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			}
 			final VMThreadGroupID vmThreadGroupID = mapThreadGroups.remove(threadKey);
 			if (vmThreadGroupID != null) {
-				mapObjects.remove(vmThreadGroupID, thread.getThreadGroup());
+				mapObjects.remove(vmThreadGroupID);
 			}
 			final JvmExecutionVisitor visitor = mapThreadVisitor.remove(threadKey);
 			visitor.close();
@@ -672,7 +674,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		final VMStringID stringId = mapStrings.computeIfAbsent(utf8,
 				key -> {
 					final VMStringID sId = new VMStringID(objectIdCounter.incrementAndGet());
-					mapObjects.put(sId, key);
+					mapObjects.put(sId, new WeakReference<>(key));
 					return sId;
 				});
 		return stringId;
@@ -740,7 +742,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		else {
 			classLoaderId = mapClassLoader.computeIfAbsent(cl, key -> {
 				final VMClassLoaderID clId = new VMClassLoaderID(objectIdCounter.incrementAndGet());
-				mapObjects.put(clId, key);
+				mapObjects.put(clId, new WeakReference<>(key));
 				return clId;
 			});
 		}
@@ -751,7 +753,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	@Override
 	public VMClassID getSuperClass(VMClassID classId) {
 		VMClassID superClassId = null;
-		final Object oClass = mapObjects.get(classId);
+		final WeakReference<Object> refClass = mapObjects.get(classId);
+		final Object oClass = (refClass != null) ? refClass.get() : null;  
 		if (oClass instanceof Class) {
 			final Class<?> clazz = (Class<?>) oClass;
 			final Class<?> superclass = clazz.getSuperclass();
@@ -890,7 +893,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			if (interfaceId == null) {
 				interfaceId = new VMInterfaceID(objectIdCounter.incrementAndGet());
 				mapInterfaces.put(classInterface, interfaceId);
-				mapObjects.put(interfaceId, classInterface);
+				mapObjects.put(interfaceId, new WeakReference<>(classInterface));
 			}
 			listInterfaces.add(interfaceId);
 		}
@@ -910,7 +913,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				final String genericSignature = ""; // TODO genericSignature
 				fieldRefBean = new RefFieldBean(fieldId, field.getName(), signature, genericSignature, field.getModifiers());
 				mapRefFieldBean.put(field, fieldRefBean);
-				mapObjects.put(fieldId, field);
+				mapObjects.put(fieldId, new WeakReference<>(field));
 			}
 			list.add(fieldRefBean);
 		}
@@ -921,7 +924,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	@Override
 	public RefFieldBean getRefFieldBean(VMFieldID fieldID) {
 		RefFieldBean refFieldBean = null;
-		final Object oField = mapObjects.get(fieldID);
+		final WeakReference<Object> refField = mapObjects.get(fieldID);
+		final Object oField = (refField != null) ? refField.get() : null;
 		if (oField instanceof Field) {
 			final Field field = (Field) oField;
 			refFieldBean = mapRefFieldBean.get(field);
@@ -959,7 +963,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			}
 			final String genericSignature = ""; // TODO genericSignature
 			final RefMethodBean methodRefBean = new RefMethodBean(methodId, name, signature, genericSignature, method.getModifiers());
-			mapObjects.put(methodId, method);
+			mapObjects.put(methodId, new WeakReference<>(method));
 			mapMethods.put(method, methodId);
 			return methodRefBean;
 		});
@@ -1002,7 +1006,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	public List<VMValue> readObjectFieldValues(final Object vmObject, final List<VMFieldID> listFields) {
 		final List<VMValue> values = new ArrayList<>(listFields.size());
 		for (int i = 0; i < listFields.size(); i++) {
-			final Object oField = mapObjects.get(listFields.get(i));
+			final WeakReference<Object> refField = mapObjects.get(listFields.get(i));
+			final Object oField = (refField != null) ? refField.get() : null;
 			if (!(oField instanceof Field)) {
 				break;
 			}
@@ -1028,7 +1033,12 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	public void setObjectValues(final Object vmObject, final List<RefFieldBean> listFields, final List<VMDataField> listValues) {
 		for (int i = 0; i < listFields.size(); i++) {
 			final RefFieldBean refFieldBean = listFields.get(i);
-			final Field field = (Field) mapObjects.get(refFieldBean.getFieldID());
+			final WeakReference<Object> refField = mapObjects.get(refFieldBean.getFieldID());
+			final Field field = (Field) ((refField != null) ? refField.get() : null);
+			if (field == null) {
+				throw new JvmException(String.format("Field (%s / %s) has been collected",
+						refFieldBean.getFieldID(), refFieldBean.getName()));
+			}
 			final VMDataField vmValue = listValues.get(i);
 			final String jniSignature = refFieldBean.getSignature();
 			final Object oValue = convertVmValueIntoObject((byte) jniSignature.charAt(0), vmValue);
@@ -1083,7 +1093,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			}
 			else if (tag == Tag.STRING || tag == Tag.ARRAY || tag == Tag.OBJECT) {
 				final VMObjectID vmObjId = (VMObjectID) values[i];
-				final Object value = mapObjects.get(vmObjId);
+				final WeakReference<Object> refVal = mapObjects.get(vmObjId);
+				final Object value = (refVal != null) ? refVal.get() : null;
 				Array.set(objArray, destIndex, value);
 			}
 			else {
@@ -1415,7 +1426,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			vmObjectID = mapVariableValues.get(value);
 			if (vmObjectID == null) {
 				vmObjectID = new VMObjectID(objectIdCounter.incrementAndGet());
-				mapObjects.put(vmObjectID, value);
+				mapObjects.put(vmObjectID, new WeakReference<>(value));
 				mapVariableValues.put(value, vmObjectID);
 			}
 		}
@@ -1484,7 +1495,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			break;
 		default:
 			VMObjectID vmObjectID = (VMObjectID) dfValue;
-			oValue = mapObjects.get(vmObjectID);
+			final WeakReference<Object> refVal = mapObjects.get(vmObjectID);
+			oValue = (refVal != null) ? refVal.get() : null;
 			break;
 		}
 		return oValue;
@@ -1585,14 +1597,14 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		catch (IllegalAccessException | IllegalArgumentException e) {
 			e.printStackTrace();
 			final VMObjectID vmExceptionId = new VMObjectID(objectIdCounter.incrementAndGet());
-			mapObjects.put(vmExceptionId, e);
+			mapObjects.put(vmExceptionId, new WeakReference<>(e));
 			dfResAndExc[1] = new VMTaggedObjectId(vmExceptionId);
 		}
 		catch (InvocationTargetException e) {
 			e.printStackTrace();
 			final Throwable eCause = e.getCause();
 			final VMObjectID vmExceptionId = new VMObjectID(objectIdCounter.incrementAndGet());
-			mapObjects.put(vmExceptionId, eCause);
+			mapObjects.put(vmExceptionId, new WeakReference<>(eCause));
 			dfResAndExc[1] = new VMTaggedObjectId(vmExceptionId);
 		}
 		return dfResAndExc;
@@ -1616,7 +1628,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** {@inheritDoc} */
 	@Override
 	public Object getVMObject(VMObjectID objectId) {
-		return mapObjects.get(objectId);
+		final WeakReference<Object> refObj = mapObjects.get(objectId);
+		return (refObj != null) ? refObj.get() : null;
 	}
 	
 	/**
@@ -1645,7 +1658,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	@Override
 	public List<RefFrameBean> getThreadFrames(VMThreadID cThreadId, int startFrame, int length) {
 		final List<RefFrameBean> frames = new ArrayList<>();
-		final Thread thread = (Thread) mapObjects.get(cThreadId);
+		final WeakReference<Object> refThread = mapObjects.get(cThreadId);
+		final Thread thread = (Thread) ((refThread != null) ? refThread.get() : null);
 		final Stack<MethodFrame> stack = (thread != null) ? mapStacks.get(thread) : null;
 		if (thread != null && stack != null) {
 			final int stackSize = stack.size();
@@ -1690,7 +1704,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 					final VMFrameID frameId = new VMFrameID(objectIdCounter.incrementAndGet());
 					final long index = mf.instrNum;
 					rfBean = new RefFrameBean(frameId, refTypeBean.getTypeTag(), refTypeBean.getTypeID(), vmMethodID, index);
-					mapObjects.put(frameId, mf);
+					mapObjects.put(frameId, new WeakReference<>(mf));
 					mapRefFrameBean.put(mf, rfBean);
 				}
 				else {
@@ -1733,7 +1747,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			final Object oRefType = getVMObject(refType);
 			final Class<?> classRefType = (Class<?>) oRefType;
 			long count = 0;
-			for (Object object : mapObjects.values()) {
+			for (WeakReference<Object> refObject : mapObjects.values()) {
+				final Object object = refObject.get();
 				if (classRefType.isInstance(object)) {
 					count++;
 				}
@@ -1754,8 +1769,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 					classRefType, Integer.valueOf(maxInstances)));
 		}
 		final List<VMTaggedObjectId> listInstances = new ArrayList<>();
-		for (Entry<VMObjectID, Object> entry : mapObjects.entrySet()) {
-			final Object object = entry.getValue();
+		for (Entry<VMObjectID, WeakReference<Object>> entry : mapObjects.entrySet()) {
+			final Object object = entry.getValue().get();
 			if (classRefType.isInstance(object)) {
 				final VMObjectID key = entry.getKey();
 				final VMTaggedObjectId taggedObjectId;
@@ -1780,7 +1795,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** {@inheritDoc} */
 	@Override
 	public Integer getSuspendCount(VMThreadID cThreadId) {
-		Object oThread = mapObjects.get(cThreadId);
+		final WeakReference<Object> refThread = mapObjects.get(cThreadId);
+		Object oThread = (refThread != null) ? refThread.get() : null;
 		Integer iSuspCounter = null;
 		if (oThread instanceof Thread) {
 			final Thread thread = (Thread) oThread;
@@ -1805,7 +1821,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** {@inheritDoc} */
 	@Override
 	public boolean suspendThread(final VMThreadID cThreadId) {
-		Object oThread = mapObjects.get(cThreadId);
+		final WeakReference<Object> refThread = mapObjects.get(cThreadId);
+		Object oThread = (refThread != null) ? refThread.get() : null;
 		boolean isValid = false;
 		if (oThread instanceof Thread) {
 			final Thread thread = (Thread) oThread;
@@ -1827,7 +1844,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** {@inheritDoc} */
 	@Override
 	public boolean resumeThread(VMThreadID cThreadId) {
-		Object oThread = mapObjects.get(cThreadId);
+		final WeakReference<Object> refThread = mapObjects.get(cThreadId);
+		Object oThread = (refThread != null) ? refThread.get() : null;
 		boolean isValid = false;
 		if (oThread instanceof Thread) {
 			final Thread thread = (Thread) oThread;
