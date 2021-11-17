@@ -269,6 +269,7 @@ public class JvmHelper {
 				return !(className.startsWith("java.")
 						|| className.startsWith("sun.")
 						|| className.startsWith("com.sun.")
+						|| className.startsWith("jdk.internal.")
 						|| className.contains("$$Lambda"));
 			}
 		};
@@ -296,6 +297,7 @@ public class JvmHelper {
 					isSimulation = true;
 				}
 				else if (className.startsWith("java.")
+						|| className.startsWith("jdk.internal.")
 						|| className.startsWith("com.sun.")
 						|| className.startsWith("sun.")) {
 					// No java.*- or sun.*-classes.
