@@ -156,6 +156,11 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			stack.push(objReturn);
 			doContinueWhile = Boolean.FALSE;
 		}
+		else if ("java/lang/System".equals(mi.owner) && "exit".equals(mi.name)
+				&& configuration.isCatchSystemExit) {
+			final Integer rc = (Integer) stack.pop(); 
+			throw new JvmException(String.format("System.exit(%d) has been called", rc));
+		}
 		return doContinueWhile;
 	}
 

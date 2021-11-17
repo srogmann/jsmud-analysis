@@ -9,6 +9,9 @@ public class JsmudConfiguration {
 	/** prefix of configuration-keys */
 	private static final String KEY_PREFIX = "jsmud.";
 
+	/** <code>true</code> if System.exit() should be replaced by an exception */
+	protected final boolean isCatchSystemExit = getProperty("isCatchSystemExit", true);
+
 	/** <code>true</code>, if {@link AccessController} should be executed by the JVM (default is <code>true</code>) */
 	protected final boolean isEmulateAccessController = getProperty("EmulateAccessController", true); 
 
@@ -17,7 +20,6 @@ public class JsmudConfiguration {
 
 	/** <code>true</code>, if reflection-calls should be emulated (default is <code>true</code>) */
 	protected final boolean isSimulateReflection = getProperty("SimulateReflection", true);
-
 
 	/**
 	 * Gets the value of the given property.
