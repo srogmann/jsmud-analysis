@@ -7,7 +7,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.security.AccessController;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -51,12 +50,6 @@ public class MethodFrame {
 	/** logger */
 	private static final Logger LOG = LoggerFactory.getLogger(JvmInvocationHandlerReflection.class);
 
-	/** <code>true</code>, if {@link AccessController} should be executed by underlying JVM (default is <code>false</code>) */
-	static final boolean EXEC_ACCESS_CONTR_NATIVE = Boolean.getBoolean(MethodFrame.class.getName() + "executeAccessControllerNative"); 
-
-	/** <code>true</code>, if {@link Thread}-classes should not be patched */
-	static final boolean DONT_PATCH_THREAD_CLASSES = Boolean.getBoolean(MethodFrame.class.getName() + "dontPatchThreadClasses");
-
 	/** maximum level of stacked method-references on an object-instance */
 	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20).intValue();
 
@@ -68,6 +61,9 @@ public class MethodFrame {
 
 	/** method's class */
 	public final Class<?> clazz;
+
+	/** configuration */
+	private final JsmudConfiguration configuration;
 
 	/** source-file-writer or <code>null</code> */
 	private final SourceFileWriter sourceFileWriter;
@@ -123,6 +119,7 @@ public class MethodFrame {
 			final Executable pMethod, final MethodNode method, final Type[] argsDefs,
 			final JvmExecutionVisitor visitor, final JvmInvocationHandler invocationHandler) {
 		this.registry = registry;
+		this.configuration = registry.getConfiguration();
 		this.clazz = pMethod.getDeclaringClass();
 		this.sourceFileWriter = registry.getSourceFileWriter(clazz);
 		this.methodName = pMethod.getName();
@@ -2093,14 +2090,16 @@ whileInstr:
 			if (doContinueWhile != null) {
 				return doContinueWhile.booleanValue();
 			}
-			if (EXEC_ACCESS_CONTR_NATIVE && "java/security/AccessController".equals(mi.owner)
+			if (configuration.isEmulateAccessController
+					&& "java/security/AccessController".equals(mi.owner)
 					&& "doPrivileged".equals(mi.name)) {
+				// Execute java.security.PrivilegedAction.run() without checking privileges.
 				lMethodName = "run";
 				types = new Type[0];
 				methodDesc = "()Ljava/lang/Object;";
 				returnType = Type.getReturnType(methodDesc);
 				objRef = stack.peek();
-				classOwner = objRef.getClass(); //registry.loadClass("java.security.PrivilegedAction");
+				classOwner = objRef.getClass();
 				numArgs = 0;
 				isMethodOverriden = true;
 			}
@@ -2475,7 +2474,7 @@ whileSuperClass:
 		Class<?> classConstr = classInit;
 		if (oInstance instanceof UninitializedInstance) {
 			uninstType = (UninitializedInstance) oInstance;
-			if (Thread.class.isAssignableFrom(classInit) && !DONT_PATCH_THREAD_CLASSES) {
+			if (Thread.class.isAssignableFrom(classInit) && configuration.isPatchThreadClasses) {
 				classConstr = registry.getThreadClassGenerator().generateClass(classInit, mi.desc);
 				if (LOG.isDebugEnabled()) {
 					LOG.debug(String.format("executeInvokeSpecial: replace (%s) by (%s)",
@@ -2567,7 +2566,7 @@ whileSuperClass:
 
 		if (uninstType != null) {
 			stack.replaceUninitialized(uninstType, instanceInit);
-			if (Thread.class.isAssignableFrom(classConstr) && !DONT_PATCH_THREAD_CLASSES) {
+			if (Thread.class.isAssignableFrom(classConstr) && configuration.isPatchThreadClasses) {
 				LOG.debug("set ThreadExecutor: " + classConstr);
 				final Field field = classConstr.getDeclaredField(ThreadClassGenerator.FIELD_THREAD_EXECUTOR);
 				field.set(instanceInit, new ThreadExecutor(registry, visitor));

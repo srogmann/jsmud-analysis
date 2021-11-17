@@ -43,10 +43,10 @@ public class JvmHelper {
 			final int maxInstrLogged, final int maxMethodsLogged,
 			final SourceFileRequester sourceFileRequester) {
 		final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
-		final boolean simulateReflection = true;
-		final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
-				simulateReflection, visitorProvider, invocationHandler);
+		final JsmudConfiguration config = new JsmudConfiguration();
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter, config);
+		final ClassRegistry vm = new ClassRegistry(executionFilter, config, classLoader,
+				visitorProvider, invocationHandler);
 		//vm.registerThread(Thread.currentThread());
 		final Class<?>[] classesPreload = {
 				Thread.class,
@@ -129,10 +129,10 @@ public class JvmHelper {
 			socket.setSoTimeout(200);
 			final ClassLoader classLoader = runnable.getClass().getClassLoader();
 			final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
-			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
-			final boolean simulateReflection = true;
-			final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
-					simulateReflection, visitorProvider, invocationHandler);
+			final JsmudConfiguration config = new JsmudConfiguration();
+			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter, config);
+			final ClassRegistry vm = new ClassRegistry(executionFilter, config,
+					classLoader, visitorProvider, invocationHandler);
 			vm.registerThread(Thread.currentThread());
 			final DebuggerJvmVisitor visitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
 			final Class<?>[] classesPreload = {
@@ -194,10 +194,10 @@ public class JvmHelper {
 
 		final Class<?> classCallable = callable.getClass();
 		final ClassLoader classLoader = classCallable.getClassLoader();
-		final boolean simulateReflection = true;
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
-		final ClassRegistry registry = new ClassRegistry(filter, classLoader,
-				simulateReflection, visitorProvider, invocationHandler);
+		final JsmudConfiguration config = new JsmudConfiguration();
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter, config);
+		final ClassRegistry registry = new ClassRegistry(filter, config,
+				classLoader, visitorProvider, invocationHandler);
 		registry.registerThread(Thread.currentThread());
 		try {
 			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, callable.getClass(), invocationHandler);
@@ -236,10 +236,10 @@ public class JvmHelper {
 
 		final Class<?> classRunnable = runnable.getClass();
 		final ClassLoader classLoader = classRunnable.getClassLoader();
-		final boolean simulateReflection = true;
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
-		final ClassRegistry registry = new ClassRegistry(filter, classLoader,
-				simulateReflection, visitorProvider, invocationHandler);
+		final JsmudConfiguration config = new JsmudConfiguration();
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter, config);
+		final ClassRegistry registry = new ClassRegistry(filter, config,
+				classLoader, visitorProvider, invocationHandler);
 		registry.registerThread(Thread.currentThread());
 		try {
 			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, runnable.getClass(), invocationHandler);

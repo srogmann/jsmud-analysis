@@ -8,6 +8,7 @@ import org.rogmann.jsmud.visitors.InstructionVisitorProvider;
 import org.rogmann.jsmud.vm.ClassExecutionFilter;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JsmudClassLoader;
+import org.rogmann.jsmud.vm.JsmudConfiguration;
 import org.rogmann.jsmud.vm.JvmHelper;
 import org.rogmann.jsmud.vm.JvmInvocationHandler;
 import org.rogmann.jsmud.vm.JvmInvocationHandlerReflection;
@@ -50,10 +51,10 @@ public class ClassExecutionMain {
 		final JsmudClassLoader classLoader = new JsmudClassLoader(classLoaderParent, name ->
 					!name.startsWith("java.") && !name.startsWith("com.sun.") && !name.startsWith("sun."),
 				patchClinit, patchInit, redefineClass);
-		final boolean simulateReflection = true;
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
-		final ClassRegistry registry = new ClassRegistry(executionFilter, classLoader,
-				simulateReflection, visitorProvider, invocationHandler);
+		final JsmudConfiguration config = new JsmudConfiguration();
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter, config);
+		final ClassRegistry registry = new ClassRegistry(executionFilter, config,
+				classLoader, visitorProvider, invocationHandler);
 		registry.registerThread(Thread.currentThread());
 		final SimpleClassExecutor executor = new SimpleClassExecutor(registry, SampleClass.class, invocationHandler);
 		if (testNr == 0) {

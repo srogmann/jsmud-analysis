@@ -29,12 +29,17 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	/** invocation-handler in {@link Proxy} of JRE 8 or JRE 11 or <code>null</code> */
 	private final Field fFieldInvocationHandlerJreInternal;
 
+	/** configuration of jsmud-analysis */
+	private final JsmudConfiguration configuration;
+
 	/**
 	 * Constructor
 	 * @param filterProxy filter to select invocation-handlers to be interpreted, <code>null</code> if proxies should be executed by the underlying JVM
+	 * @param configuration configuration of jsmud-analysis
 	 */
-	public JvmInvocationHandlerReflection(final ClassExecutionFilter filterProxy) {
+	public JvmInvocationHandlerReflection(final ClassExecutionFilter filterProxy, final JsmudConfiguration configuration) {
 		this.filterProxy = filterProxy;
+		this.configuration = configuration;
 		if (filterProxy != null) {
 			Field fieldInvocationHandlerJre8;
 			try {
@@ -64,7 +69,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	@Override
 	public Boolean preprocessStaticCall(MethodFrame frame, final MethodInsnNode mi, OperandStack stack) throws Throwable {
 		Boolean doContinueWhile = null;
-		if ("java/lang/Class".equals(mi.owner) && "forName".equals(mi.name) && frame.registry.isSimulateReflection()) {
+		if ("java/lang/Class".equals(mi.owner) && "forName".equals(mi.name)
+				&& configuration.isSimulateReflection) {
 			// Emulation of Class.forName, we may want to patch the class to be loaded.
 			final Type[] argumentTypes = Type.getArgumentTypes(mi.desc);
 			if (LOG.isDebugEnabled()) {
@@ -100,7 +106,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			stack.push(loadedClass);
 			doContinueWhile = Boolean.FALSE;
 		}
-		else if ("java/security/AccessController".equals(mi.owner) && "doPrivileged".equals(mi.name) && !MethodFrame.EXEC_ACCESS_CONTR_NATIVE) {
+		else if ("java/security/AccessController".equals(mi.owner) && "doPrivileged".equals(mi.name)
+				&& configuration.isEmulateAccessController) {
 			final Type[] argumentTypes = Type.getArgumentTypes(mi.desc);
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Mock method %s%s", mi.name, mi.desc));
@@ -205,7 +212,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				return doContinueWhile;
 			}
 		}
-		if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name) && frame.registry.isSimulateReflection()) {
+		if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name)
+				&& configuration.isSimulateReflection) {
 			// Emulation of Constructor#newInstance?
 			final Constructor<?> constr = (Constructor<?>) stack.peek(1);
 			final Class<?> classInit = constr.getDeclaringClass();
@@ -253,7 +261,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			}
 		}
 		else if ("java/lang/reflect/Method".equals(mi.owner) && "invoke".equals(mi.name)
-				&& frame.registry.isSimulateReflection()
+				&& configuration.isSimulateReflection
 				&& Proxy.class.isAssignableFrom(((Method) stack.peek(2)).getDeclaringClass())
 				&& filterProxy != null) {
 			// Reflection on a method of a proxy-implementation.
@@ -286,7 +294,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			}
 		}
 		else if ("java/lang/reflect/Method".equals(mi.owner) && "invoke".equals(mi.name)
-				&& frame.registry.isSimulateReflection()) {
+				&& configuration.isSimulateReflection) {
 			// Emulation of Method#invoke?
 			final Method reflMethod = (Method) stack.peek(2);
 			final Class<?> classMethod = reflMethod.getDeclaringClass();

@@ -9,6 +9,7 @@ import org.rogmann.jsmud.log.LoggerFactorySystemOut;
 import org.rogmann.jsmud.visitors.InstructionVisitorProvider;
 import org.rogmann.jsmud.vm.ClassExecutionFilter;
 import org.rogmann.jsmud.vm.ClassRegistry;
+import org.rogmann.jsmud.vm.JsmudConfiguration;
 import org.rogmann.jsmud.vm.JvmInvocationHandler;
 import org.rogmann.jsmud.vm.JvmInvocationHandlerReflection;
 import org.rogmann.jsmud.vm.MethodFrame;
@@ -85,11 +86,11 @@ public class JvmTestsExecutionMain {
 
 		final String packageTests = classTest.getName().replaceFirst("[.][^.]*$", "");
 		final ClassLoader classLoader = classTest.getClassLoader();
-		final boolean simulateReflection = true;
 		ClassExecutionFilter filter = (c -> c.getName().startsWith(packageTests));
-		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter);
-		final ClassRegistry registry = new ClassRegistry(filter, classLoader,
-				simulateReflection, visitorProvider, invocationHandler);
+		final JsmudConfiguration config = new JsmudConfiguration();
+		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter, config);
+		final ClassRegistry registry = new ClassRegistry(filter, config,
+				classLoader, visitorProvider, invocationHandler);
 		registry.registerThread(Thread.currentThread());
 		try {
 			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, classTest, invocationHandler);

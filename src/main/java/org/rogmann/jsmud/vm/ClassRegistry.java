@@ -80,6 +80,7 @@ import org.rogmann.jsmud.visitors.SourceFileWriter;
 
 /**
  * Registry of classes whose execution should be simulated.
+ * 
  * <p>This class simulates the JVM.</p>
  */
 public class ClassRegistry implements VM, ObjectMonitor {
@@ -101,11 +102,11 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** execution-filter */
 	final ClassExecutionFilter executionFilter;
 
+	/** configuration of jsmud-analysis */
+	private final JsmudConfiguration configuration;
+
 	/** class-loader (default) */
 	private final ClassLoader classLoaderDefault;
-	
-	/** <code>true</code> if reflection should be emulated too */
-	private final boolean simulateReflection;
 	
 	/** JVM-visitor-provider */
 	private final JvmExecutionVisitorProvider visitorProvider;
@@ -199,18 +200,17 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/**
 	 * Constructor
 	 * @param executionFilter determines classes to be simulated
+	 * @param configuration configuration-properties of jsmud-analysis
 	 * @param classLoader class-loader to be used as default
-	 * @param simulateReflection <code>true</code> if reflection should be emulated
 	 * @param visitorProvider JVM-visitor-provider
 	 * @param invocationHandler invocation-handler
 	 */
-	public ClassRegistry(final ClassExecutionFilter executionFilter,
+	public ClassRegistry(final ClassExecutionFilter executionFilter, final JsmudConfiguration configuration,
 			final ClassLoader classLoader,
-			final boolean simulateReflection,
 			final JvmExecutionVisitorProvider visitorProvider, final JvmInvocationHandler invocationHandler) {
 		this.executionFilter = executionFilter;
+		this.configuration = configuration;
 		this.classLoaderDefault = classLoader;
-		this.simulateReflection = simulateReflection;
 		this.visitorProvider = visitorProvider;
 		this.invocationHandler = invocationHandler;
 		callSiteRegistry = new CallSiteRegistry(classLoader);
@@ -260,6 +260,14 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			}
 		}
 		return executor;
+	}
+
+	/**
+	 * Gets the configuration.
+	 * @return configuration
+	 */
+	public JsmudConfiguration getConfiguration() {
+		return configuration;
 	}
 
 	/** {@inheritDoc} */
@@ -462,14 +470,6 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	 */
 	public SourceFileWriter getSourceFileWriter(Class<?> clazz) {
 		return mapClassSourceFiles.get(clazz);
-	}
-
-	/**
-	 * Returns <code>true</code> if some method-calls in java.lang.reflect should be emulated.
-	 * @return simulate-reflection-flag
-	 */
-	public boolean isSimulateReflection() {
-		return simulateReflection;
 	}
 
 	/**
