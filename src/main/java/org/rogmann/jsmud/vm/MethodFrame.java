@@ -1696,7 +1696,7 @@ whileInstr:
 				case Opcodes.INVOKEVIRTUAL: // 0xb6
 				{
 					final MethodInsnNode mi = (MethodInsnNode) instr;
-					final boolean exceptionHandled = executeInvokeVirtualOrInterface(mi, false, false, true);
+					final boolean exceptionHandled = executeInvoke(mi, false, false, true, false);
 					if (exceptionHandled) {
 						continue whileInstr;
 					}
@@ -1713,7 +1713,7 @@ whileInstr:
 						exceptionHandled = executeInvokeSpecial(mi);
 					}
 					else {
-						exceptionHandled = executeInvokeVirtualOrInterface(mi, false, false, false);
+						exceptionHandled = executeInvoke(mi, false, false, false, true);
 					}
 					if (exceptionHandled) {
 						continue whileInstr;
@@ -1726,7 +1726,7 @@ whileInstr:
 				case Opcodes.INVOKESTATIC: // 0xb8
 				{
 					final MethodInsnNode mi = (MethodInsnNode) instr;
-					final boolean exceptionHandled = executeInvokeVirtualOrInterface(mi, false, true, false);
+					final boolean exceptionHandled = executeInvoke(mi, false, true, false, false);
 					if (exceptionHandled) {
 						continue whileInstr;
 					}
@@ -1738,7 +1738,7 @@ whileInstr:
 				case Opcodes.INVOKEINTERFACE: // 0xb9
 				{
 					final MethodInsnNode mi = (MethodInsnNode) instr;
-					final boolean exceptionHandled = executeInvokeVirtualOrInterface(mi, true, false, false);
+					final boolean exceptionHandled = executeInvoke(mi, true, false, false, true);
 					if (exceptionHandled) {
 						continue whileInstr;
 					}
@@ -2022,25 +2022,6 @@ whileInstr:
 				final Object caller = null;
 				jvmCallSite = registry.getCallSiteRegistry().buildCallSite(caller, clazz, pMethod, idi,
 						lambdaHandle, aArguments);
-				//final MethodInsnNode insnNode = new MethodInsnNode(Opcodes.INVOKEVIRTUAL, lambdaOwner, lambdaName, lamdaDesc, false);
-				//isException = executeInvokeVirtualOrInterface(insnNode, false);
-				//final Class<?> classMHN = registry.loadClass("java.lang.invoke.MethodHandleNatives");
-				//    static MemberName linkCallSite(Object callerObj,
-				//            Object bootstrapMethodObj,
-				//            Object nameObj, Object typeObj,
-				//            Object staticArguments,
-				//            Object[] appendixResult) {
-				//Method methodLinkCallSite;
-				//try {
-				//	methodLinkCallSite = classMHN.getDeclaredMethod("linkCallSite", Object.class, Object.class, Object.class,
-				//			Object.class, Object.class, Object[].class);
-				//} catch (NoSuchMethodException e) {
-				//	throw new JvmException("no such method linkCallSite in " + classMHN, e);
-				//} catch (SecurityException e) {
-				//	throw new JvmException("can't access method linkCallSite in " + classMHN, e);
-				//}
-				//methodLinkCallSite.setAccessible(true);
-				//methodLinkCallSite.invoke(classMHN, clazz, 
 			}
 			else {
 				throw new JvmException("Unexpected args for LambdaMetafactory: " + Arrays.toString(bsmArgs));
@@ -2061,16 +2042,17 @@ whileInstr:
 	}
 
 	/**
-	 * Executes an INVOKEVIRTUAL-instruction
-	 * @param mi INVOKEVIRTUAL or INVOKEINTERFACE
+	 * Executes an INVOKE-instruction
+	 * @param mi INVOKESTATIC, INVOKEVIRTUAL, INVOKEINTERFACE or INVOKESPECIAL
 	 * @param isInterface <code>true</code> in case of INVOKEINTERFACE
 	 * @param isStatic <code>true</code> in case of static method
 	 * @param isVirtual <code>true</code> in case of INVOKEVIRTUAL
+	 * @param isSpecial <code>true</code> in case of INVOKESPECIAL
 	 * @return <code>true</code> for next step in while, <code>false</code> leave switch only (and increment instr-idx)
 	 * @throws Throwable in case of an exception 
 	 */
-	private boolean executeInvokeVirtualOrInterface(final MethodInsnNode mi, boolean isInterface,
-			boolean isStatic, boolean isVirtual) throws Throwable {
+	private boolean executeInvoke(final MethodInsnNode mi, final boolean isInterface,
+			final boolean isStatic, final boolean isVirtual, final boolean isSpecial) throws Throwable {
 		final Type[] origTypes = Type.getArgumentTypes(mi.desc);
 		int numArgs = origTypes.length;
 		
@@ -2299,7 +2281,7 @@ whileInstr:
 		if (isCheckClassMethods) {
 			invMethod = findMethodInClass(lMethodName, types, returnType, classOwner);
 		}
-		if (invMethod == null && !lIsStatic && (isInterface || isVirtual)) {
+		if (invMethod == null && !lIsStatic) {
 			final Class<?> classInt;
 			try {
 				assert mi != null : "mi";
@@ -2312,7 +2294,11 @@ whileInstr:
 				}
 				throw e;
 			}
-			invMethod = findMethodInInterfaces(classOwner, lMethodName, types, isVirtual, classInt);
+			if (isInterface || isVirtual || (isSpecial && classInt.isInterface())) {
+				final boolean isSearchAllIntf = isVirtual || isSpecial;
+				invMethod = findMethodInInterfaces(classOwner, lMethodName, types,
+						isSearchAllIntf, classInt);
+			}
 		}
 		if (invMethod == null) {
 			if (mi.name.equals(lMethodName)) {
@@ -2379,11 +2365,12 @@ whileInstr:
 	 * @param classOwner class which interfaces are to be searches
 	 * @param lMethodName name of method
 	 * @param types argument-types of the method
-	 * @param isVirtual <code>true</code> if all interfaces are to be searched
+	 * @param isSearchAllIntf <code>true</code> if all interfaces are to be searched
 	 * @param classInt the parent-interface in case of non-virtual mode
 	 * @return method or <code>null</code>
 	 */
-	public static Method findMethodInInterfaces(Class<?> classOwner, String lMethodName, Type[] types, boolean isVirtual,
+	public static Method findMethodInInterfaces(Class<?> classOwner, String lMethodName,
+			Type[] types, boolean isSearchAllIntf,
 			final Class<?> classInt) {
 		Method invMethod = null;
 		Class<?> classObj = classOwner;
@@ -2391,7 +2378,7 @@ whileSuperClass:
 		while (classObj != null) {
 			final Class<?>[] aInterfaces = classObj.getInterfaces();
 			for (Class<?> classLoop : aInterfaces) {
-				if (isVirtual || classInt.isAssignableFrom(classLoop)) {
+				if (isSearchAllIntf || classInt.isAssignableFrom(classLoop)) {
 					invMethod = findMethodInInterface(lMethodName, types, classLoop);
 					if (invMethod != null) {
 						break whileSuperClass;

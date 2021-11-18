@@ -78,6 +78,8 @@ public class JvmTests {
 //		testsArrayIndex();
 //		testsExceptionHandling();
 //		testsExceptionHandlingFinally();
+//		testsInvokespecial();
+		testsInterfaceDefaultSuper();
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
@@ -115,7 +117,7 @@ public class JvmTests {
 //		testsProxy();
 //		testsProxyThisS0();
 //		testsProxySuper();
-		testsProxyViaReflection();
+//		testsProxyViaReflection();
 //		testsProxyViaReflectionMethod();
 //		testsProxyPublicInterface();
 //		testsProxyPublicInterfaceViaReflection();
@@ -396,6 +398,40 @@ public class JvmTests {
 
 	private static Method searchMethod(Class<?> clazz, String name) throws NoSuchMethodException {
 		return clazz.getDeclaredMethod(name);
+	}
+
+	@JsmudTest
+	public void testsInvokespecial() {
+		InvokespecialImpl impl = new InvokespecialImpl();
+		assertEquals("Invokespecial", "Super", impl.executeGetName());
+	}
+
+	static class InvokespecialSuper {
+		@SuppressWarnings("static-method")
+		private String getName() {
+			return "Super";
+		}
+		String executeGetName() {
+			return getName();
+		}
+	}
+
+	static class InvokespecialImpl extends InvokespecialSuper {
+		@SuppressWarnings("static-method")
+		String getName() {
+			return "Impl";
+		}
+	}
+
+	@JsmudTest
+	public void testsInterfaceDefaultSuper() {
+		// DefInterfaceImpl uses a static super-default-call in its implementation.
+		final DefInterface defIntf = new DefInterfaceImpl();
+		final String s = defIntf.addSuffix("A-");
+		assertEquals("Interface-super", "ImplDefS", s);
+
+		final String name = defIntf.getName();
+		assertEquals("Interface-super2", "ImplDefS2B-Child", name);
 	}
 
 	@JsmudTest
