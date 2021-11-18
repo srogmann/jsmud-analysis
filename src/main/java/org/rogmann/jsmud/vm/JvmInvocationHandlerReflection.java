@@ -392,6 +392,10 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				final boolean[] pArray = (boolean[]) obj;
 				stack.push(pArray.clone());
 			}
+			else if (obj instanceof byte[]) {
+				final byte[] pArray = (byte[]) obj;
+				stack.push(pArray.clone());
+			}
 			else if (obj instanceof char[]) {
 				final char[] pArray = (char[]) obj;
 				stack.push(pArray.clone());

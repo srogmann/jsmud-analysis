@@ -79,7 +79,7 @@ public class JvmTests {
 //		testsExceptionHandling();
 //		testsExceptionHandlingFinally();
 //		testsInvokespecial();
-		testsInterfaceDefaultSuper();
+//		testsInterfaceDefaultSuper();
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
@@ -173,6 +173,9 @@ public class JvmTests {
 		assertTrue("i0", aByte[1] == 1);
 		assertTrue("i0", aByte[2] == -128);
 		assertTrue("i0", aByte[3] == -1);
+		
+		final byte[] bClone = aByte.clone();
+		assertTrue("b1.clonse", bClone[1] == (byte) 0x01);
 	}
 
 	/** char-tests */
