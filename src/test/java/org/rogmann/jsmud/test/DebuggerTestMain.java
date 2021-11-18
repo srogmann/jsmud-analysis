@@ -1,27 +1,19 @@
 package org.rogmann.jsmud.test;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Method;
-import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Callable;
 import java.util.function.Predicate;
-
-import javax.net.SocketFactory;
 
 import org.objectweb.asm.Opcodes;
 import org.rogmann.jsmud.debugger.DebuggerJvmVisitor;
-import org.rogmann.jsmud.debugger.DebuggerJvmVisitorProvider;
-import org.rogmann.jsmud.debugger.JdwpCommandProcessor;
 import org.rogmann.jsmud.debugger.SourceFileRequester;
 import org.rogmann.jsmud.debugger.SourceFilesLocalDirectory;
 import org.rogmann.jsmud.vm.ClassExecutionFilter;
 import org.rogmann.jsmud.vm.ClassRegistry;
+import org.rogmann.jsmud.vm.JsmudClassLoader;
 import org.rogmann.jsmud.vm.JvmHelper;
-import org.rogmann.jsmud.vm.JvmInvocationHandler;
-import org.rogmann.jsmud.vm.JvmInvocationHandlerReflection;
 import org.rogmann.jsmud.vm.OperandStack;
 import org.rogmann.jsmud.vm.SimpleClassExecutor;
 
@@ -41,46 +33,24 @@ public class DebuggerTestMain {
 		final String host = args[0];
 		final int port = Integer.parseInt(args[1]);
 		final File folderSources = (args.length > 2) ? new File(args[2]) : null;
-		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
-			socket.setSoTimeout(200);
-			final ClassLoader classLoader = DebuggerTestMain.class.getClassLoader();
-			final ClassExecutionFilter executionFilter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
-			final SourceFileRequester sourceFileRequester = createSourceFileRequester(folderSources);
-			final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
-			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter);
-			final boolean simulateReflection = true;
-			final ClassRegistry vm = new ClassRegistry(executionFilter, classLoader,
-					simulateReflection, visitorProvider, invocationHandler);
-			vm.registerThread(Thread.currentThread());
-			final Class<?>[] classesPreload = {
-					Thread.class,
-					Throwable.class,
-					Error.class
-			};
-			for (final Class<?> classPreload : classesPreload) {
-				try {
-					vm.loadClass(classPreload.getName(), classPreload);
-				} catch (ClassNotFoundException e) {
-					throw new RuntimeException("Couldn't preload class " + classPreload, e);
-				}
+
+		final ClassExecutionFilter filter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
+		final ClassLoader clParent = DebuggerTestMain.class.getClassLoader();
+		boolean patchClinit = false;
+		boolean patchInit = false;
+		boolean acceptHotCodeReplace = true;
+		final ClassLoader cl = new JsmudClassLoader(clParent, c -> false, patchClinit, patchInit, acceptHotCodeReplace);
+		final SourceFileRequester sfr = createSourceFileRequester(folderSources);
+		final DebuggerJvmVisitor visitor = JvmHelper.createDebuggerVisitor(filter, cl, 500, 500, sfr);
+		final Callable<Void> callable = new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				final JvmTests jvmTests = new JvmTests();
+				jvmTests.tests();
+				return null;
 			}
-			final DebuggerJvmVisitor visitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
-			visitor.setJvmSimulator(vm);
-			try (final InputStream is = socket.getInputStream()) {
-				try (final OutputStream os = socket.getOutputStream()) {
-					final int maxLockTime = 600;
-					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(is, os, 
-							vm, visitor, maxLockTime);
-					visitor.visitThreadStarted(Thread.currentThread());
-					vm.suspendThread(vm.getCurrentThreadId());
-					debugger.processPackets();
-					
-					debuggerTest4(vm);
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("IO-Exception while speaking to " + host + ':' + port, e);
-		}
+		};
+		JvmHelper.connectCallableToDebugger(visitor, host, port, callable, Void.class);
 	}
 	
 	private static SourceFileRequester createSourceFileRequester(File folderSources) {
