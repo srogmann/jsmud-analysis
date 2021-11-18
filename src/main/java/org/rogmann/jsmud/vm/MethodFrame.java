@@ -53,9 +53,6 @@ public class MethodFrame {
 	/** maximum level of stacked method-references on an object-instance */
 	final int maxCallSiteLevel = Integer.getInteger(MethodFrame.class.getName() + "maxCallSiteLevel", 20).intValue();
 
-	/** <code>true</code> if a call-site should be simulated via proxy, <code>false</code> if a call-site should get a generated class */
-	private final boolean callsiteViaProxy = Boolean.getBoolean(MethodFrame.class.getName() + ".executeAccessControllerNative");
-
 	/** class-registry */
 	public final ClassRegistry registry;
 
@@ -1751,7 +1748,7 @@ whileInstr:
 				{
 					final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) instr;
 					final Object callSiteInstance;
-					if (callsiteViaProxy) {
+					if (configuration.isCallsiteViaProxy) {
 						final CallSiteSimulation jvmCallSite = executeInvokeDynamic(idin);
 						callSiteInstance = jvmCallSite.getProxy();
 					}

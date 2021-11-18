@@ -9,8 +9,11 @@ public class JsmudConfiguration {
 	/** prefix of configuration-keys */
 	private static final String KEY_PREFIX = "jsmud.";
 
+	/** <code>true</code> if a call-site should be simulated via proxy, <code>false</code> if a call-site should get a generated class (<code>false</code> is default) */
+	protected final boolean isCallsiteViaProxy = getProperty("CallsiteViaProxy", false);
+
 	/** <code>true</code> if System.exit() should be replaced by an exception */
-	protected final boolean isCatchSystemExit = getProperty("isCatchSystemExit", true);
+	protected final boolean isCatchSystemExit = getProperty("CatchSystemExit", true);
 
 	/** <code>true</code>, if {@link AccessController} should be executed by the JVM (default is <code>true</code>) */
 	protected final boolean isEmulateAccessController = getProperty("EmulateAccessController", true); 
