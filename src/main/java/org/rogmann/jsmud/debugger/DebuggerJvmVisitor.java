@@ -560,7 +560,8 @@ stepSearch:
 			}
 		}
 		if (currFrame.eventRequestStep != null
-				|| (currStepReq != null && currModStep.getStepDepth() == JdwpModifierStep.STEP_DEPTH_INTO)) {
+				|| (currStepReq != null && currModStep != null
+					&& currModStep.getStepDepth() == JdwpModifierStep.STEP_DEPTH_INTO)) {
 			final JdwpEventRequest evReq;
 			final JdwpModifierStep modStep;
 			if (currFrame.eventRequestStep != null) {
@@ -570,6 +571,16 @@ stepSearch:
 			else {
 				evReq = currStepReq;
 				modStep = currModStep;
+			}
+			if (modStep == null) {
+				// modStep can't be null here.
+				throw new JvmException(String.format("Internal error: evReq (%s) but modStep == null (currFrame=%s, currModStep=%s)",
+						evReq, currFrame, currModStep));
+			}
+			if (evReq == null) {
+				// evReq can't be null here.
+				throw new JvmException(String.format("Internal error: evReq == null (currFrame=%s, currModstep=%s)",
+						currFrame, currModStep));
 			}
 			
 			if ((modStep.getStepSize() == JdwpModifierStep.STEP_SIZE_MIN && modStep.getStepDepth() != JdwpModifierStep.STEP_DEPTH_OUT)
