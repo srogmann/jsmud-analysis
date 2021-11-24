@@ -55,6 +55,7 @@ import org.rogmann.jsmud.events.ModKind;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.replydata.LineCodeIndex;
+import org.rogmann.jsmud.replydata.LineTable;
 import org.rogmann.jsmud.replydata.RefFieldBean;
 import org.rogmann.jsmud.replydata.RefFrameBean;
 import org.rogmann.jsmud.replydata.RefMethodBean;
@@ -1571,18 +1572,17 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else {
 			final Class<?> clazz = (Class<?>) oClassRef;
 			final Executable method = (Executable) oMethod;
-			final List<LineCodeIndex> lineTable = vm.getLineTable(clazz, method, refType, methodID);
-			int numLines = lineTable.size();
-			long start = (numLines > 0) ? start = Integer.MAX_VALUE : 0;
-			long end = 0;
+			final LineTable lineTable = vm.getLineTable(clazz, method, refType, methodID);
+			final List<LineCodeIndex> listLci = lineTable.getListLci();
+			int numLines = listLci.size();
 			final VMDataField[] fields = new VMDataField[3 + numLines * 2];
 			for (int i = 0; i < numLines; i++) {
-				long lci = lineTable.get(i).getLineCodeIndex();
-				start = Math.min(lci, start);
-				end = Math.max(lci, end);
+				long lci = listLci.get(i).getLineCodeIndex();
 				fields[3 + 2 * i] = new VMLong(lci);
-				fields[4 + 2 * i] = new VMInt(lineTable.get(i).getLineNumber());
+				fields[4 + 2 * i] = new VMInt(listLci.get(i).getLineNumber());
 			}
+			final long start = lineTable.getStart();
+			final long end = lineTable.getEnd();
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("sendLineTable: refType=%s, class=%s, method=%s, numLines=%d, start=%d, end=%d",
 						refType, clazz, method, Integer.valueOf(numLines),

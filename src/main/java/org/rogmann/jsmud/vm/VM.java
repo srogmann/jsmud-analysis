@@ -25,7 +25,7 @@ import org.rogmann.jsmud.datatypes.VMValue;
 import org.rogmann.jsmud.debugger.SlotRequest;
 import org.rogmann.jsmud.debugger.SlotValue;
 import org.rogmann.jsmud.debugger.SourceFileRequester;
-import org.rogmann.jsmud.replydata.LineCodeIndex;
+import org.rogmann.jsmud.replydata.LineTable;
 import org.rogmann.jsmud.replydata.RefFieldBean;
 import org.rogmann.jsmud.replydata.RefFrameBean;
 import org.rogmann.jsmud.replydata.RefMethodBean;
@@ -169,7 +169,7 @@ public interface VM {
 	 * @param methodID id of method
 	 * @return line-code-table
 	 */
-	List<LineCodeIndex> getLineTable(Class<?> clazz, Executable method, VMReferenceTypeID refType, VMMethodID methodID);
+	LineTable getLineTable(Class<?> clazz, Executable method, VMReferenceTypeID refType, VMMethodID methodID);
 
 	/**
 	 * Gets a list of interfaces of the given class.

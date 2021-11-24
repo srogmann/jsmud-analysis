@@ -70,6 +70,7 @@ import org.rogmann.jsmud.debugger.SourceFileRequester;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.replydata.LineCodeIndex;
+import org.rogmann.jsmud.replydata.LineTable;
 import org.rogmann.jsmud.replydata.RefFieldBean;
 import org.rogmann.jsmud.replydata.RefFrameBean;
 import org.rogmann.jsmud.replydata.RefMethodBean;
@@ -820,10 +821,12 @@ public class ClassRegistry implements VM, ObjectMonitor {
 
 	/** {@inheritDoc} */
 	@Override
-	public List<LineCodeIndex> getLineTable(final Class<?> clazz, final Executable executable, final VMReferenceTypeID refType,
+	public LineTable getLineTable(final Class<?> clazz, final Executable executable, final VMReferenceTypeID refType,
 			VMMethodID methodID) {
-		final List<LineCodeIndex> lineTable = new ArrayList<>();
+		final List<LineCodeIndex> listLci = new ArrayList<>();
 		final SimpleClassExecutor classExecutor = getClassExecutor(clazz);
+		long start = -1;
+		long end = -1;
 		if (classExecutor != null) {
 			final MethodNode methodNode;
 			if (executable instanceof Method) {
@@ -840,17 +843,19 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			if (methodNode != null) {
 				final SourceFileWriter sourceFileWriter = mapClassSourceFiles.get(clazz);
 				if (sourceFileWriter != null) {
-					final List<LineCodeIndex> computedLines = sourceFileWriter.computeMethodLines(classExecutor.getClassNode(), methodNode);
+					final LineTable lineTable = sourceFileWriter.computeMethodLines(classExecutor.getClassNode(), methodNode);
+					final List<LineCodeIndex> listLciComputed = lineTable.getListLci();
 					if (LOG.isDebugEnabled()) {
 						LOG.debug(String.format("getLineTable: executable=%s, #computedLines=%d",
-								executable, Integer.valueOf(computedLines.size())));
+								executable, Integer.valueOf(listLciComputed.size())));
 					}
-					lineTable.addAll(computedLines);
+					listLci.addAll(listLciComputed);
+					start = lineTable.getStart();
+					end = lineTable.getEnd();
 				}
 				else {
 					final InsnList instructions = methodNode.instructions;
 					final int numInstr = instructions.size();
-					boolean isFirstLine = true;
 					int currLine = 0;
 					int lastDebugLine = 0;
 					for (int i = 0; i < numInstr; i++) {
@@ -863,24 +868,18 @@ public class ClassRegistry implements VM, ObjectMonitor {
 						else if (opcode >= 0) {
 							if (currLine > lastDebugLine) {
 								// We place the line-number-index at the first opcode of a line.
-								final int index;
-								if (isFirstLine) {
-									// The first line of a method should start at index 0.
-									index = 0;
-									isFirstLine = false;
-								}
-								else {
-									index = instructions.indexOf(instr);
-								}
-								lineTable.add(new LineCodeIndex(index, currLine));
+								final int index = instructions.indexOf(instr);
+								listLci.add(new LineCodeIndex(index, currLine));
 								lastDebugLine = currLine;
 							}
 						}
 					}
+					start = 0;
+					end = instructions.size() - 1;
 				}
 			}
 		}
-		return lineTable;
+		return new LineTable(start, end, listLci);
 	}
 
 	/** {@inheritDoc} */

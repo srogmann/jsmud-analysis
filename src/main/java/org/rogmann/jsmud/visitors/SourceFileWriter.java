@@ -21,6 +21,7 @@ import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rogmann.jsmud.replydata.LineCodeIndex;
+import org.rogmann.jsmud.replydata.LineTable;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmException;
 
@@ -334,7 +335,7 @@ public class SourceFileWriter {
 		return mapMethodInstr.get(methodKey);
 	}
 
-	public List<LineCodeIndex> computeMethodLines(ClassNode classNode, MethodNode methodNode) {
+	public LineTable computeMethodLines(ClassNode classNode, MethodNode methodNode) {
 		final List<LineCodeIndex> lines = new ArrayList<>();
 		final String methodKey = buildMethodKey(classNode, methodNode);
 		final Integer firstLine = mapMethodFirstLine.get(methodKey);
@@ -343,7 +344,6 @@ public class SourceFileWriter {
 		}
 
 		int lineNo = firstLine.intValue();
-		lines.add(new LineCodeIndex(0, lineNo));
 		
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
@@ -358,8 +358,10 @@ public class SourceFileWriter {
 				lineNo++;
 			}
 		}
+		long start = 0;
+		long end = instructions.size() - 1;
 
-		return lines;
+		return new LineTable(start, end, lines);
 	}
 
 	/**
