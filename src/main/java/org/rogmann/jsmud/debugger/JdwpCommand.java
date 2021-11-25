@@ -79,6 +79,8 @@ public enum JdwpCommand {
 	GET_VALUES(JdwpCommandSet.OBJECT_REFERENCE, 2),
 	/** SetValues Command */
 	SET_VALUES(JdwpCommandSet.OBJECT_REFERENCE, 3),
+	/** MonitorInfo Command */
+	MONITOR_INFO(JdwpCommandSet.OBJECT_REFERENCE, 5),
 	/** InvokeMethod Command */
 	INVOKE_METHOD(JdwpCommandSet.OBJECT_REFERENCE, 6),
 	/** DisableCollection Command */
