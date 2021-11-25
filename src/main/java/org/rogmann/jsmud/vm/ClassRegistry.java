@@ -857,21 +857,13 @@ public class ClassRegistry implements VM, ObjectMonitor {
 					final InsnList instructions = methodNode.instructions;
 					final int numInstr = instructions.size();
 					int currLine = 0;
-					int lastDebugLine = 0;
 					for (int i = 0; i < numInstr; i++) {
-						AbstractInsnNode instr = instructions.get(i);
-						final int opcode = instr.getOpcode();
+						final AbstractInsnNode instr = instructions.get(i);
 						if (instr instanceof LineNumberNode) {
 							final LineNumberNode ln = (LineNumberNode) instr;
 							currLine = ln.line;
-						}
-						else if (opcode >= 0) {
-							if (currLine > lastDebugLine) {
-								// We place the line-number-index at the first opcode of a line.
-								final int index = instructions.indexOf(instr);
-								listLci.add(new LineCodeIndex(index, currLine));
-								lastDebugLine = currLine;
-							}
+							final int index = instructions.indexOf(instr);
+							listLci.add(new LineCodeIndex(index, currLine));
 						}
 					}
 					start = 0;

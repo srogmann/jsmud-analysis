@@ -1587,6 +1587,17 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				LOG.debug(String.format("sendLineTable: refType=%s, class=%s, method=%s, numLines=%d, start=%d, end=%d",
 						refType, clazz, method, Integer.valueOf(numLines),
 						Long.valueOf(start), Long.valueOf(end)));
+				int i = 0;
+				for (LineCodeIndex lci : listLci) {
+					LOG.debug(String.format("  lci: pc=%d, line=%d",
+							Long.valueOf(lci.getLineCodeIndex()),
+							Integer.valueOf(lci.getLineNumber())));
+					i++;
+					if (i == 5) {
+						LOG.debug("  lci: [...]");
+						break;
+					}
+				}
 			}
 			fields[0] = new VMLong(start);
 			fields[1] = new VMLong(end);

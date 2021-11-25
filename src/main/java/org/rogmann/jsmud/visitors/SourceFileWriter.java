@@ -354,8 +354,8 @@ public class SourceFileWriter {
 				lineNo++;
 			}
 			else if (opcode >= 0) {
-				lines.add(new LineCodeIndex(i, lineNo));
 				lineNo++;
+				lines.add(new LineCodeIndex(i, lineNo));
 			}
 		}
 		long start = 0;

@@ -328,6 +328,10 @@ whileInstr:
 			while (true) {
 				final AbstractInsnNode instr = instructions.get(instrNum);
 				final int opcode = instr.getOpcode();
+				if (opcode < 0 && instr instanceof LineNumberNode) {
+					final LineNumberNode lnn = (LineNumberNode) instr;
+					currLineNum = lnn.line;
+				}
 				visitor.visitInstruction(instr, stack, aLocals);
 				
 				switch (opcode) {
@@ -1937,17 +1941,17 @@ whileInstr:
 					break;
 				}
 				default:
-					if (instr instanceof LineNumberNode) {
-						final LineNumberNode lnn = (LineNumberNode) instr;
-						currLineNum = lnn.line;
-					}
+					//if (instr instanceof LineNumberNode) {
+					//}
 					//else if (instr instanceof LabelNode) {
 					//	final LabelNode label = (LabelNode) instr;
 					//}
 					//else if (instr instanceof FrameNode) {
 					//	final FrameNode fn = (FrameNode) instr;
 					//}
-					else if (!(instr instanceof LabelNode || instr instanceof FrameNode)) {
+					if (!(instr instanceof LabelNode
+							|| instr instanceof FrameNode
+							|| instr instanceof LineNumberNode)) {
 						throw new JvmException(String.format("Unsupported instruction: %02x at instruction %d of type %s in %s",
 								Integer.valueOf(opcode), Integer.valueOf(instrNum), instr, methodName));
 					}

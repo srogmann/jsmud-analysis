@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LineNumberNode;
 import org.rogmann.jsmud.datatypes.VMByte;
 import org.rogmann.jsmud.datatypes.VMDataField;
 import org.rogmann.jsmud.datatypes.VMInt;
@@ -543,6 +544,11 @@ loopEvents:
 					Integer.valueOf(currFrame.frame.getCurrLineNum()),
 					Integer.valueOf(currFrame.frame.instrNum),
 					InstructionVisitor.displayInstruction(instr, currFrame.frame.getMethodNode())));
+		}
+		if (instr.getOpcode() < 0 && !(instr instanceof LineNumberNode)) {
+			// Suspend at real instructions or line-nodes only.
+			// No suspend at frame- or label-nodes.
+			return;
 		}
 		if (currFrame.eventRequestStep == null) {
 stepSearch:
