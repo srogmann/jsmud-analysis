@@ -75,11 +75,13 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	private static final Logger LOG = LoggerFactory.getLogger(JdwpCommandProcessor.class);
 
 	/** Java 1.8 */
-	static final int JVM_VERSION_1_8 = 8;
+	static final int JDWP_MAJOR_VERSION_1_8 = 1;
+	/** Java 1.8 */
+	static final int JDWP_MINOR_VERSION_1_8 = 8;
 	/** Java 11 */
-	static final int JVM_VERSION_11 = 11;
+	static final int JDWP_MAJOR_VERSION_11 = 11;
 	/** Java 17 */
-	static final int JVM_VERSION_17 = 17;
+	static final int JDWP_MAJOR_VERSION_17 = 17;
 
 	/** Java 1.8 */
 	static final int MAJOR_VERSION_1_8 = 52;
@@ -316,8 +318,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			final VMThreadID threadId) throws IOException {
 		if (cmd == JdwpCommand.VERSION) {
 			String description = ClassRegistry.VERSION;
-			int jdwpMajor = JVM_VERSION_1_8;
-			int jdwpMinor = 0;
+			int jdwpMajor = JDWP_MAJOR_VERSION_1_8;
+			int jdwpMinor = JDWP_MINOR_VERSION_1_8;
 			String vmVersion = System.getProperty("java.version");
 			String vmName = System.getProperty("java.vm.name");
 			sendReplyData(id, new VMString(description),
