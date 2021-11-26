@@ -39,7 +39,7 @@ import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
-import org.rogmann.jsmud.visitors.SourceFileWriter;
+import org.rogmann.jsmud.source.SourceFileWriter;
 
 /**
  * Frame of a method at execution time.

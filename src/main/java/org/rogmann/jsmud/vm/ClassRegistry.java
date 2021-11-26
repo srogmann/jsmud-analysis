@@ -77,7 +77,7 @@ import org.rogmann.jsmud.replydata.RefMethodBean;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.TypeTag;
 import org.rogmann.jsmud.replydata.VariableSlot;
-import org.rogmann.jsmud.visitors.SourceFileWriter;
+import org.rogmann.jsmud.source.SourceFileWriter;
 
 /**
  * Registry of classes whose execution should be simulated.
@@ -1987,10 +1987,16 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				return innerClassNode;
 			});
 	
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Generate source-file of class " + clazz);
+			}
 			try (final BufferedWriter bw = sourceFileRequester.createBufferedWriter(clazz)) {
 				final String extension = sourceFileRequester.getExtension();
 				final String lineBreak = sourceFileRequester.lineBreak();
-				sourceFileWriter = new SourceFileWriter(extension, bw, lineBreak, node, innerClassProvider);
+				final String indentation = null;
+				
+				sourceFileWriter = new SourceFileWriter(extension, node, innerClassProvider);
+				sourceFileWriter.getSourceBlockList().writeLines(bw, indentation, lineBreak);
 				mapSourceSourceFiles.put(sourceFileGuessed, sourceFileWriter);
 			}
 		}

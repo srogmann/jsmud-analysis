@@ -1,6 +1,5 @@
-package org.rogmann.jsmud.visitors;
+package org.rogmann.jsmud.source;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +21,7 @@ import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rogmann.jsmud.replydata.LineCodeIndex;
 import org.rogmann.jsmud.replydata.LineTable;
+import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmException;
 
@@ -34,9 +34,6 @@ public class SourceFileWriter {
 
 	/** extension of the generated file (e.g. "java" or "asm") */
 	private final String extension;
-
-	/** line-break in source-file */
-	private final String crlf;
 
 	/** number of lines */
 	private int lineNum = 1;
@@ -59,36 +56,46 @@ public class SourceFileWriter {
 	/** map from method-key to map from instruction to line-number */
 	private final Map<String, Map<Integer, Integer>> mapMethodInstr = new HashMap<>();
 
+	/** outer list of source-blocks */
+	private final SourceBlockList sourceOuter = new SourceBlockList(0);
+
 	/**
 	 * Constructor, writes the source-file.
 	 * @param extension extension, e.g. "asm"
-	 * @param bw output-writer
-	 * @param crlf line-break
 	 * @param node class-node
 	 * @param innerClassesProvider function which returns a class-node corresponding to an internal-name
 	 * @throws IOException in case of an IO-error
 	 */
-	public SourceFileWriter(final String extension, final BufferedWriter bw, final String crlf, final ClassNode node,
+	public SourceFileWriter(final String extension, final ClassNode node,
 			final Function<String, ClassNode> innerClassesProvider) throws IOException {
 		this.extension = extension;
-		this.crlf = crlf;
+		
+		final SourceLines header = new SourceLines(0);
+		sourceOuter.setHeader(header);
 		final StringBuilder sb = new StringBuilder(100);
 		final int lastSlash = node.name.lastIndexOf('/');
 		if (lastSlash > 0) {
 			final String packageName = node.name.substring(0, lastSlash).replace('/', '.');
 			sb.append("package ").append(packageName).append(';');
-			writeLine(bw, sb);
-			writeLine(bw, "");
+			writeLine(header, sb);
+			writeLine(header, "");
 		}
-		writeClass(bw, node, innerClassesProvider);
+		
+		final SourceBlockList sourceBlockList = new SourceBlockList(0);
+		sourceOuter.getList().add(sourceBlockList);
+		writeClass(sourceBlockList, node, innerClassesProvider);
 	}
 
-	private void writeClass(final BufferedWriter bw, final ClassNode node,
+	/**
+	 * Gets the generated blocks of source.
+	 * @return source-block-list
+	 */
+	public SourceBlockList getSourceBlockList() {
+		return sourceOuter;
+	}
+
+	private void writeClass(final SourceBlockList blocks, final ClassNode node,
 			final Function<String, ClassNode> innerClassesProvider) throws IOException {
-		if (!setInnerClassesProcessed.add(node.name)) {
-			// This class has been processed already.
-			return;
-		}
 		final StringBuilder sb = new StringBuilder(100);
 		final int lastSlash = node.name.lastIndexOf('/');
 		final String classSimpleName;
@@ -99,11 +106,13 @@ public class SourceFileWriter {
 			classSimpleName = node.name;
 		}
 
-		writeLine(bw, "/**");
-		sb.append(" * Pseudocode of class ").append(node.name.replace('/', '.')).append('.'); writeLine(bw, sb);
-		writeLine(bw, " *");
-		sb.append(" * <p>Generator: ").append(ClassRegistry.VERSION).append("</p>"); writeLine(bw, sb);
-		writeLine(bw, " */");
+		SourceLines header = new SourceLines(blocks.getLevel());
+		blocks.setHeader(header);
+		writeLine(header, "/**");
+		sb.append(" * Pseudocode of class ").append(node.name.replace('/', '.')).append('.'); writeLine(header, sb);
+		writeLine(header, " *");
+		sb.append(" * <p>Generator: ").append(ClassRegistry.VERSION).append("</p>"); writeLine(header, sb);
+		writeLine(header, " */");
 		appendAccessClass(sb, node.access);
 		sb.append(classSimpleName);
 		if (node.superName != null && !"java/lang/Object".equals(node.superName)) {
@@ -118,20 +127,26 @@ public class SourceFileWriter {
 				sb.append(node.interfaces.get(i).replace('/', '.'));
 			}
 		}
-		sb.append(" {"); writeLine(bw, sb);
-		writeLine(bw, "");
+		sb.append(" {"); writeLine(header, sb);
+		writeLine(header, "");
 		level++;
 
-		for (final FieldNode fieldNode : node.fields) {
-			appendAccessField(sb, fieldNode.access);
-			final Type type = Type.getType(fieldNode.desc);
-			sb.append(type.getClassName());
-			sb.append(' ').append(fieldNode.name);
-			sb.append(';'); writeLine(bw, sb);
+		// Append fields.
+		{
+			final SourceLines blockFields = blocks.createSourceLines();
+			for (final FieldNode fieldNode : node.fields) {
+				appendAccessField(sb, fieldNode.access);
+				final Type type = Type.getType(fieldNode.desc);
+				sb.append(type.getClassName());
+				sb.append(' ').append(fieldNode.name);
+				sb.append(';'); writeLine(blockFields, sb);
+			}
+			blocks.getList().add(blockFields);
 		}
 
 		for (final MethodNode methodNode : node.methods) {
-			writeLine(bw, "");
+			final SourceLines blockMethod = blocks.createSourceLines();
+			writeLine(blockMethod, "");
 			appendAccessMethod(sb, methodNode.access);
 			final Type type = Type.getMethodType(methodNode.desc);
 			if ("<init>".equals(methodNode.name)) {
@@ -161,28 +176,36 @@ public class SourceFileWriter {
 				}
 				sb.append(exceptions.get(i));
 			}
-			sb.append(" {"); writeLine(bw, sb);
+			sb.append(" {"); writeLine(blockMethod, sb);
 			level++;
-			writeMethodBody(bw, sb, node, methodNode);
+			writeMethodBody(blockMethod, sb, node, methodNode);
 			level--;
-			writeLine(bw, "}");
+			writeLine(blockMethod, "}");
 		}
 
 		for (final InnerClassNode innerClassNode : node.innerClasses) {
-			writeLine(bw, "");
 			final ClassNode innerClass = innerClassesProvider.apply(innerClassNode.name);
 			if (innerClass == null) {
 				throw new JvmException(String.format("No class-node of inner-class (%s) of (%s)",
 						innerClassNode.name, node.name));
 			}
-			writeClass(bw, innerClass, innerClassesProvider);
-		}
+			if (setInnerClassesProcessed.add(innerClass.name)) {
+				SourceLines blockSep = blocks.createSourceLines();
+				writeLine(blockSep, "");
 
+				final SourceBlockList blockList = blocks.createSourceBlockList();
+				writeClass(blockList, innerClass, innerClassesProvider);
+			}
+		}
+		
 		level--;
-		writeLine(bw, "}");
+		
+		SourceLines tail = new SourceLines(blocks.getLevel());
+		blocks.setTail(tail);
+		writeLine(tail, "}");
 	}
 
-	private void writeMethodBody(final BufferedWriter bw, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
+	private void writeMethodBody(final SourceLines block, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
 		final String methodKey = buildMethodKey(classNode, methodNode);
 		mapMethodFirstLine.put(methodKey, Integer.valueOf(lineNum));
 		final Map<Integer, Integer> mapInstrLine = new HashMap<>();
@@ -196,7 +219,7 @@ public class SourceFileWriter {
 			if (type == AbstractInsnNode.LABEL) {
 				final LabelNode ln = (LabelNode) instr;
 				level--;
-				sb.append(ln.getLabel().toString()).append(':'); writeLine(bw, sb);
+				sb.append(ln.getLabel().toString()).append(':'); writeLine(block, sb);
 				level++;
 			}
 			else if (type == AbstractInsnNode.LINE) {
@@ -207,7 +230,7 @@ public class SourceFileWriter {
 			else if (opcode >= 0) {
 				final Integer iLineNum = Integer.valueOf(lineNum);
 				final String sInstruction = InstructionVisitor.displayInstruction(instr, methodNode);
-				writeLine(bw, sInstruction);
+				writeLine(block, sInstruction);
 				mapLineClassToPseudo.putIfAbsent(Integer.valueOf(lineNumClass), iLineNum);
 				mapInstrLine.put(Integer.valueOf(i), iLineNum);
 			}
@@ -366,34 +389,36 @@ public class SourceFileWriter {
 
 	/**
 	 * Write a line and adds a line-break.
-	 * @param bw writer
+	 * @param lines current source-block
 	 * @param line content of the line (without line-break)
 	 * @throws IOException in case of an IO-error
 	 */
-	private void writeLine(BufferedWriter bw, String line) throws IOException {
-		bw.write("//");
+	private void writeLine(final SourceLines lines, String line) throws IOException {
+		final StringBuilder sbLine = new StringBuilder(line.length() + 10);
+		sbLine.append("//");
 		for (int i = 0; i < level; i++) {
-			bw.write("    ");
+			sbLine.append("    ");
 		}
-		bw.write(line);
-		bw.write(crlf);
+		sbLine.append(line);
+		lines.addLine(lineNum, sbLine.toString());
 		lineNum++;
 	}
 
 	/**
 	 * Write a line and adds a line-break.
 	 * The string-builder's length will be set to zero.
-	 * @param bw writer
+	 * @param lines current source-block
 	 * @param sb content of the line (without line-break)
 	 * @throws IOException in case of an IO-error
 	 */
-	private void writeLine(BufferedWriter bw, StringBuilder sb) throws IOException {
-		sb.append(crlf);
-		bw.write("//");
+	private void writeLine(final SourceLines lines, StringBuilder sb) throws IOException {
+		final StringBuilder sbLine = new StringBuilder(sb.length() + 10);
+		sbLine.append("//");
 		for (int i = 0; i < level; i++) {
-			bw.write("    ");
+			sbLine.append("    ");
 		}
-		bw.write(sb.toString());
+		sbLine.append(sb);
+		lines.addLine(lineNum, sbLine.toString());
 		sb.setLength(0);
 		lineNum++;
 	}
