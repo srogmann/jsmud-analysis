@@ -336,10 +336,36 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			{
 				final LdcInsnNode li = (LdcInsnNode) instr;
 				if (li.cst instanceof String) {
-					addition = String.format(" \"%s\"", li.cst);
+					final String sRaw = (String) li.cst;
+					final int sLen = sRaw.length();
+					final StringBuilder sb = new StringBuilder(sLen + 5);
+					sb.append(' ').append('"');
+					for (int i = 0; i < sLen; i++) {
+						final char c = sRaw.charAt(i);
+						if (c == '"') {
+							sb.append("\\\"");
+						}
+						else if (c >= ' ' && c < 0x100) {
+							sb.append(c);
+						}
+						else if (c == '\n') {
+							sb.append("\\n");
+						}
+						else if (c == '\r') {
+							sb.append("\\r");
+						}
+						else if (c == '\t') {
+							sb.append("\\t");
+						}
+						else {
+							sb.append(String.format("\\u%04x", Integer.valueOf(c)));
+						}
+					}
+					sb.append('"');
+					addition = sb.toString();
 				}
 				else {
-					addition = String.format(" %s", li.cst);
+					addition = " " + li.cst;
 				}
 				break;
 			}
