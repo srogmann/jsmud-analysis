@@ -32,6 +32,9 @@ import org.rogmann.jsmud.vm.JvmException;
  */
 public class SourceFileWriter {
 
+	/** Java-package "java.lang." */
+	private static final String PKG_JAVA_LANG = "java.lang.";
+
 	/** extension of the generated file (e.g. "java" or "asm") */
 	private final String extension;
 
@@ -94,7 +97,7 @@ public class SourceFileWriter {
 		return sourceOuter;
 	}
 
-	private void writeClass(final SourceBlockList blocks, final ClassNode node,
+	protected void writeClass(final SourceBlockList blocks, final ClassNode node,
 			final Function<String, ClassNode> innerClassesProvider) throws IOException {
 		final StringBuilder sb = new StringBuilder(100);
 		final int lastSlash = node.name.lastIndexOf('/');
@@ -137,16 +140,21 @@ public class SourceFileWriter {
 			for (final FieldNode fieldNode : node.fields) {
 				appendAccessField(sb, fieldNode.access);
 				final Type type = Type.getType(fieldNode.desc);
-				sb.append(type.getClassName());
+				String className = simplifyClassName(type);
+				sb.append(className);
 				sb.append(' ').append(fieldNode.name);
 				sb.append(';'); writeLine(blockFields, sb);
 			}
-			blocks.getList().add(blockFields);
 		}
 
 		for (final MethodNode methodNode : node.methods) {
-			final SourceLines blockMethod = blocks.createSourceLines();
-			writeLine(blockMethod, "");
+			SourceBlockList blockMethod = blocks.createSourceBlockList();
+			final SourceLines methodHeader = new SourceLines(blockMethod.getLevel());
+			final SourceLines methodTail = new SourceLines(blockMethod.getLevel());
+			blockMethod.setHeader(methodHeader);
+			blockMethod.setTail(methodTail);
+			final SourceLines methodBody = blockMethod.createSourceLines();
+			writeLine(methodHeader, "");
 			appendAccessMethod(sb, methodNode.access);
 			final Type type = Type.getMethodType(methodNode.desc);
 			if ("<init>".equals(methodNode.name)) {
@@ -165,7 +173,11 @@ public class SourceFileWriter {
 				if (i > 0) {
 					sb.append(", ");
 				}
-				sb.append(argTypes[i].getClassName());
+				String className = argTypes[i].getClassName();
+				if (className.startsWith(PKG_JAVA_LANG)) {
+					className = className.substring(PKG_JAVA_LANG.length());
+				}
+				sb.append(className);
 				sb.append(' '); sb.append("arg").append(i + 1);
 			}
 			sb.append(')');
@@ -176,11 +188,11 @@ public class SourceFileWriter {
 				}
 				sb.append(exceptions.get(i));
 			}
-			sb.append(" {"); writeLine(blockMethod, sb);
+			sb.append(" {"); writeLine(methodHeader, sb);
 			level++;
-			writeMethodBody(blockMethod, sb, node, methodNode);
+			writeMethodBody(methodBody, sb, node, methodNode);
 			level--;
-			writeLine(blockMethod, "}");
+			writeLine(methodTail, "}");
 		}
 
 		for (final InnerClassNode innerClassNode : node.innerClasses) {
@@ -205,7 +217,30 @@ public class SourceFileWriter {
 		writeLine(tail, "}");
 	}
 
-	private void writeMethodBody(final SourceLines block, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
+	/**
+	 * Removes "java.lang." in a class-name.
+	 * @param type type
+	 * @return simplified class-name
+	 */
+	public static String simplifyClassName(final Type type) {
+		String className = type.getClassName();
+		return simplifyClassName(className);
+	}
+
+	/**
+	 * Removes "java.lang." in a class-name.
+	 * @param className class-name, e.g. "java.lang.System" or "org.apache.abc.Xyz"
+	 * @return simplified class-name
+	 */
+	public static String simplifyClassName(final String className) {
+		String name = className;
+		if (name.startsWith(PKG_JAVA_LANG) && name.indexOf('.', PKG_JAVA_LANG.length()) < 0) {
+			name = className.substring(PKG_JAVA_LANG.length());
+		}
+		return name;
+	}
+
+	protected void writeMethodBody(final SourceLines block, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
 		final String methodKey = buildMethodKey(classNode, methodNode);
 		mapMethodFirstLine.put(methodKey, Integer.valueOf(lineNum));
 		final Map<Integer, Integer> mapInstrLine = new HashMap<>();
@@ -342,7 +377,7 @@ public class SourceFileWriter {
 	 * @param methodNode method-node
 	 * @return internal lookup-key
 	 */
-	private static String buildMethodKey(ClassNode classNode, MethodNode methodNode) {
+	static String buildMethodKey(ClassNode classNode, MethodNode methodNode) {
 		final String methodKey = classNode.name + '#' + methodNode.name + methodNode.desc;
 		return methodKey;
 	}
@@ -393,7 +428,7 @@ public class SourceFileWriter {
 	 * @param line content of the line (without line-break)
 	 * @throws IOException in case of an IO-error
 	 */
-	private void writeLine(final SourceLines lines, String line) throws IOException {
+	protected void writeLine(final SourceLines lines, String line) throws IOException {
 		final StringBuilder sbLine = new StringBuilder(line.length() + 10);
 		sbLine.append("//");
 		for (int i = 0; i < level; i++) {
@@ -411,7 +446,7 @@ public class SourceFileWriter {
 	 * @param sb content of the line (without line-break)
 	 * @throws IOException in case of an IO-error
 	 */
-	private void writeLine(final SourceLines lines, StringBuilder sb) throws IOException {
+	protected void writeLine(final SourceLines lines, StringBuilder sb) throws IOException {
 		final StringBuilder sbLine = new StringBuilder(sb.length() + 10);
 		sbLine.append("//");
 		for (int i = 0; i < level; i++) {

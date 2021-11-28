@@ -1,7 +1,7 @@
 package org.rogmann.jsmud.source;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Writer;
 
 /**
  * Block of source-code consisting of header, inner blocks and a trailing block.
@@ -34,6 +34,6 @@ public abstract class SourceBlock {
 	 * @param lineBreak line-break
 	 * @throws IOException in case of an IO-error
 	 */
-	public abstract void writeLines(final BufferedWriter bw, final String indentation, final String lineBreak) throws IOException;
+	public abstract void writeLines(final Writer bw, final String indentation, final String lineBreak) throws IOException;
 
 }

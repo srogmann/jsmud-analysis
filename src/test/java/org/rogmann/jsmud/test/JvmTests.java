@@ -106,7 +106,7 @@ public class JvmTests {
 //		testsLambdaReturnPrivate();
 //		testsLambdaAndSecurity();
 //		testsLambdaThreadLocal();
-//		testsMethodChoosing();
+		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
 //		testsSyntheticMethod();

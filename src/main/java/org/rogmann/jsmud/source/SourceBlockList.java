@@ -1,7 +1,7 @@
 package org.rogmann.jsmud.source;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,7 +86,7 @@ public class SourceBlockList extends SourceBlock {
 
 	/** {@inheritDoc} */
 	@Override
-	public void writeLines(final BufferedWriter bw, final String indentation, final String lineBreak) throws IOException {
+	public void writeLines(final Writer bw, final String indentation, final String lineBreak) throws IOException {
 		if (header != null) {
 			header.writeLines(bw, indentation, lineBreak);
 		}
