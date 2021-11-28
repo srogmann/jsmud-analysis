@@ -32,6 +32,7 @@ import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.OpcodeDisplay;
 import org.rogmann.jsmud.vm.OperandStack;
+import org.rogmann.jsmud.vm.Utils;
 
 public class InstructionVisitor implements JvmExecutionVisitor {
 
@@ -289,7 +290,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	/**
 	 * Displays an instruction.
 	 * @param instr instruction
-	 * @param methodNode method-node
+	 * @param methodNode optional method-node (used to display local variables in variable instructions)
 	 * @return display-text, e.g. "ASTORE 1"
 	 */
 	public static String displayInstruction(final AbstractInsnNode instr, final MethodNode methodNode) {
@@ -339,29 +340,8 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 					final String sRaw = (String) li.cst;
 					final int sLen = sRaw.length();
 					final StringBuilder sb = new StringBuilder(sLen + 5);
-					sb.append(' ').append('"');
-					for (int i = 0; i < sLen; i++) {
-						final char c = sRaw.charAt(i);
-						if (c == '"') {
-							sb.append("\\\"");
-						}
-						else if (c >= ' ' && c < 0x100) {
-							sb.append(c);
-						}
-						else if (c == '\n') {
-							sb.append("\\n");
-						}
-						else if (c == '\r') {
-							sb.append("\\r");
-						}
-						else if (c == '\t') {
-							sb.append("\\t");
-						}
-						else {
-							sb.append(String.format("\\u%04x", Integer.valueOf(c)));
-						}
-					}
-					sb.append('"');
+					sb.append(' ');
+					Utils.appendStringValue(sb, sRaw);
 					addition = sb.toString();
 				}
 				else {

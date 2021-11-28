@@ -6,6 +6,44 @@ package org.rogmann.jsmud.vm;
 public class Utils {
 
 	/**
+	 * Appends the escaped display-value of a string.
+	 * E.g. a linefeed will be appended as "\n".
+	 * @param sb string-builder to be appended
+	 * @param sRaw raw-value
+	 */
+	public static void appendStringValue(final StringBuilder sb, final String sRaw) {
+		if (sRaw == null) {
+			sb.append("null");
+		}
+		else {
+			final int sLen = sRaw.length();
+			sb.append('"');
+			for (int i = 0; i < sLen; i++) {
+				final char c = sRaw.charAt(i);
+				if (c == '"') {
+					sb.append("\\\"");
+				}
+				else if (c >= ' ' && c < 0x100) {
+					sb.append(c);
+				}
+				else if (c == '\n') {
+					sb.append("\\n");
+				}
+				else if (c == '\r') {
+					sb.append("\\r");
+				}
+				else if (c == '\t') {
+					sb.append("\\t");
+				}
+				else {
+					sb.append(String.format("\\u%04x", Integer.valueOf(c)));
+				}
+			}
+			sb.append('"');
+		}
+	}
+
+	/**
 	 * Gets a class-name by signature
 	 * @param signature signature, e.g. "Ljava/lang/Thread;"
 	 * @return class-name or <code>null</code>
