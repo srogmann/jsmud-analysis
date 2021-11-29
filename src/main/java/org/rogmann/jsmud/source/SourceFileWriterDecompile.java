@@ -170,15 +170,39 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					final ExpressionInstrZeroConstant exprConst = new ExpressionInstrZeroConstant(iz);
 					stack.push(exprConst);
 				}
-				else if (opcode == Opcodes.AALOAD) {
+				else if (opcode == Opcodes.AALOAD
+						|| opcode == Opcodes.BALOAD
+						|| opcode == Opcodes.CALOAD
+						|| opcode == Opcodes.SALOAD
+						|| opcode == Opcodes.IALOAD
+						|| opcode == Opcodes.LALOAD
+						|| opcode == Opcodes.FALOAD
+						|| opcode == Opcodes.DALOAD) {
 					final ExpressionBase<?> exprIndex = stack.pop();
 					final ExpressionBase<?> exprArray = stack.pop();
 					final ExpressionArrayLoad exprAaload = new ExpressionArrayLoad(iz, exprArray, exprIndex);
 					stack.push(exprAaload);
 				}
+				else if (opcode == Opcodes.ARRAYLENGTH) {
+					final ExpressionBase<?> exprArray = stack.pop();
+					stack.push(new ExpressionSuffix<>(iz, exprArray));
+				}
+				else if (opcode == Opcodes.BASTORE
+						|| opcode == Opcodes.CASTORE
+						|| opcode == Opcodes.SASTORE
+						|| opcode == Opcodes.IASTORE
+						|| opcode == Opcodes.LASTORE
+						|| opcode == Opcodes.FASTORE
+						|| opcode == Opcodes.DASTORE) {
+					final ExpressionBase<?> exprValue = stack.pop();
+					final ExpressionBase<?> exprIndex = stack.pop();
+					final ExpressionBase<?> exprArray = stack.pop();
+					statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
+				}
 				else if (opcode == Opcodes.DUP) {
 					final ExpressionBase<?> expr = stack.pop();
 					final ExpressionDup<?> exprDup = new ExpressionDup<>(expr);
+					//stack.push(expr);
 					stack.push(exprDup);
 				}
 				else if (opcode == Opcodes.RETURN) {
@@ -256,7 +280,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 						 || opcode == Opcodes.IOR
 						 || opcode == Opcodes.LOR
 						 || opcode == Opcodes.IXOR
-						 || opcode == Opcodes.LXOR) {
+						 || opcode == Opcodes.LXOR
+						 || opcode == Opcodes.ISHL) {
 					final ExpressionBase<?> arg2 = stack.pop();
 					final ExpressionBase<?> arg1 = stack.pop();
 					final String operator;
@@ -287,6 +312,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					case Opcodes.LOR: operator = "|"; break;
 					case Opcodes.IXOR: operator = "^"; break;
 					case Opcodes.LXOR: operator = "^"; break;
+					case Opcodes.ISHL: operator = "<<"; break;
 					default: throw new JvmException("Unexpected opcode " + opcode);
 					}
 					stack.push(new ExpressionInfixBinary<>(iz, operator, arg1, arg2));
@@ -357,8 +383,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			else if (type == AbstractInsnNode.INT_INSN) {
 				final IntInsnNode iin = (IntInsnNode) instr;
-				if (opcode == Opcodes.BIPUSH) {
+				if (opcode == Opcodes.BIPUSH || opcode == Opcodes.SIPUSH) {
 					stack.push(new ExpressionInstrIntConstant(iin));
+				}
+				else if (opcode == Opcodes.NEWARRAY) {
+					final ExpressionBase<?> exprCount = stack.pop();
+					stack.push(new ExpressionInstrIntNewarray(iin, exprCount));
 				}
 				else {
 					throw new JvmException(String.format("Unexpected int-instruction (%s) in (%s)",

@@ -23,6 +23,13 @@ public class BytecodeSample {
 		System.out.println(c);
 	}
 
+//	public static int arrays() {
+//		final byte[] aBuf = { 0, 0x31, (byte) 0xe0 };
+//		final long[] aLong = new long[5];
+//		final int s = (aBuf[2] & 0xff) + (aLong.length << 2);
+//		return s;
+//	}
+
 	public static void loops() {
 		int sum = 0;
 		for (int i = 0; i < 5; i++) {
