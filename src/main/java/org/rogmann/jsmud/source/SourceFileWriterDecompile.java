@@ -42,6 +42,19 @@ import org.rogmann.jsmud.vm.JvmException;
  */
 public class SourceFileWriterDecompile extends SourceFileWriter {
 
+
+	/**
+	 * Constructor, writes the source-file.
+	 * @param extension extension, e.g. "asm"
+	 * @param node class-node
+	 * @param innerClassesProvider function which returns a class-node corresponding to an internal-name
+	 * @param classLoader class-loader to load inner classes
+	 * @throws IOException in case of an IO-error
+	 */
+	public SourceFileWriterDecompile(final String extension, final ClassNode node, final ClassLoader classLoader) throws IOException {
+		super(extension, node, createInnerClassesLoader(classLoader));
+	}
+
 	/**
 	 * Constructor, writes the source-file.
 	 * @param extension extension, e.g. "asm"
@@ -62,23 +75,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @throws IOException in case of an IO-error 
 	 */
 	public static void writeSource(final Class<?> clazz, final ClassLoader cl, final Writer w) throws IOException {
-		final String resName = '/' + clazz.getName().replace('.', '/') + ".class";
-		final ClassReader classReader;
-		try (final InputStream is = clazz.getResourceAsStream(resName)) {
-			if (is == null) {
-				throw new IllegalArgumentException(String.format("Resource (%s) not found", resName));
-			}
-			classReader = new ClassReader(is);
-		}
-		catch (IOException e) {
-			throw new IllegalArgumentException(String.format("IO-error while reading class (%s) in class-loader (%s)",
-					clazz.getName(), cl), e);
-		}
+		final ClassReader classReader = createClassReader(clazz, cl);
 		final ClassNode classNode = new ClassNode();
 		classReader.accept(classNode, 0);
 
-		Function<String, ClassNode> icp = null;
-		SourceFileWriterDecompile sourceFile = new SourceFileWriterDecompile("java", classNode, icp);
+		SourceFileWriterDecompile sourceFile = new SourceFileWriterDecompile("java", classNode, cl);
 		final SourceBlockList blockList = sourceFile.getSourceBlockList();
 		blockList.writeLines(w, "    ", System.lineSeparator());
 	}
@@ -369,6 +370,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					final StatementPutField stmtPutField = new StatementPutField(fi, exprObjInstance, exprValue);
 					statements.add(stmtPutField);
 				}
+				else if (opcode == Opcodes.PUTSTATIC) {
+					final ExpressionBase<?> exprValue = stack.pop();
+					final StatementPutStatic stmtPutStatic = new StatementPutStatic(fi, classNode, exprValue);
+					statements.add(stmtPutStatic);
+				}
 				else if (opcode == Opcodes.GETFIELD) {
 					final ExpressionBase<?> exprObjInstance = stack.pop();
 					stack.push(new ExpressionGetField(fi, classNode, exprObjInstance));
@@ -553,4 +559,40 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		sb.setLength(0);
 	}
 
+	public static ClassReader createClassReader(final Class<?> clazz, final ClassLoader cl) {
+		final String resName = '/' + clazz.getName().replace('.', '/') + ".class";
+		final ClassReader classReader;
+		try (final InputStream is = clazz.getResourceAsStream(resName)) {
+			if (is == null) {
+				throw new IllegalArgumentException(String.format("Resource (%s) not found", resName));
+			}
+			classReader = new ClassReader(is);
+		}
+		catch (IOException e) {
+			throw new IllegalArgumentException(String.format("IO-error while reading class (%s) in class-loader (%s)",
+					clazz.getName(), cl), e);
+		}
+		return classReader;
+	}
+
+	/**
+	 * Creates inner-classes-loader.
+	 * @param classLoader class-loader to be used
+	 * @return inner-classes-loader
+	 */
+	public static Function<String, ClassNode> createInnerClassesLoader(final ClassLoader classLoader) {
+		final Function<String, ClassNode> innerClassProvider = (internalName -> {
+			final Class<?> classInner;
+			try {
+				classInner = classLoader.loadClass(internalName.replace('/', '.'));
+			} catch (ClassNotFoundException e) {
+				throw new JvmException(String.format("Can't load inner-class (%s)", internalName), e);
+			}
+			final ClassReader innerReader = createClassReader(classInner, classLoader);
+			final ClassNode innerClassNode = new ClassNode();
+			innerReader.accept(innerClassNode, 0);
+			return innerClassNode;
+		});
+		return innerClassProvider;
+	}
 }
