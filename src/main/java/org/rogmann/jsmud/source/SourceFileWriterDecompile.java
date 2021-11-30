@@ -375,6 +375,13 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final ExpressionTypeNewarray exprTi = new ExpressionTypeNewarray(ti, exprCount);
 				stack.push(exprTi);
 			}
+			else if (opcode == Opcodes.CHECKCAST) {
+				final ExpressionBase<?> expr = stack.pop();
+				final String typeDest = ti.desc.replace('/', '.');
+				final String prefixCast = String.format("(%s) ", typeDest);
+				final ExpressionPrefix<?> exprTi = new ExpressionPrefix<>(ti, prefixCast, expr);
+				stack.push(exprTi);
+			}
 			else {
 				throw new JvmException(String.format("Unexpected type instruction (%s) in %s",
 						InstructionVisitor.displayInstruction(ti, methodNode), methodNode.name));
@@ -552,6 +559,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			else if (opcode == Opcodes.INVOKEVIRTUAL) {
 				final ExpressionBase<?> exprObject = stack.pop();
 				stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+			}
+			else if (opcode == Opcodes.INVOKESTATIC && Type.VOID_TYPE.equals(returnType)) {
+				statements.add(new StatementInvoke(mi, classNode, null, exprArgs));
+			}
+			else if (opcode == Opcodes.INVOKESTATIC) {
+				stack.add(new ExpressionInvoke(mi, classNode, null, exprArgs));
 			}
 			else {
 				throw new JvmException(String.format("Unexpected method-instruction (%s) in (%s)",

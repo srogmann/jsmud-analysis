@@ -3,6 +3,11 @@ package org.rogmann.jsmud.test;
 public class BytecodeSample {
 	private String name;
 	private int num;
+	
+	static enum JavaFeature {
+		ASSIGNMENTS,
+		ARRAYS;
+	}
 
 	public static void main(final String[] args) {
 		BytecodeSample sample = new BytecodeSample(args[0], 1);
@@ -23,12 +28,12 @@ public class BytecodeSample {
 		System.out.println(c);
 	}
 
-//	public static int arrays() {
-//		final byte[] aBuf = { 0, 0x31, (byte) 0xe0 };
-//		final long[] aLong = new long[5];
-//		final int s = (aBuf[2] & 0xff) + (aLong.length << 2);
-//		return s;
-//	}
+	public static int arrays() {
+		final byte[] aBuf = { 0, 0x31, (byte) 0xe0 };
+		final long[] aLong = new long[5];
+		final int s = (aBuf[2] & 0xff) + (aLong.length << 2);
+		return s;
+	}
 
 	public static void loops() {
 		int sum = 0;

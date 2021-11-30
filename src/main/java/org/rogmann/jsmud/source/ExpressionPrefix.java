@@ -1,0 +1,48 @@
+package org.rogmann.jsmud.source;
+
+import org.objectweb.asm.tree.AbstractInsnNode;
+
+/**
+ * Prefix-expression, e.g. "-" or casting
+ */
+public class ExpressionPrefix<A extends AbstractInsnNode> extends ExpressionBase<A> {
+
+	/** prefix */
+	private final String prefix;
+
+	/** argument */
+	private final ExpressionBase<?> expr;
+
+	/**
+	 * Constructor
+	 * @param insn instruction, e.g. CHECKCAST
+	 * @param expr argument
+	 */
+	public ExpressionPrefix(final A insn, final String prefix, final ExpressionBase<?> expr) {
+		super(insn);
+		this.prefix = prefix;
+		this.expr = expr;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void render(StringBuilder sb) {
+		sb.append(prefix);
+
+		final boolean neeedsBrackets = ExpressionSuffix.isNeedsNoBrackets(expr);
+		if (neeedsBrackets) {
+			sb.append('(');
+		}
+		expr.render(sb);
+		if (neeedsBrackets) {
+			sb.append(')');
+		}
+	}
+
+	public static boolean isNeedsNoBrackets(final ExpressionBase<?> expr) {
+		return (expr instanceof ExpressionInstrConstant
+				|| expr instanceof ExpressionInstrZeroConstant
+				|| expr instanceof ExpressionVariableLoad);
+	}
+
+}

@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.source;
 
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.rogmann.jsmud.vm.Utils;
 
@@ -34,6 +35,10 @@ public class ExpressionInstrConstant extends ExpressionBase<LdcInsnNode> {
 		}
 		else if (cst instanceof Double) {
 			sb.append(((Double) cst).doubleValue());
+		}
+		else if (cst instanceof Type) {
+			final Type type = (Type) cst;
+			sb.append(SourceFileWriter.simplifyClassName(type));
 		}
 		else {
 			throw new RuntimeException(String.format("Unexpected type (%s): %s",

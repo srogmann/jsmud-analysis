@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.source;
 
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
@@ -20,7 +21,7 @@ public class StatementInvoke extends StatementInstr<MethodInsnNode> {
 	 * Constructor
 	 * @param insn variable-instruction, e.g. ASTORE_1
 	 * @param classNode node of current class
-	 * @param exprObj expression of object-instance
+	 * @param exprObj expression of object-instance (<code>null</code> in case of INVOKESTATIC)
 	 * @param exprArgs arguments of method
 	 */
 	public StatementInvoke(MethodInsnNode insn, ClassNode classNode, final ExpressionBase<?> exprObj,
@@ -34,7 +35,13 @@ public class StatementInvoke extends StatementInstr<MethodInsnNode> {
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
-		exprObj.render(sb);
+		if (insn.getOpcode() == Opcodes.INVOKESTATIC) {
+			final String className = insn.owner.replace('/', '.');
+			sb.append(SourceFileWriter.simplifyClassName(className));
+		}
+		else {
+			exprObj.render(sb);
+		}
 		sb.append('.');
 		sb.append(insn.name);
 		sb.append('(');
