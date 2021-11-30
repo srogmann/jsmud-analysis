@@ -11,6 +11,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.objectweb.asm.ClassReader;
@@ -128,6 +129,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final Stack<ExpressionBase<?>> stack = new Stack<>();
 		/** map from label to label-name */
 		final Map<Label, String> mapUsedLabels = new IdentityHashMap<>();
+		final AtomicInteger dupCounter = new AtomicInteger();
 		FrameNode currentFrame = null;
 
 		final InsnList instructions = methodNode.instructions;
@@ -150,7 +152,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			mapPcLine.put(Integer.valueOf(i), currLine);
 
 			try {
-				processInstruction(classNode, methodNode, instr, statements, stack, mapUsedLabels);
+				processInstruction(classNode, methodNode, instr, statements, stack, dupCounter, mapUsedLabels);
 			} catch (EmptyStackException e) {
 				throw new JvmException(String.format("Unexpected empty expression-stack at instruction %d (%s) of method %s%s",
 						Integer.valueOf(methodNode.instructions.indexOf(instr)),
@@ -168,11 +170,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param instr current instruction
 	 * @param statements list of statements
 	 * @param stack stack of expressions
+	 * @param dupCounter counter of dup-statements (dummy dup-variables)
 	 * @param mapUsedLabels map of used labels
 	 */
 	public void processInstruction(final ClassNode classNode, final MethodNode methodNode,
 			final AbstractInsnNode instr, final List<StatementBase> statements,
-			final Stack<ExpressionBase<?>> stack, final Map<Label, String> mapUsedLabels) {
+			final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter, final Map<Label, String> mapUsedLabels) {
 		final int opcode = instr.getOpcode();
 		final int type = instr.getType();
 		if (type == AbstractInsnNode.LABEL) {
@@ -235,9 +238,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			else if (opcode == Opcodes.DUP) {
 				final ExpressionBase<?> expr = stack.pop();
-				final ExpressionDup<?> exprDup = new ExpressionDup<>(expr);
-				//stack.push(expr);
-				stack.push(exprDup);
+				final String dummyName = "__dup" + dupCounter.incrementAndGet();
+				final ExpressionDuplicated<?> exprDuplicated = new ExpressionDuplicated<>(expr, dummyName);
+				final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(exprDuplicated);
+				stack.push(exprDuplicated);
+				stack.push(exprDuplicate);
 			}
 			else if (opcode == Opcodes.RETURN) {
 				final StatementReturn stmt = new StatementReturn(iz);
@@ -516,17 +521,20 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			if (opcode == Opcodes.INVOKESPECIAL && "<init>".equals(mi.name)) {
 				ExpressionBase<?> exprObject = stack.pop();
-				if (exprObject instanceof ExpressionDup) {
-					final ExpressionDup<?> exprDup = (ExpressionDup<?>) exprObject;
-					final ExpressionBase<?> exprDuplicated = exprDup.getExpression();
-					if (exprDuplicated.getInsn().getOpcode() != Opcodes.NEW) {
-						throw new JvmException(String.format("Unexpected dup-expression %s in %s before constructor %s. Expr-args: %s",
-								exprDup, methodNode.name, mi.name, Arrays.toString(exprArgs)));
+				if (exprObject instanceof ExpressionDuplicate) {
+					final ExpressionDuplicate<?> exprDuplicate = (ExpressionDuplicate<?>) exprObject;
+					final ExpressionBase<?> exprBeforeDuplicate = stack.peek();
+					if (exprBeforeDuplicate == exprDuplicate.getExpression()) {
+						final ExpressionDuplicated<?> exprDuplicated = (ExpressionDuplicated<?>) stack.pop();
+						if (exprDuplicated.getInsn().getOpcode() != Opcodes.NEW) {
+							throw new JvmException(String.format("Unexpected dup-expression %s in %s before constructor %s. Expr-args: %s",
+									exprBeforeDuplicate, methodNode.name, mi.name, Arrays.toString(exprArgs)));
+						}
+						// We have NEW DUP INVOKESPECIAL.
+						final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) exprDuplicated.getExpression();
+						final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, exprNew, exprArgs);
+						stack.push(exprConstr);
 					}
-					// We have NEW DUP INVOKESPECIAL.
-					final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) exprDuplicated;
-					final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, exprNew, exprArgs);
-					stack.push(exprConstr);
 				}
 				else if (exprObject instanceof ExpressionVariableLoad) {
 					final StatementConstructor stmtConstr = new StatementConstructor(mi, classNode, exprObject, exprArgs);
