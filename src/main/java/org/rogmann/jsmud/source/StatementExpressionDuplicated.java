@@ -3,9 +3,10 @@ package org.rogmann.jsmud.source;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 /**
- * Duplication of an expression.
+ * Duplication of an expression, original saved as statement storing this expression
+ * into a temporary variable.
  */
-public class ExpressionDuplicated<A extends AbstractInsnNode> extends ExpressionBase<A> {
+public class StatementExpressionDuplicated<A extends AbstractInsnNode> extends StatementInstr<A> {
 
 	/** duplicated expression */
 	private final ExpressionBase<A> exprDuplicated;
@@ -18,7 +19,7 @@ public class ExpressionDuplicated<A extends AbstractInsnNode> extends Expression
 	 * @param expr expression to be duplicated
 	 * @param dummyName name of duplicated expression
 	 */
-	public ExpressionDuplicated(final ExpressionBase<A> expr, final String dummyName) {
+	public StatementExpressionDuplicated(final ExpressionBase<A> expr, final String dummyName) {
 		super(expr.insn);
 		this.exprDuplicated = expr;
 		this.dummyName = dummyName;
@@ -43,11 +44,10 @@ public class ExpressionDuplicated<A extends AbstractInsnNode> extends Expression
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
-		sb.append('(');
 		sb.append(dummyName);
 		sb.append(' ').append('=').append(' ');
 		exprDuplicated.render(sb);
-		sb.append(')');
+		sb.append(';');
 	}
 
 }

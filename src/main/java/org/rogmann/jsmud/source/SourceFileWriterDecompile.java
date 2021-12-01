@@ -238,11 +238,19 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			else if (opcode == Opcodes.DUP) {
 				final ExpressionBase<?> expr = stack.pop();
-				final String dummyName = "__dup" + dupCounter.incrementAndGet();
-				final ExpressionDuplicated<?> exprDuplicated = new ExpressionDuplicated<>(expr, dummyName);
-				final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(exprDuplicated);
-				stack.push(exprDuplicated);
-				stack.push(exprDuplicate);
+				if (expr instanceof ExpressionDuplicate) {
+					// There is a StatementExpressionDuplicated already.  
+					stack.push(expr);
+					stack.push(expr);
+				}
+				else {
+					final String dummyName = "__dup" + dupCounter.incrementAndGet();
+					final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
+					final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
+					statements.add(stmtExprDuplicated);
+					stack.push(exprDuplicate);
+					stack.push(exprDuplicate);
+				}
 			}
 			else if (opcode == Opcodes.RETURN) {
 				final StatementReturn stmt = new StatementReturn(iz);
@@ -530,15 +538,18 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				ExpressionBase<?> exprObject = stack.pop();
 				if (exprObject instanceof ExpressionDuplicate) {
 					final ExpressionDuplicate<?> exprDuplicate = (ExpressionDuplicate<?>) exprObject;
-					final ExpressionBase<?> exprBeforeDuplicate = stack.peek();
-					if (exprBeforeDuplicate == exprDuplicate.getExpression()) {
-						final ExpressionDuplicated<?> exprDuplicated = (ExpressionDuplicated<?>) stack.pop();
-						if (exprDuplicated.getInsn().getOpcode() != Opcodes.NEW) {
-							throw new JvmException(String.format("Unexpected dup-expression %s in %s before constructor %s. Expr-args: %s",
-									exprBeforeDuplicate, methodNode.name, mi.name, Arrays.toString(exprArgs)));
+					final ExpressionBase<?> exprBeforeDuplicate = (stack.size() > 0) ? stack.peek() : null;
+					final StatementBase lastStmt = peekLastAddedStatement(statements);
+					if (lastStmt == exprDuplicate.getStatementExpressionDuplicated()
+							&& exprBeforeDuplicate == exprDuplicate) {
+						stack.pop();
+						final StatementExpressionDuplicated<?> stmtExprDuplicated = (StatementExpressionDuplicated<?>) popLastAddedStatement(statements);
+						if (stmtExprDuplicated.getInsn().getOpcode() != Opcodes.NEW) {
+							throw new JvmException(String.format("Unexpected stmt-dup-expression %s in %s before constructor %s. Expr-args: %s",
+									stmtExprDuplicated, methodNode.name, mi.name, Arrays.toString(exprArgs)));
 						}
 						// We have NEW DUP INVOKESPECIAL.
-						final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) exprDuplicated.getExpression();
+						final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) stmtExprDuplicated.getExpression();
 						final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, exprNew, exprArgs);
 						stack.push(exprConstr);
 					}
@@ -652,4 +663,32 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		});
 		return innerClassProvider;
 	}
+
+	/**
+	 * Gets the last added statement. The list of statements isn't modified.
+	 * @param statements list of statements
+	 * @return statement or <code>null</code>
+	 */
+	private static StatementBase peekLastAddedStatement(List<StatementBase> statements) {
+		StatementBase lastStmt = null;
+		final int numStmts = statements.size();
+		if (numStmts > 0) {
+			lastStmt = statements.get(numStmts - 1);
+		}
+		return lastStmt;
+	}
+
+	/**
+	 * Gets the last added statement and removes it from the list.
+	 * @param statements list of statements
+	 * @return statement
+	 */
+	private static StatementBase popLastAddedStatement(List<StatementBase> statements) {
+		final int numStmts = statements.size();
+		if (numStmts == 0) {
+			throw new JvmException("The list of statements is empty, can't pop a statement.");
+		}
+		return statements.remove(numStmts - 1);
+	}
+
 }

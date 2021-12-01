@@ -8,22 +8,22 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 public class ExpressionDuplicate<A extends AbstractInsnNode> extends ExpressionBase<A> {
 
 	/** duplicated expression */
-	private final ExpressionDuplicated<A> exprDup;
+	private final StatementExpressionDuplicated<A> exprDup;
 
 	/**
 	 * Constructor
-	 * @param exprDup expression duplicated
+	 * @param exprDup statement of expression duplicated
 	 */
-	public ExpressionDuplicate(final ExpressionDuplicated<A> exprDup) {
+	public ExpressionDuplicate(final StatementExpressionDuplicated<A> exprDup) {
 		super(exprDup.insn);
 		this.exprDup = exprDup;
 	}
 
 	/**
-	 * Gets the expression carrying the expression whose value was duplicated.
+	 * Gets the statement carrying the expression whose value was duplicated.
 	 * @return expression
 	 */
-	public ExpressionDuplicated<A> getExpression() {
+	public StatementExpressionDuplicated<A> getStatementExpressionDuplicated() {
 		return exprDup;
 	}
 
