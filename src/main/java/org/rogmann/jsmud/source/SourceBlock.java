@@ -1,7 +1,7 @@
 package org.rogmann.jsmud.source;
 
 import java.io.IOException;
-import java.io.Writer;
+import java.util.List;
 
 /**
  * Block of source-code consisting of header, inner blocks and a trailing block.
@@ -28,12 +28,12 @@ public abstract class SourceBlock {
 	}
 
 	/**
-	 * Writes the lines into a writer.
-	 * @param bw writer
-	 * @param indentation optional indentation, e.g. "    " or tabulator
-	 * @param lineBreak line-break
+	 * Collect the lines into a list of source-lines.
+	 * @param sourceLines list to be filled
+	 * @param lastLine number of last written line
+	 * @return number of last written line after execution
 	 * @throws IOException in case of an IO-error
 	 */
-	public abstract void writeLines(final Writer bw, final String indentation, final String lineBreak) throws IOException;
+	public abstract int collectLines(List<SourceLine> sourceLines, int lastLine) throws IOException;
 
 }

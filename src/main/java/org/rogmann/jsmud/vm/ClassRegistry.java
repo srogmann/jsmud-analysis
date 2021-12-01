@@ -78,6 +78,7 @@ import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.TypeTag;
 import org.rogmann.jsmud.replydata.VariableSlot;
 import org.rogmann.jsmud.source.SourceFileWriter;
+import org.rogmann.jsmud.source.SourceLine;
 
 /**
  * Registry of classes whose execution should be simulated.
@@ -1996,7 +1997,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				final String indentation = null;
 				
 				sourceFileWriter = new SourceFileWriter(extension, node, innerClassProvider);
-				sourceFileWriter.getSourceBlockList().writeLines(bw, indentation, lineBreak);
+				final List<SourceLine> sourceLines = new ArrayList<>(100);
+				sourceFileWriter.getSourceBlockList().collectLines(sourceLines, 0);
+				sourceFileWriter.writeLines(bw, sourceLines, indentation, lineBreak);
 				mapSourceSourceFiles.put(sourceFileGuessed, sourceFileWriter);
 			}
 		}

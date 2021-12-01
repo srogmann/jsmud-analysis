@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.source;
 
 import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -456,6 +457,31 @@ public class SourceFileWriter {
 		lines.addLine(lineNum, sbLine.toString());
 		sb.setLength(0);
 		lineNum++;
+	}
+
+	/**
+	 * Writes a list of source-lines.
+	 * @param bw writer
+	 * @param sourceLines list of source-lines
+	 * @param indentation optional indentation-string
+	 * @param lineBreak line-break
+	 * @throws IOException
+	 */
+	@SuppressWarnings("static-method")
+	public void writeLines(final Writer bw, final List<SourceLine> sourceLines,
+			final String indentation, final String lineBreak) throws IOException {
+		final StringBuilder sb = new StringBuilder(100);
+		for (final SourceLine sourceLine : sourceLines) {
+			if (indentation != null) {
+				for (int i = 0; i < sourceLine.getLevel(); i++) {
+					sb.append(indentation);
+				}
+			}
+			sb.append(sourceLine.getSourceLine());
+			sb.append(lineBreak);
+			bw.write(sb.toString());
+			sb.setLength(0);
+		}
 	}
 
 	/**

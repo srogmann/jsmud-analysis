@@ -10,6 +10,9 @@ public class SourceLine {
 	/** line-number in class-file (0 if unknown) */
 	private final int lineExpected;
 
+	/** indentation-level */
+	private int level;
+
 	/** line in the source-file (without indentation) */
 	private final String sourceLine;
 
@@ -19,7 +22,8 @@ public class SourceLine {
 	 * @param lineExpected expected line-number (0 if unknown)
 	 * @param sourceLine line in the source-file (without indentation) 
 	 */
-	public SourceLine(final int lineCurrent, final int lineExpected, final String sourceLine) {
+	public SourceLine(final int lineCurrent, final int lineExpected,
+			final String sourceLine) {
 		this.lineCurrent = lineCurrent;
 		this.lineExpected = lineExpected;
 		this.sourceLine = sourceLine;
@@ -42,6 +46,14 @@ public class SourceLine {
 	}
 
 	/**
+	 * Gets the indetation-level.
+	 * @return level
+	 */
+	public int getLevel() {
+		return level;
+	}
+
+	/**
 	 * Gets the source-line (without indentation).
 	 * @return source-line
 	 */
@@ -55,5 +67,13 @@ public class SourceLine {
 	 */
 	public void setLineCurrent(int lineCurrent) {
 		this.lineCurrent = lineCurrent;
+	}
+
+	/**
+	 * Sets the current indentation-level.
+	 * @param level indentation-level
+	 */
+	public void setIndentationLevel(int level) {
+		this.level = level;
 	}
 }

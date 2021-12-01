@@ -1,7 +1,6 @@
 package org.rogmann.jsmud.source;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,16 +85,18 @@ public class SourceBlockList extends SourceBlock {
 
 	/** {@inheritDoc} */
 	@Override
-	public void writeLines(final Writer bw, final String indentation, final String lineBreak) throws IOException {
+	public int collectLines(final List<SourceLine> sourceLines, final int lastLine) throws IOException {
+		int mLastLine = lastLine;
 		if (header != null) {
-			header.writeLines(bw, indentation, lineBreak);
+			mLastLine = header.collectLines(sourceLines, mLastLine);
 		}
 		for (final SourceBlock sourceBlock : list) {
-			sourceBlock.writeLines(bw, indentation, lineBreak);
+			mLastLine = sourceBlock.collectLines(sourceLines, mLastLine);
 		}
 		if (tail != null) {
-			tail.writeLines(bw, indentation, lineBreak);
+			mLastLine = tail.collectLines(sourceLines, mLastLine);
 		}
+		return mLastLine;
 	}
 	
 }

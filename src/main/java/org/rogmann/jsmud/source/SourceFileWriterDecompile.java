@@ -83,7 +83,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 
 		SourceFileWriterDecompile sourceFile = new SourceFileWriterDecompile("java", classNode, cl);
 		final SourceBlockList blockList = sourceFile.getSourceBlockList();
-		blockList.writeLines(w, "    ", System.lineSeparator());
+		final List<SourceLine> sourceLines = new ArrayList<>(100);
+		blockList.collectLines(sourceLines, 0);
+		final boolean respectSourceLineNumbers = true;
+		sourceFile.writeLines(w, sourceLines, "    ", System.lineSeparator(), respectSourceLineNumbers);
 	}
 
 	/**
@@ -625,6 +628,60 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	private static void writeLine(final SourceLines lines, final int lineExpected, StringBuilder sb) throws IOException {
 		lines.addLine(0, lineExpected, sb.toString());
 		sb.setLength(0);
+	}
+
+	/**
+	 * Writes a list of source-lines, may respect expected line-numbers.
+	 * @param bw writer
+	 * @param sourceLines list of source-lines
+	 * @param indentation optional indentation-string
+	 * @param lineBreak line-break
+	 * @throws IOException
+	 */
+	public void writeLines(final Writer bw, final List<SourceLine> sourceLines,
+			final String indentation, final String lineBreak,
+			final boolean respectSourceLineNumbers) throws IOException {
+		if (!respectSourceLineNumbers) {
+			super.writeLines(bw, sourceLines, indentation, lineBreak);
+			return;
+		}
+		int currentLine = 1;
+		final StringBuilder sb = new StringBuilder(100);
+		final int numLines = sourceLines.size();
+		for (int i = 0; i < numLines; i++) {
+			final SourceLine sourceLine = sourceLines.get(i);
+			int nextLineExpected = 0;
+			if (i + 1 < numLines) {
+				final SourceLine nextLine = sourceLines.get(i + 1);
+				nextLineExpected = nextLine.getLineExpected();
+			}
+			final int lineExpected = sourceLine.getLineExpected();
+			while (lineExpected > 0 && currentLine < lineExpected) {
+				bw.write(lineBreak);
+				currentLine++;
+			}
+			if (sb.length() == 0 && indentation != null) {
+				for (int l = 0; l < sourceLine.getLevel(); l++) {
+					sb.append(indentation);
+				}
+			}
+			else {
+				// We are appending the current line.
+				sb.append(' ');
+			}
+			//sb.append("/* ").append(currentLine).append(':').append(sourceLine.getLineExpected()).append("*/");
+			sb.append(sourceLine.getSourceLine());
+			if (nextLineExpected == 0 || currentLine < nextLineExpected) {
+				sb.append(lineBreak);
+				bw.write(sb.toString());
+				sb.setLength(0);
+				currentLine++;
+			}
+		}
+		if (sb.length() > 0) {
+			bw.write(sb.toString());
+			bw.write(lineBreak);
+		}
 	}
 
 	public static ClassReader createClassReader(final Class<?> clazz, final ClassLoader cl) {

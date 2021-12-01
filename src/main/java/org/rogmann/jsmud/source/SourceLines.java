@@ -1,7 +1,6 @@
 package org.rogmann.jsmud.source;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,19 +49,16 @@ public class SourceLines extends SourceBlock {
 
 	/** {@inheritDoc} */
 	@Override
-	public void writeLines(final Writer bw, final String indentation, final String lineBreak) throws IOException {
-		final StringBuilder sb = new StringBuilder(100);
+	public int collectLines(List<SourceLine> sourceLines, final int lastLine) throws IOException {
+		int currentLine = lastLine + 1;
 		for (final SourceLine sourceLine : lines) {
-			sb.setLength(0);
-			if (indentation != null) {
-				for (int i = 0; i < level; i++) {
-					sb.append(indentation);
-				}
-			}
-			sb.append(sourceLine.getSourceLine());
-			sb.append(lineBreak);
-			bw.write(sb.toString());
+			sourceLine.setLineCurrent(currentLine);
+			sourceLine.setIndentationLevel(level);
+			sourceLines.add(sourceLine);
+
+			currentLine++;
 		}
+		return currentLine - 1;
 	}
 
 }
