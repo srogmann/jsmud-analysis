@@ -28,6 +28,14 @@ public class StatementReturn extends StatementInstrZeroOp {
 		this.expr = expr;
 	}
 
+	/**
+	 * Checks if there is a return-object.
+	 * @return object-flag
+	 */
+	public boolean hasReturnObject() {
+		return expr != null;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
