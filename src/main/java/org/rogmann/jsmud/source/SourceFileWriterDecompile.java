@@ -32,6 +32,7 @@ import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
@@ -125,7 +126,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param mapPcLine map from instruction-index to line
 	 * @return list of statements
 	 */
-	@SuppressWarnings("static-method")
 	public List<StatementBase> parseMethodBody(final ClassNode classNode, final MethodNode methodNode, final Map<Integer, Integer> mapPcLine) {
 		final List<StatementBase> statements = new ArrayList<>();
 		Integer currLine = Integer.valueOf(0);
@@ -138,7 +138,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
-			final int opcode = instr.getOpcode();
 			final int type = instr.getType();
 			if (type == AbstractInsnNode.LINE) {
 				final LineNumberNode lnn = (LineNumberNode) instr;
@@ -176,6 +175,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param dupCounter counter of dup-statements (dummy dup-variables)
 	 * @param mapUsedLabels map of used labels
 	 */
+	@SuppressWarnings("static-method")
 	public void processInstruction(final ClassNode classNode, final MethodNode methodNode,
 			final AbstractInsnNode instr, final List<StatementBase> statements,
 			final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter, final Map<Label, String> mapUsedLabels) {
@@ -256,8 +256,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				}
 			}
 			else if (opcode == Opcodes.POP) {
-				final ExpressionBase<?> expr = stack.pop();
-				statements.add(new StatementExpression<>(expr));
+				if (stack.size() == 0) {
+					// TODO TABLESWITCH (POP after IF...) ...
+					statements.add(new StatementComment("empty stack at pop"));
+				}
+				else {
+					final ExpressionBase<?> expr = stack.pop();
+					statements.add(new StatementExpression<>(expr));
+				}
 			}
 			else if (opcode == Opcodes.RETURN) {
 				final StatementReturn stmt = new StatementReturn(iz);
@@ -469,7 +475,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else if (type == AbstractInsnNode.JUMP_INSN) {
 			final JumpInsnNode ji = (JumpInsnNode) instr;
 			final Label labelDest = ji.label.getLabel();
-			final String labelName = mapUsedLabels.computeIfAbsent(labelDest, l -> "L" + (mapUsedLabels.size() + 1));
+			final String labelName = computeLabelName(labelDest, mapUsedLabels);
 			if (opcode == Opcodes.GOTO) {
 				statements.add(new StatementGoto(ji, labelDest, labelName));
 			}
@@ -613,6 +619,19 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			final IincInsnNode ii = (IincInsnNode) instr;
 			statements.add(new StatementVariableIinc(ii, methodNode));
 		}
+		else if (type == AbstractInsnNode.TABLESWITCH_INSN) {
+			final TableSwitchInsnNode tsi = (TableSwitchInsnNode) instr;
+			final ExpressionBase<?> exprIndex = stack.pop();
+			final int lMin = tsi.min;
+			final int lMax = tsi.max;
+			final int num = lMax - lMin + 1;
+			final String nameDefault = computeLabelName(tsi.dflt.getLabel(), mapUsedLabels);
+			final String[] aLabelName = new String[num];
+			for (int i = 0; i < num; i++) {
+				aLabelName[i] = computeLabelName(tsi.labels.get(i).getLabel(), mapUsedLabels);
+			}
+			statements.add(new StatementTableSwitch(tsi, exprIndex, nameDefault, aLabelName));
+		}
 		else {
 			throw new JvmException(String.format("Unexpected instruction %s in %s",
 					InstructionVisitor.displayInstruction(instr, methodNode), methodNode));
@@ -717,6 +736,16 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			bw.write(sb.toString());
 			bw.write(lineBreak);
 		}
+	}
+
+	/**
+	 * Computes the display-name of a label.
+	 * @param labelDest label
+	 * @param mapUsedLabels map from label to display-name
+	 * @return display-name
+	 */
+	private static String computeLabelName(final Label labelDest, final Map<Label, String> mapUsedLabels) {
+		return mapUsedLabels.computeIfAbsent(labelDest, l -> "L" + (mapUsedLabels.size() + 1));
 	}
 
 	public static ClassReader createClassReader(final Class<?> clazz, final ClassLoader cl) {

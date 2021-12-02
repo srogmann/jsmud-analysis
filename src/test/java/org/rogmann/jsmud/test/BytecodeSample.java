@@ -38,6 +38,17 @@ public class BytecodeSample {
 		return s;
 	}
 
+	public static void collections() {
+		final List<String> names = new ArrayList<>();
+		names.add("Java");
+		names.add("Rust");
+		int sum = 0;
+		for (String name : names) {
+			sum += name.length();
+		}
+		System.out.println("sum of lengths: " + sum);
+	}
+
 	public static void loops() {
 		int sum = 0;
 		for (int i = 0; i < 5; i++) {
@@ -49,15 +60,14 @@ public class BytecodeSample {
 		System.out.println("Sum: " + sum);
 	}
 
-	public static void collections() {
-		final List<String> names = new ArrayList<>();
-		names.add("Java");
-		names.add("Rust");
-		int sum = 0;
-		for (String name : names) {
-			sum += name.length();
+	public static String switchs(JavaFeature jf) {
+		final String example;
+		switch (jf) {
+		case ASSIGNMENTS: example = "int a = 5;"; break;
+		case ARRAYS: example = "byte[] b = { 1, 2, 3};"; break;
+		default: example = "// nothing here"; break;
 		}
-		System.out.println("sum of lengths: " + sum);
+		return example;
 	}
 
 	public String getName() {
