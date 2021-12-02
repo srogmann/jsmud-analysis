@@ -19,6 +19,7 @@ import org.objectweb.asm.tree.InnerClassNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.rogmann.jsmud.replydata.LineCodeIndex;
 import org.rogmann.jsmud.replydata.LineTable;
@@ -158,6 +159,7 @@ public class SourceFileWriter {
 			writeLine(methodHeader, "");
 			appendAccessMethod(sb, methodNode.access);
 			final Type type = Type.getMethodType(methodNode.desc);
+			final Type returnType = type.getReturnType();
 			if ("<init>".equals(methodNode.name)) {
 				sb.append(classSimpleName);
 			}
@@ -165,11 +167,14 @@ public class SourceFileWriter {
 				// static initializer
 			}
 			else {
-				sb.append(type.getReturnType().getClassName());
+				sb.append(returnType.getClassName());
 				sb.append(' ').append(methodNode.name);
 			}
 			sb.append('(');
 			final Type[] argTypes = type.getArgumentTypes();
+			final int indexFirstArg = ((methodNode.access & Opcodes.ACC_STATIC) == 0) ? 1 : 0;
+			final List<LocalVariableNode> localVariables = methodNode.localVariables;
+			final int anzLocVar = (localVariables != null) ? localVariables.size() : 0;
 			for (int i = 0; i < argTypes.length; i++) {
 				if (i > 0) {
 					sb.append(", ");
@@ -179,7 +184,14 @@ public class SourceFileWriter {
 					className = className.substring(PKG_JAVA_LANG.length());
 				}
 				sb.append(className);
-				sb.append(' '); sb.append("arg").append(i + 1);
+				final String argName;
+				if (localVariables != null && indexFirstArg + i < anzLocVar) {
+					argName = localVariables.get(indexFirstArg + i).name;
+				}
+				else {
+					argName = "arg" + (i + 1);
+				}
+				sb.append(' ').append(argName);
 			}
 			sb.append(')');
 			final List<String> exceptions = methodNode.exceptions;

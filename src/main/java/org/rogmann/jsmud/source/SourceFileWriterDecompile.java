@@ -700,7 +700,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			//sb.append("/* ").append(currentLine).append(':').append(sourceLine.getLineExpected()).append("*/");
 			sb.append(sourceLine.getSourceLine());
-			if (nextLineExpected == 0 || currentLine < nextLineExpected) {
+			if (nextLineExpected == 0 || currentLine < nextLineExpected
+					|| currentLine > nextLineExpected + 10) {
 				if (nextLineExpected == 0 && nextNextLineExp == currentLine + 1) {
 					// The next next line should start without the next line in front.
 				}
