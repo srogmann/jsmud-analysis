@@ -255,6 +255,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					stack.push(exprDuplicate);
 				}
 			}
+			else if (opcode == Opcodes.POP) {
+				final ExpressionBase<?> expr = stack.pop();
+				statements.add(new StatementExpression<>(expr));
+			}
 			else if (opcode == Opcodes.RETURN) {
 				final StatementReturn stmt = new StatementReturn(iz);
 				statements.add(stmt);
@@ -475,8 +479,20 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					|| opcode == Opcodes.IFLT
 					|| opcode == Opcodes.IFGE
 					|| opcode == Opcodes.IFGT) {
-				throw new JvmException(String.format("Unsupported if-instruction (%s) in (%s)",
-						InstructionVisitor.displayInstruction(ji, methodNode), methodNode.name));
+				final ExpressionBase<?> exprValue = stack.pop();
+				final ExpressionInstrZeroConstant exprZero = new ExpressionInstrZeroConstant(new InsnNode(Opcodes.ICONST_0));
+				String operator;
+				switch (opcode) {
+				case Opcodes.IFEQ: operator = "=="; break;
+				case Opcodes.IFNE: operator = "!="; break;
+				case Opcodes.IFLE: operator = "<="; break;
+				case Opcodes.IFLT: operator = "<"; break;
+				case Opcodes.IFGE: operator = ">="; break;
+				case Opcodes.IFGT: operator = ">"; break;
+				default: throw new JvmException("Unexpected opcode " + opcode);
+				}
+				final ExpressionInfixBinary<?> exprCond = new ExpressionInfixBinary<>(instr, operator, exprValue, exprZero);
+				statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
 			}
 			else if (opcode == Opcodes.IF_ACMPEQ
 					|| opcode == Opcodes.IF_ACMPNE
@@ -571,6 +587,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
 			}
 			else if (opcode == Opcodes.INVOKEVIRTUAL) {
+				final ExpressionBase<?> exprObject = stack.pop();
+				stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+			}
+			else if (opcode == Opcodes.INVOKEINTERFACE && Type.VOID_TYPE.equals(returnType)) {
+				final ExpressionBase<?> exprObject = stack.pop();
+				statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+			}
+			else if (opcode == Opcodes.INVOKEINTERFACE) {
 				final ExpressionBase<?> exprObject = stack.pop();
 				stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
 			}

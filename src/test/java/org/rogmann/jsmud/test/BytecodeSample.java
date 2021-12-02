@@ -1,5 +1,8 @@
 package org.rogmann.jsmud.test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class BytecodeSample {
 	private String name;
 	private int num;
@@ -40,7 +43,21 @@ public class BytecodeSample {
 		for (int i = 0; i < 5; i++) {
 			sum += i;
 		}
+		while (sum > 10) {
+			sum -= 10;
+		}
 		System.out.println("Sum: " + sum);
+	}
+
+	public static void collections() {
+		final List<String> names = new ArrayList<>();
+		names.add("Java");
+		names.add("Rust");
+		int sum = 0;
+		for (String name : names) {
+			sum += name.length();
+		}
+		System.out.println("sum of lengths: " + sum);
 	}
 
 	public String getName() {
