@@ -655,6 +655,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final SourceLine nextLine = sourceLines.get(i + 1);
 				nextLineExpected = nextLine.getLineExpected();
 			}
+			int nextNextLineExp = 0;
+			if (i + 2 < numLines) {
+				final SourceLine nextNextLine = sourceLines.get(i + 2);
+				nextNextLineExp = nextNextLine.getLineExpected();
+			}
 			final int lineExpected = sourceLine.getLineExpected();
 			while (lineExpected > 0 && currentLine < lineExpected) {
 				bw.write(lineBreak);
@@ -665,17 +670,22 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					sb.append(indentation);
 				}
 			}
-			else {
+			else if (sb.length() > 0 && sb.charAt(sb.length() - 1) != ' ') {
 				// We are appending the current line.
 				sb.append(' ');
 			}
 			//sb.append("/* ").append(currentLine).append(':').append(sourceLine.getLineExpected()).append("*/");
 			sb.append(sourceLine.getSourceLine());
 			if (nextLineExpected == 0 || currentLine < nextLineExpected) {
-				sb.append(lineBreak);
-				bw.write(sb.toString());
-				sb.setLength(0);
-				currentLine++;
+				if (nextLineExpected == 0 && nextNextLineExp == currentLine + 1) {
+					// The next next line should start without the next line in front.
+				}
+				else {
+					sb.append(lineBreak);
+					bw.write(sb.toString());
+					sb.setLength(0);
+					currentLine++;
+				}
 			}
 		}
 		if (sb.length() > 0) {
