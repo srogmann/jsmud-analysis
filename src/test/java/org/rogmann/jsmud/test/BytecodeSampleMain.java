@@ -21,7 +21,7 @@ public class BytecodeSampleMain {
 		}
 		final File fileOutput = new File(args[0]);
 		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileOutput), StandardCharsets.UTF_8))) {
-			final Class<BytecodeSample> clazz = BytecodeSample.class;
+			final Class<?> clazz = BytecodeSample.class;
 			SourceFileWriterDecompile.writeSource(clazz, clazz.getClassLoader(), bw);
 		}
 		catch (IOException e) {

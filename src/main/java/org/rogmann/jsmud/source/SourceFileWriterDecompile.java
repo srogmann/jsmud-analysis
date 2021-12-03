@@ -34,6 +34,7 @@ import org.objectweb.asm.tree.LookupSwitchInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TableSwitchInsnNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
@@ -107,10 +108,13 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			int lineExpected = 0;
 			if (stmt instanceof StatementInstr<?>) {
 				final StatementInstr<?> stmtInstr = (StatementInstr<?>) stmt;
-				final int pc = methodNode.instructions.indexOf(stmtInstr.getInsn());
-				final Integer line = mapPcLine.get(Integer.valueOf(pc));
-				if (line != null) {
-					lineExpected = line.intValue();
+				final AbstractInsnNode insn = stmtInstr.getInsn();
+				if (insn != null) {
+					final int pc = methodNode.instructions.indexOf(insn);
+					final Integer line = mapPcLine.get(Integer.valueOf(pc));
+					if (line != null) {
+						lineExpected = line.intValue();
+					}
 				}
 			}
 			if (stmt.isVisible()) {
@@ -135,11 +139,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		/** map from label to label-name */
 		final Map<Label, String> mapUsedLabels = new IdentityHashMap<>();
 		final AtomicInteger dupCounter = new AtomicInteger();
-		FrameNode currentFrame = null;
+		LabelNode currentLabel = null;
 
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
+			//System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
 			final int type = instr.getType();
 			if (type == AbstractInsnNode.LINE) {
 				final LineNumberNode lnn = (LineNumberNode) instr;
@@ -153,9 +158,24 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				continue;
 			}
 			else if (type == AbstractInsnNode.FRAME) {
-				final FrameNode fn = (FrameNode) instr;
-				currentFrame = fn;
+				//final FrameNode fn = (FrameNode) instr;
+				for (final TryCatchBlockNode tcb : methodNode.tryCatchBlocks) {
+					if (tcb.type == null) {
+						// e.g. finally-block
+						continue;
+					}
+					if (tcb.handler.equals(currentLabel)) {
+						// begin of a catch-block
+						final Type typeException = Type.getObjectType(tcb.type);
+						stack.add(new ExpressionException(typeException ));
+						break;
+					}
+				}
+
 				continue;
+			}
+			if (type == AbstractInsnNode.LABEL) {
+				currentLabel = (LabelNode) instr;
 			}
 
 			mapPcLine.put(Integer.valueOf(i), currLine);
@@ -383,6 +403,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				default: throw new JvmException("Unexpected opcode " + opcode);
 				}
 				stack.push(new ExpressionInfixBinary<>(iz, operator, arg1, arg2));
+			}
+			else if (opcode == Opcodes.ATHROW) {
+				final ExpressionBase<?> exprException = stack.pop();
+				statements.add(new StatementThrow(iz, exprException));
 			}
 			else {
 				throw new JvmException(String.format("Unexpected zero-arg instruction (%s) in %s",

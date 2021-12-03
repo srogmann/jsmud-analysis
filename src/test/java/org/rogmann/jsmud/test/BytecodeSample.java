@@ -49,6 +49,17 @@ public class BytecodeSample {
 		System.out.println("sum of lengths: " + sum);
 	}
 
+	public static int exceptions(final String sInt) {
+		int iNum;
+		try {
+			iNum = Integer.parseInt(sInt);
+		}
+		catch (NumberFormatException e) {
+			throw new RuntimeException("Unexpected number: " + sInt, e);
+		}
+		return iNum;
+	}
+
 	public static void loops() {
 		int sum = 0;
 		for (int i = 0; i < 5; i++) {
