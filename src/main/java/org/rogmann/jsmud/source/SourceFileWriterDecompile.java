@@ -126,7 +126,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param mapPcLine map from instruction-index to line
 	 * @return list of statements
 	 */
-	public List<StatementBase> parseMethodBody(final ClassNode classNode, final MethodNode methodNode, final Map<Integer, Integer> mapPcLine) {
+	public List<StatementBase> parseMethodBody(final ClassNode classNode, final MethodNode methodNode,
+			final Map<Integer, Integer> mapPcLine) {
 		final List<StatementBase> statements = new ArrayList<>();
 		Integer currLine = Integer.valueOf(0);
 		final Stack<ExpressionBase<?>> stack = new Stack<>();
@@ -143,6 +144,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final LineNumberNode lnn = (LineNumberNode) instr;
 				currLine = Integer.valueOf(lnn.line);
 				mapPcLine.put(Integer.valueOf(i), currLine);
+				// Is the previous line a label-node?
+				if (i > 0 && instructions.get(i - 1).getType() == AbstractInsnNode.LABEL) {
+					// The previous label should belong to the current line.
+					mapPcLine.put(Integer.valueOf(i - 1), currLine);	
+				}
 				continue;
 			}
 			else if (type == AbstractInsnNode.FRAME) {
