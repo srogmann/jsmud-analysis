@@ -1,14 +1,14 @@
 package org.rogmann.jsmud.source;
 
-import org.objectweb.asm.tree.TableSwitchInsnNode;
+import org.objectweb.asm.tree.LookupSwitchInsnNode;
 
 /**
- * switch-Statement (TABLESWITCH-instruction).
+ * switch-Statement (LOOKUPSWITCH-instruction).
  */
-public class StatementTableSwitch extends StatementInstr<TableSwitchInsnNode> {
+public class StatementLookupSwitch extends StatementInstr<LookupSwitchInsnNode> {
 
-	/** index */
-	private final ExpressionBase<?> exprIndex;
+	/** key */
+	private final ExpressionBase<?> exprKey;
 
 	/** display-name of default-label */
 	private final String nameDefault;
@@ -19,14 +19,14 @@ public class StatementTableSwitch extends StatementInstr<TableSwitchInsnNode> {
 	/**
 	 * Constructor
 	 * @param insn TABLESWITCH-instruction
-	 * @param exprIndex index-expression
-	 * @param nameDefault default label
-	 * @param aLabelName display-names of labels
+	 * @param exprKey index-expression
+	 * @param nameDefault name of default label
+	 * @param aLabelName display-name of labels
 	 */
-	public StatementTableSwitch(final TableSwitchInsnNode insn, final ExpressionBase<?> exprIndex,
+	public StatementLookupSwitch(final LookupSwitchInsnNode insn, final ExpressionBase<?> exprKey,
 			final String nameDefault, final String[] aLabelName) {
 		super(insn);
-		this.exprIndex = exprIndex;
+		this.exprKey = exprKey;
 		this.nameDefault = nameDefault;
 		this.aLabelName = aLabelName;
 	}
@@ -35,14 +35,12 @@ public class StatementTableSwitch extends StatementInstr<TableSwitchInsnNode> {
 	@Override
 	public void render(StringBuilder sb) {
 		sb.append("switch").append(' ').append('(');
-		exprIndex.render(sb);
+		exprKey.render(sb);
 		sb.append(')').append(' ').append('{');
-		final int lMin = insn.min;
-		final int lMax = insn.max;
-		final int num = lMax - lMin + 1;
-		for (int i = 0; i < num; i++) {
+		final int numCases = insn.keys.size();
+		for (int i = 0; i < numCases; i++) {
 			sb.append(' ').append("case").append(' ');
-			sb.append(i).append(':').append(' ');
+			sb.append(insn.keys.get(i)).append(':').append(' ');
 			sb.append("goto").append(' ');
 			sb.append(aLabelName[i]);
 			sb.append(';');

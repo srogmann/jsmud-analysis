@@ -61,13 +61,24 @@ public class BytecodeSample {
 	}
 
 	public static String switchs(JavaFeature jf) {
+		// lookupswitch
+		//
+		String comment;
+		switch (jf.toString()) {
+		case "ASSIGNMENTS": comment = "/* assignment */"; break;
+		case "ARRAYS": comment = "/* arrays */"; break;
+		default: comment = "/* ? */"; break;
+		}
+
+		// tableswitch
+		//
 		final String example;
 		switch (jf) {
 		case ASSIGNMENTS: example = "int a = 5;"; break;
 		case ARRAYS: example = "byte[] b = { 1, 2, 3};"; break;
 		default: example = "// nothing here"; break;
 		}
-		return example;
+		return example + ' ' + comment;
 	}
 
 	public String getName() {

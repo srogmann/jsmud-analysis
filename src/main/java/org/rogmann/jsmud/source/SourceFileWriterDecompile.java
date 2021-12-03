@@ -30,6 +30,7 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LookupSwitchInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TableSwitchInsnNode;
@@ -624,6 +625,17 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else if (type == AbstractInsnNode.IINC_INSN) {
 			final IincInsnNode ii = (IincInsnNode) instr;
 			statements.add(new StatementVariableIinc(ii, methodNode));
+		}
+		else if (type == AbstractInsnNode.LOOKUPSWITCH_INSN) {
+			final LookupSwitchInsnNode lsi = (LookupSwitchInsnNode) instr;
+			final ExpressionBase<?> exprKey = stack.pop();
+			final int numCases = lsi.keys.size();
+			final String nameDefault = computeLabelName(lsi.dflt.getLabel(), mapUsedLabels);
+			final String[] aLabelName = new String[numCases];
+			for (int i = 0; i < numCases; i++) {
+				aLabelName[i] = computeLabelName(lsi.labels.get(i).getLabel(), mapUsedLabels);
+			}
+			statements.add(new StatementLookupSwitch(lsi, exprKey, nameDefault, aLabelName));
 		}
 		else if (type == AbstractInsnNode.TABLESWITCH_INSN) {
 			final TableSwitchInsnNode tsi = (TableSwitchInsnNode) instr;
