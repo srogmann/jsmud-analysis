@@ -209,6 +209,10 @@ public class SourceFileWriter {
 		}
 
 		for (final InnerClassNode innerClassNode : node.innerClasses) {
+			if ("java/lang/invoke/MethodHandles".equals(innerClassNode.outerName)) {
+				// MethodHandles is referenced when using lambdas.
+				continue;
+			}
 			final ClassNode innerClass = innerClassesProvider.apply(innerClassNode.name);
 			if (innerClass == null) {
 				throw new JvmException(String.format("No class-node of inner-class (%s) of (%s)",

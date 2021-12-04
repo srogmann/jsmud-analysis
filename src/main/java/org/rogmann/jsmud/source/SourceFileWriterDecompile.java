@@ -15,17 +15,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
-import org.objectweb.asm.tree.FrameNode;
 import org.objectweb.asm.tree.IincInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
@@ -118,7 +119,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				}
 			}
 			if (stmt.isVisible()) {
-				stmt.render(sb);
+				try {
+					stmt.render(sb);
+				} catch (JvmException e) {
+					throw new JvmException(String.format("Error while rendering line %d, method %s, class %s",
+							Integer.valueOf(lineExpected), methodNode.name, classNode.name), e);
+				}
 				writeLine(block, lineExpected, sb);
 			}
 		}
@@ -141,10 +147,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final AtomicInteger dupCounter = new AtomicInteger();
 		LabelNode currentLabel = null;
 
+		System.out.println(String.format("Class %s, Method %s%s", classNode.name,
+				methodNode.name, methodNode.desc));
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
-			//System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
+			System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
 			final int type = instr.getType();
 			if (type == AbstractInsnNode.LINE) {
 				final LineNumberNode lnn = (LineNumberNode) instr;
@@ -215,7 +223,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		else if (type == AbstractInsnNode.INSN) {
 			final InsnNode iz = (InsnNode) instr;
-			if (opcode == Opcodes.ICONST_M1
+			if (opcode == Opcodes.ACONST_NULL
+					|| opcode == Opcodes.ICONST_M1
 					|| opcode == Opcodes.ICONST_0
 					|| opcode == Opcodes.ICONST_1
 					|| opcode == Opcodes.ICONST_2
@@ -274,7 +283,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					stack.push(expr);
 				}
 				else {
-					final String dummyName = "__dup" + dupCounter.incrementAndGet();
+					final String dummyName = createTempName(dupCounter);
 					final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
 					final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
 					statements.add(stmtExprDuplicated);
@@ -433,6 +442,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final String prefixCast = String.format("(%s) ", typeDest);
 				final ExpressionPrefix<?> exprTi = new ExpressionPrefix<>(ti, prefixCast, expr);
 				stack.push(exprTi);
+			}
+			else if (opcode == Opcodes.INSTANCEOF) {
+				final ExpressionBase<?> exprRef = stack.pop();
+				stack.push(new ExpressionInstanceOf(ti, exprRef)); 
 			}
 			else {
 				throw new JvmException(String.format("Unexpected type instruction (%s) in %s",
@@ -641,6 +654,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			else if (opcode == Opcodes.INVOKESTATIC) {
 				stack.add(new ExpressionInvoke(mi, classNode, null, exprArgs));
 			}
+			else if (opcode == Opcodes.INVOKESPECIAL && Type.VOID_TYPE.equals(returnType)) {
+				final ExpressionBase<?> exprObject = stack.pop();
+				statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+			}
+			else if (opcode == Opcodes.INVOKESPECIAL) {
+				final ExpressionBase<?> exprObject = stack.pop();
+				stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+			}
 			else {
 				throw new JvmException(String.format("Unexpected method-instruction (%s) in (%s)",
 						InstructionVisitor.displayInstruction(mi, methodNode), methodNode.name));
@@ -674,10 +695,37 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			statements.add(new StatementTableSwitch(tsi, exprIndex, nameDefault, aLabelName));
 		}
+		else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
+			final InvokeDynamicInsnNode idi = (InvokeDynamicInsnNode) instr;
+			final Type[] args = Type.getArgumentTypes(idi.desc);
+			final ExpressionBase<?>[] exprArgs = new ExpressionBase[args.length];
+			for (int j = args.length - 1; j >= 0; j--) {
+				if (stack.size() == 0 || stack.peek() == null) {
+					throw new JvmException(String.format("Stack underfow while reading targs of %s", idi));
+				}
+				exprArgs[j] = stack.pop();
+			}
+			final Handle handle = (Handle) idi.bsmArgs[1];
+			final Type[] handleArgs = Type.getArgumentTypes(handle.getDesc());
+			final String[] tempVars = new String[handleArgs.length - args.length];
+			for (int i = 0; i < tempVars.length; i++) {
+				tempVars[i] = createTempName(dupCounter);
+			}
+			stack.push(new ExpressionInvokeDynamic(idi, classNode, exprArgs, tempVars));
+		}
 		else {
 			throw new JvmException(String.format("Unexpected instruction %s in %s",
 					InstructionVisitor.displayInstruction(instr, methodNode), methodNode));
 		}
+	}
+
+	/**
+	 * Creates a name of a temporary variable.
+	 * @param dupCounter counter
+	 * @return name
+	 */
+	static String createTempName(AtomicInteger dupCounter) {
+		return "__dup" + dupCounter.incrementAndGet();
 	}
 
 	/**
@@ -828,15 +876,21 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	}
 
 	/**
-	 * Gets the last added statement. The list of statements isn't modified.
+	 * Gets the last added non-label statement. The list of statements isn't modified.
 	 * @param statements list of statements
 	 * @return statement or <code>null</code>
 	 */
 	private static StatementBase peekLastAddedStatement(List<StatementBase> statements) {
 		StatementBase lastStmt = null;
 		final int numStmts = statements.size();
-		if (numStmts > 0) {
-			lastStmt = statements.get(numStmts - 1);
+		int index = numStmts - 1;
+		while (index >= 0) {
+			lastStmt = statements.get(index);
+			if (!(lastStmt instanceof StatementLabel)) {
+				// We found a non-label statement.
+				break;
+			}
+			index--;
 		}
 		return lastStmt;
 	}
@@ -851,7 +905,16 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		if (numStmts == 0) {
 			throw new JvmException("The list of statements is empty, can't pop a statement.");
 		}
-		return statements.remove(numStmts - 1);
+		int index = numStmts - 1;
+		while (index >= 0) {
+			final StatementBase stmt = statements.get(index);
+			if (!(stmt instanceof StatementLabel)) {
+				// We found a non-label statement.
+				return statements.remove(index);
+			}
+			index--;
+		}
+		throw new JvmException("The list of statements is contains labels only, can't pop a statement.");
 	}
 
 }

@@ -2,6 +2,7 @@ package org.rogmann.jsmud.test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 
 public class BytecodeSample {
 	private String name;
@@ -60,6 +61,14 @@ public class BytecodeSample {
 		return iNum;
 	}
 
+	public static void lambdas(final String a, final int b) {
+		final BiFunction<Short, Long, String> fct = (s, l) -> {
+			String p1 = String.format("(%d, %d)", Short.valueOf(s), Long.valueOf(l));
+			String p2 = String.format("(%s, %d)", a, Integer.valueOf(b));
+			return p1 + p2;
+		};
+		System.out.println(fct.apply(Short.valueOf("5"), Long.valueOf("7")));
+	}
 	public static void loops() {
 		int sum = 0;
 		for (int i = 0; i < 5; i++) {
