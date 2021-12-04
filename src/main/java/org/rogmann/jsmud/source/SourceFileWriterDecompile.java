@@ -31,6 +31,7 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.LookupSwitchInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -438,7 +439,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			else if (opcode == Opcodes.CHECKCAST) {
 				final ExpressionBase<?> expr = stack.pop();
-				final String typeDest = ti.desc.replace('/', '.');
+				final String typeDest = SourceFileWriter.simplifyClassName(ti.desc.replace('/', '.'));
 				final String prefixCast = String.format("(%s) ", typeDest);
 				final ExpressionPrefix<?> exprTi = new ExpressionPrefix<>(ti, prefixCast, expr);
 				stack.push(exprTi);
@@ -469,7 +470,23 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					|| opcode == Opcodes.DSTORE) {
 				final StatementBase stmtValue = stack.pop();
 				final ExpressionBase<?> exprValue = (ExpressionBase<?>) stmtValue;
-				final StatementVariableStore stmtStore = new StatementVariableStore(vi, methodNode, exprValue);
+				final List<LocalVariableNode> locVars = methodNode.localVariables;
+				final Type typeExpr;
+				if (locVars != null && vi.var < locVars.size()) {
+					typeExpr = Type.getType(locVars.get(vi.var).desc);
+				}
+				else {
+					switch (opcode) {
+					case Opcodes.ASTORE: typeExpr = Type.getType("Ljava/lang/Object;"); break; // TODO better guess?
+					case Opcodes.ISTORE: typeExpr = Type.INT_TYPE; break;
+					case Opcodes.LSTORE: typeExpr = Type.LONG_TYPE; break;
+					case Opcodes.FSTORE: typeExpr = Type.FLOAT_TYPE; break;
+					case Opcodes.DSTORE: typeExpr = Type.DOUBLE_TYPE; break;
+					default: throw new JvmException("Unexpected opcode " + opcode);
+					}
+				}
+				final StatementVariableStore stmtStore = new StatementVariableStore(vi,
+						methodNode, typeExpr, exprValue);
 				statements.add(stmtStore);
 			}
 			else {
