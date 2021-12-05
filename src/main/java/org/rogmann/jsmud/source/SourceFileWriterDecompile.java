@@ -241,223 +241,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		else if (type == AbstractInsnNode.INSN) {
 			final InsnNode iz = (InsnNode) instr;
-			if (opcode == Opcodes.ACONST_NULL
-					|| opcode == Opcodes.ICONST_M1
-					|| opcode == Opcodes.ICONST_0
-					|| opcode == Opcodes.ICONST_1
-					|| opcode == Opcodes.ICONST_2
-					|| opcode == Opcodes.ICONST_3
-					|| opcode == Opcodes.ICONST_4
-					|| opcode == Opcodes.ICONST_5
-					|| opcode == Opcodes.LCONST_0
-					|| opcode == Opcodes.LCONST_1
-					|| opcode == Opcodes.FCONST_0
-					|| opcode == Opcodes.FCONST_1
-					|| opcode == Opcodes.DCONST_0
-					|| opcode == Opcodes.DCONST_1) {
-				final ExpressionInstrZeroConstant exprConst = new ExpressionInstrZeroConstant(iz);
-				stack.push(exprConst);
-			}
-			else if (opcode == Opcodes.AALOAD
-					|| opcode == Opcodes.BALOAD
-					|| opcode == Opcodes.CALOAD
-					|| opcode == Opcodes.SALOAD
-					|| opcode == Opcodes.IALOAD
-					|| opcode == Opcodes.LALOAD
-					|| opcode == Opcodes.FALOAD
-					|| opcode == Opcodes.DALOAD) {
-				final ExpressionBase<?> exprIndex = stack.pop();
-				final ExpressionBase<?> exprArray = stack.pop();
-				final ExpressionArrayLoad exprAaload = new ExpressionArrayLoad(iz, exprArray, exprIndex);
-				stack.push(exprAaload);
-			}
-			else if (opcode == Opcodes.ARRAYLENGTH) {
-				final ExpressionBase<?> exprArray = stack.pop();
-				stack.push(new ExpressionSuffix<>(iz, exprArray));
-			}
-			else if (opcode == Opcodes.AASTORE) {
-				final ExpressionBase<?> exprValue = stack.pop();
-				final ExpressionBase<?> exprIndex = stack.pop();
-				final ExpressionBase<?> exprArray = stack.pop();
-				statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
-			}
-			else if (opcode == Opcodes.BASTORE
-					|| opcode == Opcodes.CASTORE
-					|| opcode == Opcodes.SASTORE
-					|| opcode == Opcodes.IASTORE
-					|| opcode == Opcodes.LASTORE
-					|| opcode == Opcodes.FASTORE
-					|| opcode == Opcodes.DASTORE) {
-				final ExpressionBase<?> exprValue = stack.pop();
-				final ExpressionBase<?> exprIndex = stack.pop();
-				final ExpressionBase<?> exprArray = stack.pop();
-				statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
-			}
-			else if (opcode == Opcodes.DUP) {
-				final ExpressionBase<?> expr = stack.pop();
-				if (expr instanceof ExpressionDuplicate) {
-					// There is a StatementExpressionDuplicated already.  
-					stack.push(expr);
-					stack.push(expr);
-				}
-				else {
-					final String dummyName = createTempName(dupCounter);
-					final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
-					final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
-					statements.add(stmtExprDuplicated);
-					stack.push(exprDuplicate);
-					stack.push(exprDuplicate);
-				}
-			}
-			else if (opcode == Opcodes.POP) {
-				if (stack.size() == 0) {
-					// TODO TABLESWITCH (POP after IF...) ...
-					statements.add(new StatementComment("empty stack at pop"));
-				}
-				else {
-					final ExpressionBase<?> expr = stack.pop();
-					statements.add(new StatementExpression<>(expr));
-				}
-			}
-			else if (opcode == Opcodes.RETURN) {
-				final StatementReturn stmt = new StatementReturn(iz);
-				statements.add(stmt);
-			}
-			else if (opcode == Opcodes.ARETURN
-					|| opcode == Opcodes.IRETURN
-					|| opcode == Opcodes.LRETURN
-					|| opcode == Opcodes.FRETURN
-					|| opcode == Opcodes.DRETURN) {
-				final ExpressionBase<?> exprObj = stack.pop();
-				final StatementReturn stmt = new StatementReturn(iz, exprObj);
-				statements.add(stmt);
-			}
-			else if (opcode == Opcodes.I2B
-					|| opcode == Opcodes.I2C
-					|| opcode == Opcodes.I2S
-					|| opcode == Opcodes.I2L
-					|| opcode == Opcodes.I2F
-					|| opcode == Opcodes.I2D
-					|| opcode == Opcodes.L2I
-					|| opcode == Opcodes.L2F
-					|| opcode == Opcodes.L2D
-					|| opcode == Opcodes.F2I
-					|| opcode == Opcodes.F2L
-					|| opcode == Opcodes.F2D
-					|| opcode == Opcodes.D2I
-					|| opcode == Opcodes.D2L
-					|| opcode == Opcodes.D2F) {
-				final ExpressionBase<?> exprObj = stack.pop();
-				final Type primitiveType;
-				switch (opcode) {
-				case Opcodes.I2B: primitiveType = Type.BYTE_TYPE; break;
-				case Opcodes.I2C: primitiveType = Type.CHAR_TYPE; break;
-				case Opcodes.I2S: primitiveType = Type.SHORT_TYPE; break;
-				case Opcodes.I2L: primitiveType = Type.LONG_TYPE; break;
-				case Opcodes.I2F: primitiveType = Type.FLOAT_TYPE; break;
-				case Opcodes.I2D: primitiveType = Type.DOUBLE_TYPE; break;
-				case Opcodes.L2I: primitiveType = Type.INT_TYPE; break;
-				case Opcodes.L2F: primitiveType = Type.FLOAT_TYPE; break;
-				case Opcodes.L2D: primitiveType = Type.DOUBLE_TYPE; break;
-				case Opcodes.F2I: primitiveType = Type.INT_TYPE; break;
-				case Opcodes.F2L: primitiveType = Type.LONG_TYPE; break;
-				case Opcodes.F2D: primitiveType = Type.DOUBLE_TYPE; break;
-				case Opcodes.D2I: primitiveType = Type.INT_TYPE; break;
-				case Opcodes.D2F: primitiveType = Type.FLOAT_TYPE; break;
-				case Opcodes.D2L: primitiveType = Type.DOUBLE_TYPE; break;
-				default: throw new JvmException("Unexpected opcode " + opcode);
-				}
-				stack.add(new ExpressionCastPrimitive(iz, primitiveType, exprObj));
-			}
-			else if (opcode == Opcodes.IADD
-					 || opcode == Opcodes.LADD
-					 || opcode == Opcodes.FADD
-					 || opcode == Opcodes.DADD
-					 || opcode == Opcodes.ISUB
-					 || opcode == Opcodes.LSUB
-					 || opcode == Opcodes.FSUB
-					 || opcode == Opcodes.DSUB
-					 || opcode == Opcodes.IMUL
-					 || opcode == Opcodes.LMUL
-					 || opcode == Opcodes.FMUL
-					 || opcode == Opcodes.DMUL
-					 || opcode == Opcodes.IDIV
-					 || opcode == Opcodes.LDIV
-					 || opcode == Opcodes.FDIV
-					 || opcode == Opcodes.DDIV
-					 || opcode == Opcodes.IREM
-					 || opcode == Opcodes.LREM
-					 || opcode == Opcodes.FREM
-					 || opcode == Opcodes.DREM
-					 || opcode == Opcodes.IAND
-					 || opcode == Opcodes.LAND
-					 || opcode == Opcodes.IOR
-					 || opcode == Opcodes.LOR
-					 || opcode == Opcodes.IXOR
-					 || opcode == Opcodes.LXOR
-					 || opcode == Opcodes.ISHL
-					 || opcode == Opcodes.ISHR
-					 || opcode == Opcodes.IUSHR
-					 || opcode == Opcodes.LSHL
-					 || opcode == Opcodes.LSHR
-					 || opcode == Opcodes.LUSHR) {
-				final ExpressionBase<?> arg2 = stack.pop();
-				final ExpressionBase<?> arg1 = stack.pop();
-				final String operator;
-				switch (opcode) {
-				case Opcodes.IADD: operator = "+"; break;
-				case Opcodes.LADD: operator = "+"; break;
-				case Opcodes.FADD: operator = "+"; break;
-				case Opcodes.DADD: operator = "+"; break;
-				case Opcodes.ISUB: operator = "-"; break;
-				case Opcodes.LSUB: operator = "-"; break;
-				case Opcodes.FSUB: operator = "-"; break;
-				case Opcodes.DSUB: operator = "-"; break;
-				case Opcodes.IMUL: operator = "*"; break;
-				case Opcodes.LMUL: operator = "*"; break;
-				case Opcodes.FMUL: operator = "*"; break;
-				case Opcodes.DMUL: operator = "*"; break;
-				case Opcodes.IDIV: operator = "/"; break;
-				case Opcodes.LDIV: operator = "/"; break;
-				case Opcodes.FDIV: operator = "/"; break;
-				case Opcodes.DDIV: operator = "/"; break;
-				case Opcodes.IREM: operator = "%"; break;
-				case Opcodes.LREM: operator = "%"; break;
-				case Opcodes.FREM: operator = "%"; break;
-				case Opcodes.DREM: operator = "%"; break;
-				case Opcodes.IAND: operator = "&"; break;
-				case Opcodes.LAND: operator = "&"; break;
-				case Opcodes.IOR: operator = "|"; break;
-				case Opcodes.LOR: operator = "|"; break;
-				case Opcodes.IXOR: operator = "^"; break;
-				case Opcodes.LXOR: operator = "^"; break;
-				case Opcodes.ISHL: operator = "<<"; break;
-				case Opcodes.LSHL: operator = "<<"; break;
-				case Opcodes.ISHR: operator = ">>"; break;
-				case Opcodes.LSHR: operator = ">>"; break;
-				case Opcodes.IUSHR: operator = ">>>"; break;
-				case Opcodes.LUSHR: operator = ">>>"; break;
-				default: throw new JvmException("Unexpected opcode " + opcode);
-				}
-				stack.push(new ExpressionInfixBinary<>(iz, operator, arg1, arg2));
-			}
-			else if (opcode == Opcodes.LCMP
-					|| opcode == Opcodes.FCMPL
-					|| opcode == Opcodes.FCMPG
-					|| opcode == Opcodes.DCMPL
-					|| opcode == Opcodes.DCMPG) {
-				final ExpressionBase<?> arg2 = stack.pop();
-				final ExpressionBase<?> arg1 = stack.pop();
-				stack.add(new ExpressionCompare(iz, arg1, arg2));
-			}
-			else if (opcode == Opcodes.ATHROW) {
-				final ExpressionBase<?> exprException = stack.pop();
-				statements.add(new StatementThrow(iz, exprException));
-			}
-			else {
-				throw new JvmException(String.format("Unexpected zero-arg instruction (%s) in %s",
-						InstructionVisitor.displayInstruction(iz, methodNode), methodNode.name));
-			}
+			processInstructionInsn(iz, methodNode, statements, stack, dupCounter);
 		}
 		else if (type == AbstractInsnNode.LDC_INSN) {
 			stack.push(new ExpressionInstrConstant((LdcInsnNode) instr));
@@ -571,154 +355,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		else if (type == AbstractInsnNode.JUMP_INSN) {
 			final JumpInsnNode ji = (JumpInsnNode) instr;
-			final Label labelDest = ji.label.getLabel();
-			final String labelName = computeLabelName(labelDest, mapUsedLabels);
-			if (opcode == Opcodes.GOTO) {
-				statements.add(new StatementGoto(ji, labelDest, labelName));
-			}
-			else if (opcode == Opcodes.IFEQ
-					|| opcode == Opcodes.IFNE
-					|| opcode == Opcodes.IFLE	
-					|| opcode == Opcodes.IFLT
-					|| opcode == Opcodes.IFGE
-					|| opcode == Opcodes.IFGT) {
-				final ExpressionBase<?> exprValue = stack.pop();
-				final ExpressionInstrZeroConstant exprZero = new ExpressionInstrZeroConstant(new InsnNode(Opcodes.ICONST_0));
-				String operator;
-				switch (opcode) {
-				case Opcodes.IFEQ: operator = "=="; break;
-				case Opcodes.IFNE: operator = "!="; break;
-				case Opcodes.IFLE: operator = "<="; break;
-				case Opcodes.IFLT: operator = "<"; break;
-				case Opcodes.IFGE: operator = ">="; break;
-				case Opcodes.IFGT: operator = ">"; break;
-				default: throw new JvmException("Unexpected opcode " + opcode);
-				}
-				final ExpressionInfixBinary<?> exprCond = new ExpressionInfixBinary<>(instr, operator, exprValue, exprZero);
-				statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
-			}
-			else if (opcode == Opcodes.IF_ACMPEQ
-					|| opcode == Opcodes.IF_ACMPNE
-					|| opcode == Opcodes.IF_ICMPEQ
-					|| opcode == Opcodes.IF_ICMPNE
-					|| opcode == Opcodes.IF_ICMPLE
-					|| opcode == Opcodes.IF_ICMPLT
-					|| opcode == Opcodes.IF_ICMPGE
-					|| opcode == Opcodes.IF_ICMPGT) {
-				final ExpressionBase<?> expr2 = stack.pop();
-				final ExpressionBase<?> expr1 = stack.pop();
-				final String operator;
-				if (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ICMPEQ) {
-					operator = "==";
-				}
-				else if (opcode == Opcodes.IF_ACMPNE || opcode == Opcodes.IF_ICMPNE) {
-					operator = "!=";
-				}
-				else if (opcode == Opcodes.IF_ICMPLE) {
-					operator = "<=";
-				}
-				else if (opcode == Opcodes.IF_ICMPLT) {
-					operator = "<";
-				}
-				else if (opcode == Opcodes.IF_ICMPGE) {
-					operator = ">=";
-				}
-				else if (opcode == Opcodes.IF_ICMPGT) {
-					operator = ">";
-				}
-				else {
-					throw new JvmException("Unexpected opcode " + opcode);
-				}
-				final ExpressionInfixBinary<JumpInsnNode> exprCond = new ExpressionInfixBinary<>(ji, operator, expr1, expr2);
-				statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
-			}
-			else if (opcode == Opcodes.IFNULL
-					|| opcode == Opcodes.IFNONNULL) {
-				final ExpressionBase<?> expr = stack.pop();
-				final String operator = (opcode == Opcodes.IFNULL) ? "==" : "!=";
-				final ExpressionNull exprNull = new ExpressionNull();
-				final ExpressionInfixBinary<JumpInsnNode> exprCond = new ExpressionInfixBinary<>(ji, operator, expr, exprNull);
-				statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
-			}
-			else {
-				throw new JvmException(String.format("Unexpected jump-instruction (%s) in (%s)",
-						InstructionVisitor.displayInstruction(ji, methodNode), methodNode.name));
-			}
+			processInstructionJumpInsn(ji, methodNode, statements, stack, mapUsedLabels);
 		}
 		else if (type == AbstractInsnNode.METHOD_INSN) {
 			final MethodInsnNode mi = (MethodInsnNode) instr;
-			final Type[] args = Type.getArgumentTypes(mi.desc);
-			final Type returnType = Type.getReturnType(mi.desc);
-			final ExpressionBase<?>[] exprArgs = new ExpressionBase[args.length];
-			for (int j = args.length - 1; j >= 0; j--) {
-				if (stack.size() == 0 || stack.peek() == null) {
-					throw new JvmException(String.format("Stack underfow while reading constructor-args of %s", mi));
-				}
-				exprArgs[j] = stack.pop();
-			}
-			if (opcode == Opcodes.INVOKESPECIAL && "<init>".equals(mi.name)) {
-				ExpressionBase<?> exprObject = stack.pop();
-				if (exprObject instanceof ExpressionDuplicate) {
-					final ExpressionDuplicate<?> exprDuplicate = (ExpressionDuplicate<?>) exprObject;
-					final ExpressionBase<?> exprBeforeDuplicate = (stack.size() > 0) ? stack.peek() : null;
-					final StatementBase lastStmt = peekLastAddedStatement(statements);
-					if (lastStmt == exprDuplicate.getStatementExpressionDuplicated()
-							&& exprBeforeDuplicate == exprDuplicate) {
-						stack.pop();
-						final StatementExpressionDuplicated<?> stmtExprDuplicated = (StatementExpressionDuplicated<?>) popLastAddedStatement(statements);
-						if (stmtExprDuplicated.getInsn().getOpcode() != Opcodes.NEW) {
-							throw new JvmException(String.format("Unexpected stmt-dup-expression %s in %s before constructor %s. Expr-args: %s",
-									stmtExprDuplicated, methodNode.name, mi.name, Arrays.toString(exprArgs)));
-						}
-						// We have NEW DUP INVOKESPECIAL.
-						final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) stmtExprDuplicated.getExpression();
-						final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, exprNew, exprArgs);
-						stack.push(exprConstr);
-					}
-				}
-				else if (exprObject instanceof ExpressionVariableLoad) {
-					final StatementConstructor stmtConstr = new StatementConstructor(mi, classNode, exprObject, exprArgs);
-					statements.add(stmtConstr);
-				}
-				else {
-					throw new JvmException(String.format("Unexpected expression %s in %s before constructor %s. Expr-args: %s",
-							exprObject, methodNode.name, mi.name, Arrays.toString(exprArgs)));
-				}
-			}
-			else if (opcode == Opcodes.INVOKEVIRTUAL && Type.VOID_TYPE.equals(returnType)) {
-				final ExpressionBase<?> exprObject = stack.pop();
-				statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
-			}
-			else if (opcode == Opcodes.INVOKEVIRTUAL) {
-				final ExpressionBase<?> exprObject = stack.pop();
-				stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
-			}
-			else if (opcode == Opcodes.INVOKEINTERFACE && Type.VOID_TYPE.equals(returnType)) {
-				final ExpressionBase<?> exprObject = stack.pop();
-				statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
-			}
-			else if (opcode == Opcodes.INVOKEINTERFACE) {
-				final ExpressionBase<?> exprObject = stack.pop();
-				stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
-			}
-			else if (opcode == Opcodes.INVOKESTATIC && Type.VOID_TYPE.equals(returnType)) {
-				statements.add(new StatementInvoke(mi, classNode, null, exprArgs));
-			}
-			else if (opcode == Opcodes.INVOKESTATIC) {
-				stack.add(new ExpressionInvoke(mi, classNode, null, exprArgs));
-			}
-			else if (opcode == Opcodes.INVOKESPECIAL && Type.VOID_TYPE.equals(returnType)) {
-				final ExpressionBase<?> exprObject = stack.pop();
-				statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
-			}
-			else if (opcode == Opcodes.INVOKESPECIAL) {
-				final ExpressionBase<?> exprObject = stack.pop();
-				stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
-			}
-			else {
-				throw new JvmException(String.format("Unexpected method-instruction (%s) in (%s)",
-						InstructionVisitor.displayInstruction(mi, methodNode), methodNode.name));
-			}
+			processInstructionMethodInsn(mi, classNode, methodNode, statements, stack);
 		}
 		else if (type == AbstractInsnNode.IINC_INSN) {
 			final IincInsnNode ii = (IincInsnNode) instr;
@@ -777,6 +418,385 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else {
 			throw new JvmException(String.format("Unexpected instruction %s in %s",
 					InstructionVisitor.displayInstruction(instr, methodNode), methodNode));
+		}
+	}
+
+	private static void processInstructionInsn(final InsnNode iz, final MethodNode methodNode,
+			final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter) {
+		final int opcode = iz.getOpcode();
+		if (opcode == Opcodes.ACONST_NULL
+				|| opcode == Opcodes.ICONST_M1
+				|| opcode == Opcodes.ICONST_0
+				|| opcode == Opcodes.ICONST_1
+				|| opcode == Opcodes.ICONST_2
+				|| opcode == Opcodes.ICONST_3
+				|| opcode == Opcodes.ICONST_4
+				|| opcode == Opcodes.ICONST_5
+				|| opcode == Opcodes.LCONST_0
+				|| opcode == Opcodes.LCONST_1
+				|| opcode == Opcodes.FCONST_0
+				|| opcode == Opcodes.FCONST_1
+				|| opcode == Opcodes.DCONST_0
+				|| opcode == Opcodes.DCONST_1) {
+			final ExpressionInstrZeroConstant exprConst = new ExpressionInstrZeroConstant(iz);
+			stack.push(exprConst);
+		}
+		else if (opcode == Opcodes.AALOAD
+				|| opcode == Opcodes.BALOAD
+				|| opcode == Opcodes.CALOAD
+				|| opcode == Opcodes.SALOAD
+				|| opcode == Opcodes.IALOAD
+				|| opcode == Opcodes.LALOAD
+				|| opcode == Opcodes.FALOAD
+				|| opcode == Opcodes.DALOAD) {
+			final ExpressionBase<?> exprIndex = stack.pop();
+			final ExpressionBase<?> exprArray = stack.pop();
+			final ExpressionArrayLoad exprAaload = new ExpressionArrayLoad(iz, exprArray, exprIndex);
+			stack.push(exprAaload);
+		}
+		else if (opcode == Opcodes.ARRAYLENGTH) {
+			final ExpressionBase<?> exprArray = stack.pop();
+			stack.push(new ExpressionSuffix<>(iz, exprArray));
+		}
+		else if (opcode == Opcodes.AASTORE) {
+			final ExpressionBase<?> exprValue = stack.pop();
+			final ExpressionBase<?> exprIndex = stack.pop();
+			final ExpressionBase<?> exprArray = stack.pop();
+			statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
+		}
+		else if (opcode == Opcodes.BASTORE
+				|| opcode == Opcodes.CASTORE
+				|| opcode == Opcodes.SASTORE
+				|| opcode == Opcodes.IASTORE
+				|| opcode == Opcodes.LASTORE
+				|| opcode == Opcodes.FASTORE
+				|| opcode == Opcodes.DASTORE) {
+			final ExpressionBase<?> exprValue = stack.pop();
+			final ExpressionBase<?> exprIndex = stack.pop();
+			final ExpressionBase<?> exprArray = stack.pop();
+			statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
+		}
+		else if (opcode == Opcodes.DUP) {
+			final ExpressionBase<?> expr = stack.pop();
+			if (expr instanceof ExpressionDuplicate) {
+				// There is a StatementExpressionDuplicated already.  
+				stack.push(expr);
+				stack.push(expr);
+			}
+			else {
+				final String dummyName = createTempName(dupCounter);
+				final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
+				final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
+				statements.add(stmtExprDuplicated);
+				stack.push(exprDuplicate);
+				stack.push(exprDuplicate);
+			}
+		}
+		else if (opcode == Opcodes.POP) {
+			if (stack.size() == 0) {
+				// TODO TABLESWITCH (POP after IF...) ...
+				statements.add(new StatementComment("empty stack at pop"));
+			}
+			else {
+				final ExpressionBase<?> expr = stack.pop();
+				statements.add(new StatementExpression<>(expr));
+			}
+		}
+		else if (opcode == Opcodes.RETURN) {
+			final StatementReturn stmt = new StatementReturn(iz);
+			statements.add(stmt);
+		}
+		else if (opcode == Opcodes.ARETURN
+				|| opcode == Opcodes.IRETURN
+				|| opcode == Opcodes.LRETURN
+				|| opcode == Opcodes.FRETURN
+				|| opcode == Opcodes.DRETURN) {
+			final ExpressionBase<?> exprObj = stack.pop();
+			final StatementReturn stmt = new StatementReturn(iz, exprObj);
+			statements.add(stmt);
+		}
+		else if (opcode == Opcodes.I2B
+				|| opcode == Opcodes.I2C
+				|| opcode == Opcodes.I2S
+				|| opcode == Opcodes.I2L
+				|| opcode == Opcodes.I2F
+				|| opcode == Opcodes.I2D
+				|| opcode == Opcodes.L2I
+				|| opcode == Opcodes.L2F
+				|| opcode == Opcodes.L2D
+				|| opcode == Opcodes.F2I
+				|| opcode == Opcodes.F2L
+				|| opcode == Opcodes.F2D
+				|| opcode == Opcodes.D2I
+				|| opcode == Opcodes.D2L
+				|| opcode == Opcodes.D2F) {
+			final ExpressionBase<?> exprObj = stack.pop();
+			final Type primitiveType;
+			switch (opcode) {
+			case Opcodes.I2B: primitiveType = Type.BYTE_TYPE; break;
+			case Opcodes.I2C: primitiveType = Type.CHAR_TYPE; break;
+			case Opcodes.I2S: primitiveType = Type.SHORT_TYPE; break;
+			case Opcodes.I2L: primitiveType = Type.LONG_TYPE; break;
+			case Opcodes.I2F: primitiveType = Type.FLOAT_TYPE; break;
+			case Opcodes.I2D: primitiveType = Type.DOUBLE_TYPE; break;
+			case Opcodes.L2I: primitiveType = Type.INT_TYPE; break;
+			case Opcodes.L2F: primitiveType = Type.FLOAT_TYPE; break;
+			case Opcodes.L2D: primitiveType = Type.DOUBLE_TYPE; break;
+			case Opcodes.F2I: primitiveType = Type.INT_TYPE; break;
+			case Opcodes.F2L: primitiveType = Type.LONG_TYPE; break;
+			case Opcodes.F2D: primitiveType = Type.DOUBLE_TYPE; break;
+			case Opcodes.D2I: primitiveType = Type.INT_TYPE; break;
+			case Opcodes.D2F: primitiveType = Type.FLOAT_TYPE; break;
+			case Opcodes.D2L: primitiveType = Type.DOUBLE_TYPE; break;
+			default: throw new JvmException("Unexpected opcode " + opcode);
+			}
+			stack.add(new ExpressionCastPrimitive(iz, primitiveType, exprObj));
+		}
+		else if (opcode == Opcodes.IADD
+				 || opcode == Opcodes.LADD
+				 || opcode == Opcodes.FADD
+				 || opcode == Opcodes.DADD
+				 || opcode == Opcodes.ISUB
+				 || opcode == Opcodes.LSUB
+				 || opcode == Opcodes.FSUB
+				 || opcode == Opcodes.DSUB
+				 || opcode == Opcodes.IMUL
+				 || opcode == Opcodes.LMUL
+				 || opcode == Opcodes.FMUL
+				 || opcode == Opcodes.DMUL
+				 || opcode == Opcodes.IDIV
+				 || opcode == Opcodes.LDIV
+				 || opcode == Opcodes.FDIV
+				 || opcode == Opcodes.DDIV
+				 || opcode == Opcodes.IREM
+				 || opcode == Opcodes.LREM
+				 || opcode == Opcodes.FREM
+				 || opcode == Opcodes.DREM
+				 || opcode == Opcodes.IAND
+				 || opcode == Opcodes.LAND
+				 || opcode == Opcodes.IOR
+				 || opcode == Opcodes.LOR
+				 || opcode == Opcodes.IXOR
+				 || opcode == Opcodes.LXOR
+				 || opcode == Opcodes.ISHL
+				 || opcode == Opcodes.ISHR
+				 || opcode == Opcodes.IUSHR
+				 || opcode == Opcodes.LSHL
+				 || opcode == Opcodes.LSHR
+				 || opcode == Opcodes.LUSHR) {
+			final ExpressionBase<?> arg2 = stack.pop();
+			final ExpressionBase<?> arg1 = stack.pop();
+			final String operator;
+			switch (opcode) {
+			case Opcodes.IADD: operator = "+"; break;
+			case Opcodes.LADD: operator = "+"; break;
+			case Opcodes.FADD: operator = "+"; break;
+			case Opcodes.DADD: operator = "+"; break;
+			case Opcodes.ISUB: operator = "-"; break;
+			case Opcodes.LSUB: operator = "-"; break;
+			case Opcodes.FSUB: operator = "-"; break;
+			case Opcodes.DSUB: operator = "-"; break;
+			case Opcodes.IMUL: operator = "*"; break;
+			case Opcodes.LMUL: operator = "*"; break;
+			case Opcodes.FMUL: operator = "*"; break;
+			case Opcodes.DMUL: operator = "*"; break;
+			case Opcodes.IDIV: operator = "/"; break;
+			case Opcodes.LDIV: operator = "/"; break;
+			case Opcodes.FDIV: operator = "/"; break;
+			case Opcodes.DDIV: operator = "/"; break;
+			case Opcodes.IREM: operator = "%"; break;
+			case Opcodes.LREM: operator = "%"; break;
+			case Opcodes.FREM: operator = "%"; break;
+			case Opcodes.DREM: operator = "%"; break;
+			case Opcodes.IAND: operator = "&"; break;
+			case Opcodes.LAND: operator = "&"; break;
+			case Opcodes.IOR: operator = "|"; break;
+			case Opcodes.LOR: operator = "|"; break;
+			case Opcodes.IXOR: operator = "^"; break;
+			case Opcodes.LXOR: operator = "^"; break;
+			case Opcodes.ISHL: operator = "<<"; break;
+			case Opcodes.LSHL: operator = "<<"; break;
+			case Opcodes.ISHR: operator = ">>"; break;
+			case Opcodes.LSHR: operator = ">>"; break;
+			case Opcodes.IUSHR: operator = ">>>"; break;
+			case Opcodes.LUSHR: operator = ">>>"; break;
+			default: throw new JvmException("Unexpected opcode " + opcode);
+			}
+			stack.push(new ExpressionInfixBinary<>(iz, operator, arg1, arg2));
+		}
+		else if (opcode == Opcodes.LCMP
+				|| opcode == Opcodes.FCMPL
+				|| opcode == Opcodes.FCMPG
+				|| opcode == Opcodes.DCMPL
+				|| opcode == Opcodes.DCMPG) {
+			final ExpressionBase<?> arg2 = stack.pop();
+			final ExpressionBase<?> arg1 = stack.pop();
+			stack.add(new ExpressionCompare(iz, arg1, arg2));
+		}
+		else if (opcode == Opcodes.ATHROW) {
+			final ExpressionBase<?> exprException = stack.pop();
+			statements.add(new StatementThrow(iz, exprException));
+		}
+		else {
+			throw new JvmException(String.format("Unexpected zero-arg instruction (%s) in %s",
+					InstructionVisitor.displayInstruction(iz, methodNode), methodNode.name));
+		}
+	}
+
+	private static void processInstructionJumpInsn(final JumpInsnNode ji, final MethodNode methodNode,
+			final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack,
+			final Map<Label, String> mapUsedLabels) {
+		final int opcode = ji.getOpcode();
+		final Label labelDest = ji.label.getLabel();
+		final String labelName = computeLabelName(labelDest, mapUsedLabels);
+		// TODO if x goto L1, value-1, goto L2,+ L1: value-2, L2.
+		if (opcode == Opcodes.GOTO) {
+			statements.add(new StatementGoto(ji, labelDest, labelName));
+		}
+		else if (opcode == Opcodes.IFEQ
+				|| opcode == Opcodes.IFNE
+				|| opcode == Opcodes.IFLE	
+				|| opcode == Opcodes.IFLT
+				|| opcode == Opcodes.IFGE
+				|| opcode == Opcodes.IFGT) {
+			final ExpressionBase<?> exprValue = stack.pop();
+			final ExpressionInstrZeroConstant exprZero = new ExpressionInstrZeroConstant(new InsnNode(Opcodes.ICONST_0));
+			String operator;
+			switch (opcode) {
+			case Opcodes.IFEQ: operator = "=="; break;
+			case Opcodes.IFNE: operator = "!="; break;
+			case Opcodes.IFLE: operator = "<="; break;
+			case Opcodes.IFLT: operator = "<"; break;
+			case Opcodes.IFGE: operator = ">="; break;
+			case Opcodes.IFGT: operator = ">"; break;
+			default: throw new JvmException("Unexpected opcode " + opcode);
+			}
+			final ExpressionInfixBinary<?> exprCond = new ExpressionInfixBinary<>(ji, operator, exprValue, exprZero);
+			statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
+		}
+		else if (opcode == Opcodes.IF_ACMPEQ
+				|| opcode == Opcodes.IF_ACMPNE
+				|| opcode == Opcodes.IF_ICMPEQ
+				|| opcode == Opcodes.IF_ICMPNE
+				|| opcode == Opcodes.IF_ICMPLE
+				|| opcode == Opcodes.IF_ICMPLT
+				|| opcode == Opcodes.IF_ICMPGE
+				|| opcode == Opcodes.IF_ICMPGT) {
+			final ExpressionBase<?> expr2 = stack.pop();
+			final ExpressionBase<?> expr1 = stack.pop();
+			final String operator;
+			if (opcode == Opcodes.IF_ACMPEQ || opcode == Opcodes.IF_ICMPEQ) {
+				operator = "==";
+			}
+			else if (opcode == Opcodes.IF_ACMPNE || opcode == Opcodes.IF_ICMPNE) {
+				operator = "!=";
+			}
+			else if (opcode == Opcodes.IF_ICMPLE) {
+				operator = "<=";
+			}
+			else if (opcode == Opcodes.IF_ICMPLT) {
+				operator = "<";
+			}
+			else if (opcode == Opcodes.IF_ICMPGE) {
+				operator = ">=";
+			}
+			else if (opcode == Opcodes.IF_ICMPGT) {
+				operator = ">";
+			}
+			else {
+				throw new JvmException("Unexpected opcode " + opcode);
+			}
+			final ExpressionInfixBinary<JumpInsnNode> exprCond = new ExpressionInfixBinary<>(ji, operator, expr1, expr2);
+			statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
+		}
+		else if (opcode == Opcodes.IFNULL
+				|| opcode == Opcodes.IFNONNULL) {
+			final ExpressionBase<?> expr = stack.pop();
+			final String operator = (opcode == Opcodes.IFNULL) ? "==" : "!=";
+			final ExpressionNull exprNull = new ExpressionNull();
+			final ExpressionInfixBinary<JumpInsnNode> exprCond = new ExpressionInfixBinary<>(ji, operator, expr, exprNull);
+			statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
+		}
+		else {
+			throw new JvmException(String.format("Unexpected jump-instruction (%s) in (%s)",
+					InstructionVisitor.displayInstruction(ji, methodNode), methodNode.name));
+		}
+	}
+
+	private static void processInstructionMethodInsn(final MethodInsnNode mi, final ClassNode classNode,
+			final MethodNode methodNode, final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack) {
+		final int opcode = mi.getOpcode();
+		final Type[] args = Type.getArgumentTypes(mi.desc);
+		final Type returnType = Type.getReturnType(mi.desc);
+		final ExpressionBase<?>[] exprArgs = new ExpressionBase[args.length];
+		for (int j = args.length - 1; j >= 0; j--) {
+			if (stack.size() == 0 || stack.peek() == null) {
+				throw new JvmException(String.format("Stack underfow while reading constructor-args of %s", mi));
+			}
+			exprArgs[j] = stack.pop();
+		}
+		if (opcode == Opcodes.INVOKESPECIAL && "<init>".equals(mi.name)) {
+			ExpressionBase<?> exprObject = stack.pop();
+			if (exprObject instanceof ExpressionDuplicate) {
+				final ExpressionDuplicate<?> exprDuplicate = (ExpressionDuplicate<?>) exprObject;
+				final ExpressionBase<?> exprBeforeDuplicate = (stack.size() > 0) ? stack.peek() : null;
+				final StatementBase lastStmt = peekLastAddedStatement(statements);
+				if (lastStmt == exprDuplicate.getStatementExpressionDuplicated()
+						&& exprBeforeDuplicate == exprDuplicate) {
+					stack.pop();
+					final StatementExpressionDuplicated<?> stmtExprDuplicated = (StatementExpressionDuplicated<?>) popLastAddedStatement(statements);
+					if (stmtExprDuplicated.getInsn().getOpcode() != Opcodes.NEW) {
+						throw new JvmException(String.format("Unexpected stmt-dup-expression %s in %s before constructor %s. Expr-args: %s",
+								stmtExprDuplicated, methodNode.name, mi.name, Arrays.toString(exprArgs)));
+					}
+					// We have NEW DUP INVOKESPECIAL.
+					final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) stmtExprDuplicated.getExpression();
+					final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, exprNew, exprArgs);
+					stack.push(exprConstr);
+				}
+			}
+			else if (exprObject instanceof ExpressionVariableLoad) {
+				final StatementConstructor stmtConstr = new StatementConstructor(mi, classNode, exprObject, exprArgs);
+				statements.add(stmtConstr);
+			}
+			else {
+				throw new JvmException(String.format("Unexpected expression %s in %s before constructor %s. Expr-args: %s",
+						exprObject, methodNode.name, mi.name, Arrays.toString(exprArgs)));
+			}
+		}
+		else if (opcode == Opcodes.INVOKEVIRTUAL && Type.VOID_TYPE.equals(returnType)) {
+			final ExpressionBase<?> exprObject = stack.pop();
+			statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+		}
+		else if (opcode == Opcodes.INVOKEVIRTUAL) {
+			final ExpressionBase<?> exprObject = stack.pop();
+			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+		}
+		else if (opcode == Opcodes.INVOKEINTERFACE && Type.VOID_TYPE.equals(returnType)) {
+			final ExpressionBase<?> exprObject = stack.pop();
+			statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+		}
+		else if (opcode == Opcodes.INVOKEINTERFACE) {
+			final ExpressionBase<?> exprObject = stack.pop();
+			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+		}
+		else if (opcode == Opcodes.INVOKESTATIC && Type.VOID_TYPE.equals(returnType)) {
+			statements.add(new StatementInvoke(mi, classNode, null, exprArgs));
+		}
+		else if (opcode == Opcodes.INVOKESTATIC) {
+			stack.add(new ExpressionInvoke(mi, classNode, null, exprArgs));
+		}
+		else if (opcode == Opcodes.INVOKESPECIAL && Type.VOID_TYPE.equals(returnType)) {
+			final ExpressionBase<?> exprObject = stack.pop();
+			statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+		}
+		else if (opcode == Opcodes.INVOKESPECIAL) {
+			final ExpressionBase<?> exprObject = stack.pop();
+			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+		}
+		else {
+			throw new JvmException(String.format("Unexpected method-instruction (%s) in (%s)",
+					InstructionVisitor.displayInstruction(mi, methodNode), methodNode.name));
 		}
 	}
 
