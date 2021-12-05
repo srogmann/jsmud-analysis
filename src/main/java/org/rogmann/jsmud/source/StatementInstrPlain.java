@@ -28,6 +28,7 @@ public class StatementInstrPlain<A extends AbstractInsnNode> extends StatementIn
 	@Override
 	public void render(StringBuilder sb) {
 		sb.append(InstructionVisitor.displayInstruction(insn, methodNode));
+		sb.append(';');
 	}
 
 }
