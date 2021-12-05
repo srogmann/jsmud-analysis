@@ -2,7 +2,7 @@ package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.rogmann.jsmud.visitors.InstructionVisitor;
+import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * One instruction.
@@ -35,7 +35,9 @@ public abstract class StatementInstr<A extends AbstractInsnNode> extends Stateme
 	 * @param methodNode optional method-node (used to display local-variables in variable instructions)
 	 */
 	protected void render(StringBuilder sb, MethodNode methodNode) {
-		sb.append(InstructionVisitor.displayInstruction(insn, methodNode));
+		// You may use StatementInstrPlain to display raw bytecodes.
+		throw new JvmException(String.format("Missing render-implementation for opcode %d",
+				Integer.valueOf(insn.getOpcode())));
 	}
 
 	/**

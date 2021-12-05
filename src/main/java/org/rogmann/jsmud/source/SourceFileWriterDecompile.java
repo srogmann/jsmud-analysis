@@ -49,6 +49,8 @@ import org.rogmann.jsmud.vm.JvmException;
  */
 public class SourceFileWriterDecompile extends SourceFileWriter {
 
+	/** <code>true</code> to display bytecode-instructions only (fallback-mode) */
+	private boolean isDisplayInstructionsOnly = false;
 
 	/**
 	 * Constructor, writes the source-file.
@@ -105,7 +107,20 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	@Override
 	protected void writeMethodBody(final SourceLines block, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
 		final Map<Integer, Integer> mapPcLine = new HashMap<>();
-		final List<StatementBase> statements = parseMethodBody(classNode, methodNode, mapPcLine);
+		List<StatementBase> statements;
+		try {
+			statements = parseMethodBody(classNode, methodNode, mapPcLine);
+		} catch (RuntimeException e) {
+			if (isDisplayInstructionsOnly) {
+				throw new JvmException(String.format("Couldn't parse method %s%s of %s in instructions-only-mode",
+						methodNode.name, methodNode.desc, classNode.name), e);
+			}
+			System.err.println(String.format("Couldn't display method %s%s. Switching to instructions-only-mode.",
+					methodNode.name, methodNode.desc, classNode.name));
+			e.printStackTrace();
+			isDisplayInstructionsOnly = true;
+			statements = parseMethodBody(classNode, methodNode, mapPcLine);
+		}
 		for (StatementBase stmt : statements) {
 			int lineExpected = 0;
 			if (stmt instanceof StatementInstr<?>) {
@@ -148,12 +163,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final AtomicInteger dupCounter = new AtomicInteger();
 		LabelNode currentLabel = null;
 
-		System.out.println(String.format("Class %s, Method %s%s", classNode.name,
-				methodNode.name, methodNode.desc));
+		//System.out.println(String.format("Class %s, Method %s%s", classNode.name, methodNode.name, methodNode.desc));
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
-			System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
+			//System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
 			final int type = instr.getType();
 			if (type == AbstractInsnNode.LINE) {
 				final LineNumberNode lnn = (LineNumberNode) instr;
@@ -211,7 +225,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param dupCounter counter of dup-statements (dummy dup-variables)
 	 * @param mapUsedLabels map of used labels
 	 */
-	@SuppressWarnings("static-method")
 	public void processInstruction(final ClassNode classNode, final MethodNode methodNode,
 			final AbstractInsnNode instr, final List<StatementBase> statements,
 			final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter, final Map<Label, String> mapUsedLabels) {
@@ -221,6 +234,9 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			final LabelNode ln = (LabelNode) instr;
 			final StatementLabel stmtLabel = new StatementLabel(ln, mapUsedLabels);
 			statements.add(stmtLabel);
+		}
+		else if (isDisplayInstructionsOnly && opcode >= 0) {
+			statements.add(new StatementInstrPlain<>(instr, methodNode));
 		}
 		else if (type == AbstractInsnNode.INSN) {
 			final InsnNode iz = (InsnNode) instr;
