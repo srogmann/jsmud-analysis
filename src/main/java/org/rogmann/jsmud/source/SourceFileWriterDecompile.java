@@ -35,6 +35,7 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.LookupSwitchInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import org.objectweb.asm.tree.TableSwitchInsnNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -704,30 +705,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			final IincInsnNode ii = (IincInsnNode) instr;
 			statements.add(new StatementVariableIinc(ii, methodNode));
 		}
-		else if (type == AbstractInsnNode.LOOKUPSWITCH_INSN) {
-			final LookupSwitchInsnNode lsi = (LookupSwitchInsnNode) instr;
-			final ExpressionBase<?> exprKey = stack.pop();
-			final int numCases = lsi.keys.size();
-			final String nameDefault = computeLabelName(lsi.dflt.getLabel(), mapUsedLabels);
-			final String[] aLabelName = new String[numCases];
-			for (int i = 0; i < numCases; i++) {
-				aLabelName[i] = computeLabelName(lsi.labels.get(i).getLabel(), mapUsedLabels);
-			}
-			statements.add(new StatementLookupSwitch(lsi, exprKey, nameDefault, aLabelName));
-		}
-		else if (type == AbstractInsnNode.TABLESWITCH_INSN) {
-			final TableSwitchInsnNode tsi = (TableSwitchInsnNode) instr;
-			final ExpressionBase<?> exprIndex = stack.pop();
-			final int lMin = tsi.min;
-			final int lMax = tsi.max;
-			final int num = lMax - lMin + 1;
-			final String nameDefault = computeLabelName(tsi.dflt.getLabel(), mapUsedLabels);
-			final String[] aLabelName = new String[num];
-			for (int i = 0; i < num; i++) {
-				aLabelName[i] = computeLabelName(tsi.labels.get(i).getLabel(), mapUsedLabels);
-			}
-			statements.add(new StatementTableSwitch(tsi, exprIndex, nameDefault, aLabelName));
-		}
 		else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
 			final InvokeDynamicInsnNode idi = (InvokeDynamicInsnNode) instr;
 			final Type[] args = Type.getArgumentTypes(idi.desc);
@@ -745,6 +722,38 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				tempVars[i] = createTempName(dupCounter);
 			}
 			stack.push(new ExpressionInvokeDynamic(idi, classNode, exprArgs, tempVars));
+		}
+		else if (type == AbstractInsnNode.LOOKUPSWITCH_INSN) {
+			final LookupSwitchInsnNode lsi = (LookupSwitchInsnNode) instr;
+			final ExpressionBase<?> exprKey = stack.pop();
+			final int numCases = lsi.keys.size();
+			final String nameDefault = computeLabelName(lsi.dflt.getLabel(), mapUsedLabels);
+			final String[] aLabelName = new String[numCases];
+			for (int i = 0; i < numCases; i++) {
+				aLabelName[i] = computeLabelName(lsi.labels.get(i).getLabel(), mapUsedLabels);
+			}
+			statements.add(new StatementLookupSwitch(lsi, exprKey, nameDefault, aLabelName));
+		}
+		else if (type == AbstractInsnNode.MULTIANEWARRAY_INSN) {
+			final MultiANewArrayInsnNode manai = (MultiANewArrayInsnNode) instr;
+			final ExpressionBase<?>[] aExprDims = new ExpressionBase<?>[manai.dims];
+			for (int i = aExprDims.length - 1; i >= 0; i--) {
+				aExprDims[i] = stack.pop();
+			}
+			stack.push(new ExpressionMultiNewarray(manai, aExprDims));
+		}
+		else if (type == AbstractInsnNode.TABLESWITCH_INSN) {
+			final TableSwitchInsnNode tsi = (TableSwitchInsnNode) instr;
+			final ExpressionBase<?> exprIndex = stack.pop();
+			final int lMin = tsi.min;
+			final int lMax = tsi.max;
+			final int num = lMax - lMin + 1;
+			final String nameDefault = computeLabelName(tsi.dflt.getLabel(), mapUsedLabels);
+			final String[] aLabelName = new String[num];
+			for (int i = 0; i < num; i++) {
+				aLabelName[i] = computeLabelName(tsi.labels.get(i).getLabel(), mapUsedLabels);
+			}
+			statements.add(new StatementTableSwitch(tsi, exprIndex, nameDefault, aLabelName));
 		}
 		else {
 			throw new JvmException(String.format("Unexpected instruction %s in %s",
