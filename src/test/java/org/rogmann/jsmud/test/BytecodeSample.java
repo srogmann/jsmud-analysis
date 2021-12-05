@@ -55,6 +55,10 @@ public class BytecodeSample {
 		System.out.println("sum of lengths: " + sum);
 	}
 
+	public static String comparisons(float a, float b) {
+		return (a < b) ? "a < b" : "!(a < b)";
+	}
+
 	public static int exceptions(final String sInt) {
 		int iNum;
 		try {

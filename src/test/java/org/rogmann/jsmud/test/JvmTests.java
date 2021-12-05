@@ -239,7 +239,7 @@ public class JvmTests {
 	public void testsLong() {
 		final long l = Long.parseLong("16777216");
 		final long m = 10L;
-		final long n = 13L;
+		final long n = Long.parseLong("13");
 		assertEquals("l << 16", Long.valueOf(1099511627776L), Long.valueOf(l << 16));
 		final Long lSHR4Expected = Long.valueOf(1048576L);
 		assertEquals("l >> 4", lSHR4Expected, Long.valueOf(l >> 4));
@@ -253,7 +253,7 @@ public class JvmTests {
 	}
 	
 	/**
-	 * 
+	 * Arithmetic computation processing four long-values.
 	 * @param a first long
 	 * @param b second long
 	 * @param c third long
@@ -271,6 +271,8 @@ public class JvmTests {
 		assertEquals("a % b", Float.valueOf(7.5f), Float.valueOf(a % b));
 		assertTrue("a > b", a > b);
 		assertTrue("b < a", b < a);
+		
+		assertTrue("!(5 < NaN)", !(Float.parseFloat("5.0") < Float.NaN));
 	}
 
 	@JsmudTest

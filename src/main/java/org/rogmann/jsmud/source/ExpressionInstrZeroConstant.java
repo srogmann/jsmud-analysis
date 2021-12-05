@@ -30,6 +30,12 @@ public class ExpressionInstrZeroConstant extends ExpressionBase<InsnNode>{
 		case Opcodes.ICONST_3: sb.append(3); break;
 		case Opcodes.ICONST_4: sb.append(4); break;
 		case Opcodes.ICONST_5: sb.append(5); break;
+		case Opcodes.LCONST_0: sb.append("0L"); break;
+		case Opcodes.LCONST_1: sb.append("1L"); break;
+		case Opcodes.FCONST_0: sb.append("0f"); break;
+		case Opcodes.FCONST_1: sb.append("1f"); break;
+		case Opcodes.DCONST_0: sb.append("0d"); break;
+		case Opcodes.DCONST_1: sb.append("1d"); break;
 		default:
 			throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
 		}

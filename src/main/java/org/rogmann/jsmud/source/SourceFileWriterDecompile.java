@@ -395,7 +395,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					 || opcode == Opcodes.LOR
 					 || opcode == Opcodes.IXOR
 					 || opcode == Opcodes.LXOR
-					 || opcode == Opcodes.ISHL) {
+					 || opcode == Opcodes.ISHL
+					 || opcode == Opcodes.ISHR
+					 || opcode == Opcodes.IUSHR
+					 || opcode == Opcodes.LSHL
+					 || opcode == Opcodes.LSHR
+					 || opcode == Opcodes.LUSHR) {
 				final ExpressionBase<?> arg2 = stack.pop();
 				final ExpressionBase<?> arg1 = stack.pop();
 				final String operator;
@@ -427,9 +432,23 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				case Opcodes.IXOR: operator = "^"; break;
 				case Opcodes.LXOR: operator = "^"; break;
 				case Opcodes.ISHL: operator = "<<"; break;
+				case Opcodes.LSHL: operator = "<<"; break;
+				case Opcodes.ISHR: operator = ">>"; break;
+				case Opcodes.LSHR: operator = ">>"; break;
+				case Opcodes.IUSHR: operator = ">>>"; break;
+				case Opcodes.LUSHR: operator = ">>>"; break;
 				default: throw new JvmException("Unexpected opcode " + opcode);
 				}
 				stack.push(new ExpressionInfixBinary<>(iz, operator, arg1, arg2));
+			}
+			else if (opcode == Opcodes.LCMP
+					|| opcode == Opcodes.FCMPL
+					|| opcode == Opcodes.FCMPG
+					|| opcode == Opcodes.DCMPL
+					|| opcode == Opcodes.DCMPG) {
+				final ExpressionBase<?> arg2 = stack.pop();
+				final ExpressionBase<?> arg1 = stack.pop();
+				stack.add(new ExpressionCompare(iz, arg1, arg2));
 			}
 			else if (opcode == Opcodes.ATHROW) {
 				final ExpressionBase<?> exprException = stack.pop();
