@@ -26,12 +26,27 @@ public class StatementGoto extends StatementInstr<JumpInsnNode> {
 		this.labelName = labelName;
 	}
 
+	/**
+	 * Gets the name of the destination-label.
+	 * @return label-name
+	 */
+	public String getLabelName() {
+		return labelName;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
 		sb.append("goto").append(' ');
 		sb.append(labelName);
 		sb.append(';');
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(goto %s);",
+				getClass().getSimpleName(), labelName);
 	}
 
 }

@@ -23,6 +23,16 @@ public class StatementLabel extends StatementInstr<LabelNode> {
 		this.mapUsedLabels = mapUsedLabels;
 	}
 
+	/**
+	 * Gets the name of this label.
+	 * @return label-name, may be <code>null</code> if this label is unused
+	 */
+	public String getLabelName() {
+		final Label label = insn.getLabel();
+		final String labelName = mapUsedLabels.get(label);
+		return labelName;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public boolean isVisible() {
@@ -32,11 +42,21 @@ public class StatementLabel extends StatementInstr<LabelNode> {
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
-		final Label label = insn.getLabel();
-		final String labelName = mapUsedLabels.get(label);
+		final String labelName = getLabelName();
 		if (labelName != null) {
 			sb.append(labelName).append(':');
 		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		String labelName = mapUsedLabels.get(insn.getLabel());
+		if (labelName == null) {
+			labelName = insn.getLabel().toString();
+		}
+		return String.format("%s(%s:);",
+				getClass().getSimpleName(), labelName);
 	}
 
 }

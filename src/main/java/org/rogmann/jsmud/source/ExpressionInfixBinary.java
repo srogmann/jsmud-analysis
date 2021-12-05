@@ -66,4 +66,11 @@ public class ExpressionInfixBinary<A extends AbstractInsnNode> extends Expressio
 				|| expr instanceof ExpressionVariableLoad);
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s %s %s);",
+				getClass().getSimpleName(), expArg1, operator, expArg2);
+	}
+
 }

@@ -46,4 +46,10 @@ public class ExpressionInstrConstant extends ExpressionBase<LdcInsnNode> {
 		}
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s)", getClass().getSimpleName(), insn.cst);
+	}
+
 }

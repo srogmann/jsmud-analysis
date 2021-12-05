@@ -233,6 +233,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final int type = instr.getType();
 		if (type == AbstractInsnNode.LABEL) {
 			final LabelNode ln = (LabelNode) instr;
+			checkAndProcessConditionalOperator(ln, statements, stack, mapUsedLabels);
 			final StatementLabel stmtLabel = new StatementLabel(ln, mapUsedLabels);
 			statements.add(stmtLabel);
 		}
@@ -649,7 +650,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final int opcode = ji.getOpcode();
 		final Label labelDest = ji.label.getLabel();
 		final String labelName = computeLabelName(labelDest, mapUsedLabels);
-		// TODO if x goto L1, value-1, goto L2,+ L1: value-2, L2.
+		// Caveat: if x goto L1, value-1, goto L2,+ L1: value-2, L2 -> checkAndProcessConditionalOperator.
 		if (opcode == Opcodes.GOTO) {
 			statements.add(new StatementGoto(ji, labelDest, labelName));
 		}
@@ -797,6 +798,39 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else {
 			throw new JvmException(String.format("Unexpected method-instruction (%s) in (%s)",
 					InstructionVisitor.displayInstruction(mi, methodNode), methodNode.name));
+		}
+	}
+
+	/**
+	 * Checks for an conditional operator: IF cond GOTO L1, expr2, goto L2, L1: expr1, L2:.
+	 * @param ln current label-node
+	 * @param statements list of statements
+	 * @param stack stack of expressions
+	 * @param mapUsedLabels map from label to label-name
+	 */
+	private static void checkAndProcessConditionalOperator(final LabelNode ln, final List<StatementBase> statements,
+			final Stack<ExpressionBase<?>> stack, final Map<Label, String> mapUsedLabels) {
+		final String labelName = mapUsedLabels.get(ln.getLabel());
+		final StatementBase stmtLast3 = peekLastAddedStatement(statements, 3, false);
+		final StatementBase stmtLast2 = peekLastAddedStatement(statements, 2, false);
+		final StatementBase stmtLast1 = peekLastAddedStatement(statements, 1, false);
+		if (stmtLast1 instanceof StatementLabel
+				&& stmtLast2 instanceof StatementGoto
+				&& stmtLast3 instanceof StatementIf) {
+			final StatementIf stmtIf = (StatementIf) stmtLast3;
+			final StatementGoto stmtGoto = (StatementGoto) stmtLast2;
+			final StatementLabel stmtLabel = (StatementLabel) stmtLast1;
+			if (stmtIf.getLabelName().equals(stmtLabel.getLabelName())
+					&& stmtGoto.getLabelName().equals(labelName)
+					&& stack.size() >= 2) {
+				statements.remove(statements.size() - 1);
+				statements.remove(statements.size() - 1);
+				statements.remove(statements.size() - 1);
+				ExpressionBase<?> expr1 = stack.pop();
+				ExpressionBase<?> expr2 = stack.pop();
+				stack.push(new ExpressionConditionalOperator<>(stmtIf.getInsn(),
+						stmtIf.getExprCond(), expr1, expr2));
+			}
 		}
 	}
 
@@ -968,6 +1002,35 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		while (index >= 0) {
 			lastStmt = statements.get(index);
 			if (!(lastStmt instanceof StatementLabel)) {
+				// We found a non-label statement.
+				break;
+			}
+			index--;
+		}
+		return lastStmt;
+	}
+
+	/**
+	 * Gets the last added non-label statement. The list of statements isn't modified.
+	 * @param statements list of statements
+	 * @param level 1 = last statement, 2 = statement before last statement, ...
+	 * @param <code>true</code> if labels should be ignored
+	 * @return statement or <code>null</code>
+	 */
+	private static StatementBase peekLastAddedStatement(List<StatementBase> statements,
+			int level, boolean ignoreLabels) {
+		StatementBase lastStmt = null;
+		final int numStmts = statements.size();
+		int index = numStmts - 1;
+		int countStmt = 0;
+		while (index >= 0) {
+			lastStmt = statements.get(index);
+			if (ignoreLabels && lastStmt instanceof StatementLabel) {
+				index--;
+				continue;
+			}
+			countStmt++;
+			if (countStmt == level) {
 				// We found a non-label statement.
 				break;
 			}

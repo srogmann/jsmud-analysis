@@ -31,6 +31,22 @@ public class StatementIf extends StatementInstr<JumpInsnNode> {
 		this.labelName = labelName;
 	}
 
+	/**
+	 * Gets the conditional expression.
+	 * @return condition
+	 */
+	public ExpressionBase<?> getExprCond() {
+		return exprCond;
+	}
+
+	/**
+	 * Gets the name of the destination-label.
+	 * @return label-name
+	 */
+	public String getLabelName() {
+		return labelName;
+	}
+
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
@@ -39,6 +55,13 @@ public class StatementIf extends StatementInstr<JumpInsnNode> {
 		sb.append(')').append(' ');
 		sb.append("goto").append(' ').append(labelName);
 		sb.append(';');
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(if (%s) goto %s);",
+				getClass().getSimpleName(), exprCond, labelName);
 	}
 
 }

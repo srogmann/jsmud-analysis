@@ -3,6 +3,7 @@ package org.rogmann.jsmud.source;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnNode;
 import org.rogmann.jsmud.vm.JvmException;
+import org.rogmann.jsmud.vm.OpcodeDisplay;
 
 /**
  * Zero operand constant-instruction on stack.
@@ -39,6 +40,13 @@ public class ExpressionInstrZeroConstant extends ExpressionBase<InsnNode>{
 		default:
 			throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
 		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s);",
+				getClass().getSimpleName(), OpcodeDisplay.lookup(insn.getOpcode()));
 	}
 
 }
