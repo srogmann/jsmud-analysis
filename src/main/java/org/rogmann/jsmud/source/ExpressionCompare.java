@@ -69,14 +69,14 @@ public class ExpressionCompare extends ExpressionBase<InsnNode> {
 	 */
 	public void renderNanCheck(StringBuilder sb, String type, int resNan) {
 		// TODO temporary variable in case of complex expression.
-		if (isExprConstant(expArg1)) {
+		if (isExprConstantNonNan(expArg1)) {
 			sb.append(type);
 			sb.append('.').append("isNaN");
 			sb.append('(');
 			expArg2.render(sb);
 			sb.append(')');
 		}
-		else if (isExprConstant(expArg2)) {
+		else if (isExprConstantNonNan(expArg2)) {
 			sb.append(type);
 			sb.append('.').append("isNaN");
 			sb.append('(');
@@ -85,16 +85,19 @@ public class ExpressionCompare extends ExpressionBase<InsnNode> {
 		}
 		else {
 			sb.append('(');
-			sb.append(type);
-			sb.append('.').append("isNaN");
-			sb.append('(');
-			expArg1.render(sb);
-			sb.append(')');
-			sb.append("||");
-			sb.append(type);
-			sb.append('.').append("isNaN");
-			sb.append('(');
-			expArg2.render(sb);
+			{
+				sb.append(type);
+				sb.append('.').append("isNaN");
+				sb.append('(');
+				expArg1.render(sb);
+				sb.append(')');
+				sb.append("||");
+				sb.append(type);
+				sb.append('.').append("isNaN");
+				sb.append('(');
+				expArg2.render(sb);
+				sb.append(')');
+			}
 			sb.append(')');
 		}
 		sb.append('?');
@@ -107,9 +110,17 @@ public class ExpressionCompare extends ExpressionBase<InsnNode> {
 	 * @param expr expression
 	 * @return constant-flag
 	 */
-	public static boolean isExprConstant(final ExpressionBase<?> expr) {
-		return expr instanceof ExpressionInstrZeroConstant
-				|| expr instanceof ExpressionInstrConstant;
+	public static boolean isExprConstantNonNan(final ExpressionBase<?> expr) {
+		if (expr instanceof ExpressionInstrZeroConstant) {
+			return true;
+		}
+		if (expr instanceof ExpressionInstrConstant) {
+			ExpressionInstrConstant exprIC = (ExpressionInstrConstant) expr;
+			final Object cst = exprIC.insn.cst;
+			return !Float.valueOf(Float.NaN).equals(cst)
+					&& !Double.valueOf(Double.NaN).equals(cst);
+		}
+		return false;
 	}
 
 	/**
