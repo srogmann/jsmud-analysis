@@ -161,13 +161,13 @@ public class SourceFileWriter {
 			final Type type = Type.getMethodType(methodNode.desc);
 			final Type returnType = type.getReturnType();
 			if ("<init>".equals(methodNode.name)) {
-				sb.append(classSimpleName);
+				sb.append(simplifyClassName(classSimpleName));
 			}
 			else if ("<clinit>".equals(methodNode.name)) {
 				// static initializer
 			}
 			else {
-				sb.append(returnType.getClassName());
+				sb.append(simplifyClassName(returnType.getClassName()));
 				sb.append(' ').append(methodNode.name);
 			}
 			sb.append('(');
