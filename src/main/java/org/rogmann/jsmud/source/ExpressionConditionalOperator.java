@@ -36,10 +36,9 @@ public class ExpressionConditionalOperator<A extends AbstractInsnNode> extends E
 		sb.append('(');
 		exprCond.render(sb);
 		sb.append(')');
-		sb.append(' ');
-		sb.append('?').append(' ');
+		sb.append(' ').append('?').append(' ');
 		expr1.render(sb);
-		sb.append(':').append(' ');
+		sb.append(' ').append(':').append(' ');
 		expr2.render(sb);
 		sb.append(')');
 	}
