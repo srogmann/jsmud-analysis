@@ -64,13 +64,25 @@ public class ExpressionInvokeDynamic extends ExpressionBase<InvokeDynamicInsnNod
 		sb.append(')');
 		sb.append(" -> ");
 		final int offsetArgs;
+		final int offsetTmp;
 		if (handle.getTag() == Opcodes.H_INVOKESTATIC) {
 			sb.append(SourceFileWriter.simplifyClassName(handle.getOwner().replace('/', '.')));
 			offsetArgs = 0;
+			offsetTmp = 0;
 		}
-		else  {
+		else  if (exprArgs.length > 0) {
 			offsetArgs = 1;
+			offsetTmp = 0;
 			exprArgs[0].render(sb);
+		}
+		else if (tempVars.length > 0) {
+			offsetArgs = 0;
+			offsetTmp = 1;
+			sb.append(tempVars[0]);
+		}
+		else {
+			throw new JvmException(String.format("Missing expr-arg/temp-name at %s/%s",
+					insn, insn.name));		
 		}
 		sb.append('.');
 		sb.append(handle.getName());
@@ -86,7 +98,8 @@ public class ExpressionInvokeDynamic extends ExpressionBase<InvokeDynamicInsnNod
 			}
 			arg.render(sb);
 		}
-		for (final String tempVar : tempVars) {
+		for (int i = offsetTmp; i < tempVars.length; i++) {
+			final String tempVar = tempVars[i];
 			if (isFirst) {
 				isFirst = false;
 			}

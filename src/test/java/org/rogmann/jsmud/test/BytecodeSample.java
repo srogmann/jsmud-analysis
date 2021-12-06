@@ -2,6 +2,8 @@ package org.rogmann.jsmud.test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
@@ -82,7 +84,10 @@ public class BytecodeSample {
 		final String s = "frog";
 		final Supplier<String> supplier = s::toUpperCase;
 		System.out.println("Upper frog: " + supplier.get());
-		
+
+		final BiConsumer<StringJoiner, CharSequence> accumulator = StringJoiner::add;
+		final StringJoiner sj = new StringJoiner(";");
+		accumulator.accept(sj, "a");
 	}
 	public static void loops() {
 		int sum = 0;
