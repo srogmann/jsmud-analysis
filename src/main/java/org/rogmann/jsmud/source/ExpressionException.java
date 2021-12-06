@@ -12,7 +12,7 @@ public class ExpressionException extends ExpressionInstrZeroConstant {
 
 	/**
 	 * Constructor
-	 * @param insn type-instruction, e.g. BIPUSH 
+	 * @param typeException type of exception, <code>null</code> in case of a finally-block
 	 */
 	public ExpressionException(final Type typeException) {
 		super(null);
@@ -22,8 +22,14 @@ public class ExpressionException extends ExpressionInstrZeroConstant {
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
-		final String className = SourceFileWriter.simplifyClassName(typeException);
-		sb.append("catched ").append(className);
+		if (typeException != null) {
+			final String className = SourceFileWriter.simplifyClassName(typeException);
+			sb.append("catched ").append(className);
+		}
+		else {
+			final Type typeThrowable = Type.getType(Throwable.class);
+			sb.append("finally ").append(SourceFileWriter.simplifyClassName(typeThrowable));
+		}
 	}
 
 }

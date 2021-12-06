@@ -186,7 +186,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				for (final TryCatchBlockNode tcb : methodNode.tryCatchBlocks) {
 					if (tcb.type == null) {
 						// e.g. finally-block
-						continue;
+						stack.add(new ExpressionException(null));
+						break;
 					}
 					if (tcb.handler.equals(currentLabel)) {
 						// begin of a catch-block
