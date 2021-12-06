@@ -3,6 +3,7 @@ package org.rogmann.jsmud.test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 public class BytecodeSample {
 	private String name;
@@ -77,6 +78,11 @@ public class BytecodeSample {
 			return p1 + p2;
 		};
 		System.out.println(fct.apply(Short.valueOf("5"), Long.valueOf("7")));
+
+		final String s = "frog";
+		final Supplier<String> supplier = s::toUpperCase;
+		System.out.println("Upper frog: " + supplier.get());
+		
 	}
 	public static void loops() {
 		int sum = 0;

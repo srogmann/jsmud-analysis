@@ -379,7 +379,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			final Handle handle = (Handle) idi.bsmArgs[1];
 			final Type[] handleArgs = Type.getArgumentTypes(handle.getDesc());
-			final String[] tempVars = new String[handleArgs.length - args.length];
+			final int anzObjInst = (handle.getTag() == Opcodes.H_INVOKESTATIC) ? 0 : 1;
+			final String[] tempVars = new String[anzObjInst + handleArgs.length - args.length];
 			for (int i = 0; i < tempVars.length; i++) {
 				tempVars[i] = createTempName(dupCounter);
 			}

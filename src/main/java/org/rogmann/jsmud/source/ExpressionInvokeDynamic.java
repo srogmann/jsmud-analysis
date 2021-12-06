@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.rogmann.jsmud.vm.JvmException;
@@ -62,12 +63,21 @@ public class ExpressionInvokeDynamic extends ExpressionBase<InvokeDynamicInsnNod
 		}
 		sb.append(')');
 		sb.append(" -> ");
-		sb.append(SourceFileWriter.simplifyClassName(handle.getOwner().replace('/', '.')));
+		final int offsetArgs;
+		if (handle.getTag() == Opcodes.H_INVOKESTATIC) {
+			sb.append(SourceFileWriter.simplifyClassName(handle.getOwner().replace('/', '.')));
+			offsetArgs = 0;
+		}
+		else  {
+			offsetArgs = 1;
+			exprArgs[0].render(sb);
+		}
 		sb.append('.');
 		sb.append(handle.getName());
 		isFirst = true;
 		sb.append('(');
-		for (final ExpressionBase<?> arg : exprArgs) {
+		for (int i = offsetArgs; i < exprArgs.length; i++) {
+			final ExpressionBase<?> arg = exprArgs[i];
 			if (isFirst) {
 				isFirst = false;
 			}
