@@ -25,6 +25,16 @@ public class ExpressionVariableLoad extends ExpressionBase<VarInsnNode> {
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
+		String varName = computeVarName();
+
+		sb.append(varName);
+	}
+
+	/**
+	 * Computes the name of the variable.
+	 * @return name
+	 */
+	private String computeVarName() {
 		String varName = null;
 		if (method != null && method.localVariables != null) {
 			LocalVariableNode varNode = null;
@@ -41,8 +51,14 @@ public class ExpressionVariableLoad extends ExpressionBase<VarInsnNode> {
 		if (varName == null) {
 			varName = "__local" + insn.var;
 		}
+		return varName;
+	}
 
-		sb.append(varName);
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s);",
+				getClass().getSimpleName(), computeVarName());
 	}
 
 }

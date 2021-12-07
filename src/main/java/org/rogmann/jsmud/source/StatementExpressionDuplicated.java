@@ -50,4 +50,11 @@ public class StatementExpressionDuplicated<A extends AbstractInsnNode> extends S
 		sb.append(';');
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s->%s);",
+				getClass().getSimpleName(), exprDuplicated, dummyName);
+	}
+
 }

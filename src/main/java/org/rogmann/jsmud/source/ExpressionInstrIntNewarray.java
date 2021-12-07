@@ -25,11 +25,32 @@ public class ExpressionInstrIntNewarray extends ExpressionBase<IntInsnNode>{
 	@Override
 	public void render(StringBuilder sb) {
 		sb.append("new").append(' ');
-		final Class<?> classPrimitive = AtypeEnum.lookupAtypeClass(insn.operand);
-		sb.append(classPrimitive.getSimpleName());
+		final String displayName = computeDisplayName();
+		sb.append(displayName);
 		sb.append('[');
 		exprCount.render(sb);
 		sb.append(']');
+	}
+
+	private String computeDisplayName() {
+		final Class<?> classPrimitive = AtypeEnum.lookupAtypeClass(insn.operand);
+		final String displayName = classPrimitive.getSimpleName();
+		return displayName;
+	}
+
+	/**
+	 * Gets the count-expression.
+	 * @return count-expression
+	 */
+	public ExpressionBase<?> getExprCount() {
+		return exprCount;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(new %s[%s]);",
+				getClass().getSimpleName(), computeDisplayName(), exprCount);
 	}
 
 }

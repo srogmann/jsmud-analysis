@@ -42,6 +42,48 @@ public class ExpressionInstrZeroConstant extends ExpressionBase<InsnNode>{
 		}
 	}
 
+	/**
+	 * Checks if this expression contains an ICONST-instruction.
+	 * @return ICONST-flag
+	 */
+	public boolean isIConst() {
+		final int opcode = insn.getOpcode();
+		return opcode == Opcodes.ICONST_M1
+				|| opcode == Opcodes.ICONST_0
+				|| opcode == Opcodes.ICONST_1
+				|| opcode == Opcodes.ICONST_2
+				|| opcode == Opcodes.ICONST_3
+				|| opcode == Opcodes.ICONST_4;
+	}
+
+	/**
+	 * Gets the constant value.
+	 * @return value as reference (non-primitive)
+	 */
+	public Object getValue() {
+		final Object val;
+		final int opcode = insn.getOpcode();
+		switch (opcode) {
+		case Opcodes.ACONST_NULL: val = null; break;
+		case Opcodes.ICONST_M1: val = Integer.valueOf(-1); break;
+		case Opcodes.ICONST_0: val = Integer.valueOf(0); break;
+		case Opcodes.ICONST_1: val = Integer.valueOf(1); break;
+		case Opcodes.ICONST_2: val = Integer.valueOf(2); break;
+		case Opcodes.ICONST_3: val = Integer.valueOf(3); break;
+		case Opcodes.ICONST_4: val = Integer.valueOf(4); break;
+		case Opcodes.ICONST_5: val = Integer.valueOf(5); break;
+		case Opcodes.LCONST_0: val = Long.valueOf(0); break;
+		case Opcodes.LCONST_1: val = Long.valueOf(1); break;
+		case Opcodes.FCONST_0: val = Float.valueOf(0); break;
+		case Opcodes.FCONST_1: val = Float.valueOf(1); break;
+		case Opcodes.DCONST_0: val = Double.valueOf(0); break;
+		case Opcodes.DCONST_1: val = Double.valueOf(1); break;
+		default:
+			throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
+		}
+		return val;
+	}
+	
 	/** {@inheritDoc} */
 	@Override
 	public String toString() {
