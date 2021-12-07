@@ -40,6 +40,34 @@ public class ExpressionInstrConstant extends ExpressionBase<LdcInsnNode> {
 			final Type type = (Type) cst;
 			sb.append(SourceFileWriter.simplifyClassName(type));
 		}
+		else if (cst instanceof Byte) {
+			// non cst-type.
+			final byte bVal = ((Byte) cst).byteValue();
+			sb.append(bVal);
+		}
+		else if (cst instanceof Boolean) {
+			// non cst-type.
+			sb.append(((Boolean) cst).booleanValue());
+		}
+		else if (cst instanceof Character) {
+			// non cst-type.
+			final char cVal = ((Character) cst).charValue();
+			if ((cVal >= ' ' && cVal < 0x80) || (cVal > 0xa0 && cVal < 0x100)) {
+				sb.append('\'');
+				if (cVal == '\'') {
+					sb.append('\\');
+				}
+				sb.append(cVal).append('\'');
+			}
+			else {
+				sb.append("(char) ");
+				sb.append((int) cVal);
+			}
+		}
+		else if (cst instanceof Short) {
+			// non cst-type.
+			sb.append(((Short) cst).shortValue());
+		}
 		else {
 			throw new RuntimeException(String.format("Unexpected type (%s): %s",
 					cst.getClass(), cst));

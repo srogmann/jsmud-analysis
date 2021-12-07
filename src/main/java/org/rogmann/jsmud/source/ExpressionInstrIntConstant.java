@@ -28,4 +28,19 @@ public class ExpressionInstrIntConstant extends ExpressionBase<IntInsnNode>{
 		}
 	}
 
+	/**
+	 * Gets the int-operand.
+	 * @return int-value
+	 */
+	public int getIntValue() {
+		return insn.operand;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%d);",
+				getClass().getSimpleName(), Integer.valueOf(insn.operand));
+	}
+
 }
