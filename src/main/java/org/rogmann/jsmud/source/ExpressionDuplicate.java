@@ -33,4 +33,11 @@ public class ExpressionDuplicate<A extends AbstractInsnNode> extends ExpressionB
 		sb.append(exprDup.getDummyName());
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s);",
+				getClass().getSimpleName(), exprDup);
+	}
+
 }
