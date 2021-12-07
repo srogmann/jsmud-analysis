@@ -10,6 +10,9 @@ import java.util.function.Supplier;
 public class BytecodeSample {
 	private String name;
 	private int num;
+	private int num2;
+	private long lnum;
+	private long lnum2;
 	
 	static enum JavaFeature {
 		ASSIGNMENTS,
@@ -23,10 +26,11 @@ public class BytecodeSample {
 	
 	public BytecodeSample(final String name, final int num) {
 		this.name = name;
-		this.num = num;
+		this.num = this.num2 = num; // DUP_X1
+		this.lnum = this.lnum2 = 0x6c6f6e6721L; // DUP2_X1
 	}
 
-	public static void assignments() {
+	public void assignments() {
 		int a = 5;
 		int b = a + 3;
 		int c = ++b;

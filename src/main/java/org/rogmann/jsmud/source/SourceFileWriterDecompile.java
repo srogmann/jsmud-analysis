@@ -495,6 +495,30 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				stack.push(exprDuplicate);
 			}
 		}
+		else if (opcode == Opcodes.DUP_X1 || opcode == Opcodes.DUP2_X1) {
+			if (opcode == Opcodes.DUP2_X1) {
+				// long and double use two entries on stack.
+				// For a correct handling of DUP2_X1 we should know the type expressions.
+				statements.add(new StatementComment("DUP2_X1!->"));
+			}
+			final ExpressionBase<?> expr1 = stack.pop();
+			final ExpressionBase<?> expr2 = stack.pop();
+			if (expr1 instanceof ExpressionDuplicate) {
+				// There is a StatementExpressionDuplicated already.  
+				stack.push(expr1);
+				stack.push(expr2);
+				stack.push(expr1);
+			}
+			else {
+				final String dummyName = createTempName(dupCounter);
+				final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr1, dummyName);
+				final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
+				statements.add(stmtExprDuplicated);
+				stack.push(exprDuplicate);
+				stack.push(expr2);
+				stack.push(exprDuplicate);
+			}
+		}
 		else if (opcode == Opcodes.POP) {
 			if (stack.size() == 0) {
 				// TODO TABLESWITCH (POP after IF...) ...
