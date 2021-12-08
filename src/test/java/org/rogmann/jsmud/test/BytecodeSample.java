@@ -30,7 +30,7 @@ public class BytecodeSample {
 		this.lnum = this.lnum2 = 0x6c6f6e6721L; // DUP2_X1
 	}
 
-	public void assignments() {
+	public static void assignments() {
 		int a = 5;
 		int b = a + 3;
 		int c = ++b;
@@ -47,8 +47,10 @@ public class BytecodeSample {
 		final char[][][] aDim3 = new char[1][2][2];
 		aDim3[0][0][0] = '0';
 		aDim3[0][0][1] = '1';
+		
+		final String[] texts = { "t1", "t2", Integer.toString(s) };
 
-		return s;
+		return Integer.parseInt(texts[2]);
 	}
 
 	public static void collections() {

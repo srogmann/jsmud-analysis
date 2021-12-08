@@ -465,7 +465,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			final ExpressionBase<?> exprValue = stack.pop();
 			final ExpressionBase<?> exprIndex = stack.pop();
 			final ExpressionBase<?> exprArray = stack.pop();
-			statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
+			boolean merged = arrayInitialValueMerge(exprArray, exprIndex, exprValue, statements);
+			if (!merged) {
+				statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
+			}
 		}
 		else if (opcode == Opcodes.BASTORE
 				|| opcode == Opcodes.CASTORE
@@ -477,7 +480,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			final ExpressionBase<?> exprValue = stack.pop();
 			final ExpressionBase<?> exprIndex = stack.pop();
 			final ExpressionBase<?> exprArray = stack.pop();
-			boolean merged = arrayInitialValueMerge(exprArray, exprIndex, statements);
+			boolean merged = arrayInitialValueMerge(exprArray, exprIndex, exprValue, statements);
 			if (!merged) {
 				statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
 			}
@@ -673,42 +676,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 	}
 
-	/**
-	 * Checks if an initial value of an array can placed into initial value-list.
-	 * @param exprArray array-expression
-	 * @param exprIndex index-expression
-	 * @param statements list of statements
-	 * @return <code>true</code> if the value had been merged into the initial list
-	 */
-	public static boolean arrayInitialValueMerge(final ExpressionBase<?> exprArray, final ExpressionBase<?> exprIndex,
-			final List<StatementBase> statements) {
-		boolean merged = false;
-		final Integer index = getIntegerConstant(exprIndex);
-		final StatementBase lastStmt = peekLastAddedStatement(statements);
-		if (index != null && index.intValue() >= 0
-				&& exprIndex instanceof ExpressionInstrZeroConstant
-				&& exprArray instanceof ExpressionDuplicate
-				&& lastStmt instanceof StatementExpressionDuplicated) {
-			final ExpressionInstrZeroConstant exprIndexConst = (ExpressionInstrZeroConstant) exprIndex;
-			final ExpressionDuplicate<?> exprDupl = (ExpressionDuplicate<?>) exprArray;
-			final StatementExpressionDuplicated<?> stmtDupl = (StatementExpressionDuplicated<?>) lastStmt;
-			final ExpressionBase<?> exprBase = stmtDupl.getExpression();
-			if (exprIndexConst.isIConst()
-					&& exprDupl.getStatementExpressionDuplicated() == stmtDupl
-					&& exprBase instanceof ExpressionInstrIntNewarray) {
-				final ExpressionInstrIntNewarray exprNewArray = (ExpressionInstrIntNewarray) exprBase;
-				final ExpressionBase<?> exprCount = exprNewArray.getExprCount();
-				final Integer aLength = getIntegerConstant(exprCount);
-				if (aLength != null
-						&& index.intValue() < aLength.intValue()) {
-					exprNewArray.setInitialValue(index.intValue(), exprIndex, aLength.intValue());
-					merged = true;
-				}
-			}
-		}
-		return merged;
-	}
-
 	private static void processInstructionJumpInsn(final JumpInsnNode ji, final MethodNode methodNode,
 			final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack,
 			final Map<Label, String> mapUsedLabels) {
@@ -864,6 +831,56 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			throw new JvmException(String.format("Unexpected method-instruction (%s) in (%s)",
 					InstructionVisitor.displayInstruction(mi, methodNode), methodNode.name));
 		}
+	}
+
+	/**
+	 * Checks if an initial value of an array can placed into initial value-list.
+	 * @param exprArray array-expression
+	 * @param exprIndex index-expression
+	 * @param exprValue value at index-expression
+	 * @param statements list of statements
+	 * @return <code>true</code> if the value had been merged into the initial list
+	 */
+	public static boolean arrayInitialValueMerge(final ExpressionBase<?> exprArray, final ExpressionBase<?> exprIndex,
+			ExpressionBase<?> exprValue, final List<StatementBase> statements) {
+		boolean merged = false;
+		final Integer index = getIntegerConstant(exprIndex);
+		final StatementBase lastStmt = peekLastAddedStatement(statements);
+		if (index != null && index.intValue() >= 0
+				&& exprIndex instanceof ExpressionInstrZeroConstant
+				&& exprArray instanceof ExpressionDuplicate
+				&& lastStmt instanceof StatementExpressionDuplicated) {
+			final ExpressionInstrZeroConstant exprIndexConst = (ExpressionInstrZeroConstant) exprIndex;
+			final ExpressionDuplicate<?> exprDupl = (ExpressionDuplicate<?>) exprArray;
+			final StatementExpressionDuplicated<?> stmtDupl = (StatementExpressionDuplicated<?>) lastStmt;
+			final ExpressionBase<?> exprBase = stmtDupl.getExpression();
+			if (exprIndexConst.isIConst()
+					&& exprDupl.getStatementExpressionDuplicated() == stmtDupl
+					&& exprBase instanceof ExpressionInstrIntNewarray) {
+				// array with primitive elements.
+				final ExpressionInstrIntNewarray exprNewArray = (ExpressionInstrIntNewarray) exprBase;
+				final ExpressionBase<?> exprCount = exprNewArray.getExprCount();
+				final Integer aLength = getIntegerConstant(exprCount);
+				if (aLength != null
+						&& index.intValue() < aLength.intValue()) {
+					exprNewArray.setInitialValue(index.intValue(), exprValue, aLength.intValue());
+					merged = true;
+				}
+			}
+			else if (exprIndexConst.isIConst()
+					&& exprDupl.getStatementExpressionDuplicated() == stmtDupl
+					&& exprBase instanceof ExpressionTypeNewarray) {
+				final ExpressionTypeNewarray exprNewArray = (ExpressionTypeNewarray) exprBase;
+				final ExpressionBase<?> exprCount = exprNewArray.getExprCount();
+				final Integer aLength = getIntegerConstant(exprCount);
+				if (aLength != null
+						&& index.intValue() < aLength.intValue()) {
+					exprNewArray.setInitialValue(index.intValue(), exprValue, aLength.intValue());
+					merged = true;
+				}
+			}
+		}
+		return merged;
 	}
 
 	/**
