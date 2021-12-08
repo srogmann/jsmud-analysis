@@ -81,7 +81,7 @@ public class BytecodeSample {
 
 	public static void lambdas(final String a, final int b) {
 		final BiFunction<Short, Long, String> fct = (s, l) -> {
-			String p1 = String.format("(%d, %d)", Short.valueOf(s), Long.valueOf(l));
+			String p1 = String.format("(%d, %d)", s, l);
 			String p2 = String.format("(%s, %d)", a, Integer.valueOf(b));
 			return p1 + p2;
 		};

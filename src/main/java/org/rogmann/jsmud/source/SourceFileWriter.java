@@ -26,6 +26,7 @@ import org.rogmann.jsmud.replydata.LineTable;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmException;
+import org.rogmann.jsmud.vm.Utils;
 
 /**
  * Writes pseudo-code of a class into a file.
@@ -208,9 +209,11 @@ public class SourceFileWriter {
 			writeLine(methodTail, "}");
 		}
 
+		final String packageClass = Utils.getPackage(node.name.replace('/', '.'));
 		for (final InnerClassNode innerClassNode : node.innerClasses) {
-			if ("java/lang/invoke/MethodHandles".equals(innerClassNode.outerName)) {
-				// MethodHandles is referenced when using lambdas.
+			final String innerClassName = innerClassNode.name.replace('/', '.');
+			final String innerPackage = Utils.getPackage(innerClassName);
+			if (!packageClass.equals(innerPackage)) {
 				continue;
 			}
 			final ClassNode innerClass = innerClassesProvider.apply(innerClassNode.name);

@@ -52,6 +52,9 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 
 	/** <code>true</code> to display bytecode-instructions only (fallback-mode) */
 	private boolean isDisplayInstructionsOnly = false;
+	
+	/** <code>true</code> if the decompiler should stop in case of an error */
+	private boolean isFailFast = false;
 
 	/**
 	 * Constructor, writes the source-file.
@@ -75,6 +78,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	public SourceFileWriterDecompile(final String extension, final ClassNode node,
 			final Function<String, ClassNode> innerClassesProvider) throws IOException {
 		super(extension, node, innerClassesProvider);
+	}
+
+	/**
+	 * Sets <code>true</code> if the decompiler should stop in case of an error.
+	 * @param failFastFlag fail-fast-flag
+	 */
+	public void setIsFailFast(boolean failFastFlag) {
+		isFailFast = failFastFlag;
 	}
 
 	/**
@@ -112,12 +123,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		try {
 			statements = parseMethodBody(classNode, methodNode, mapPcLine);
 		} catch (RuntimeException e) {
-			if (isDisplayInstructionsOnly) {
+			if (isDisplayInstructionsOnly || isFailFast) {
 				throw new JvmException(String.format("Couldn't parse method %s%s of %s in instructions-only-mode",
 						methodNode.name, methodNode.desc, classNode.name), e);
 			}
-			System.err.println(String.format("Couldn't display method %s%s. Switching to instructions-only-mode.",
-					methodNode.name, methodNode.desc, classNode.name));
+			System.err.println(String.format("%s: Couldn't display method %s%s. Switching to instructions-only-mode.",
+					classNode.name, methodNode.name, methodNode.desc));
 			e.printStackTrace();
 			isDisplayInstructionsOnly = true;
 			statements = parseMethodBody(classNode, methodNode, mapPcLine);
@@ -138,9 +149,16 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			if (stmt.isVisible()) {
 				try {
 					stmt.render(sb);
-				} catch (JvmException e) {
-					throw new JvmException(String.format("Error while rendering line %d, method %s, class %s",
-							Integer.valueOf(lineExpected), methodNode.name, classNode.name), e);
+				}
+				catch (JvmException e) {
+					final String errorMsg = String.format("Error while rendering line %d, method %s, class %s",
+							Integer.valueOf(lineExpected), methodNode.name, classNode.name);
+					if (isFailFast) {
+						throw new JvmException(errorMsg, e);
+					}
+					e.printStackTrace();
+					sb.append("/* ").append(e.getMessage()).append("*/");
+					return;
 				}
 				writeLine(block, lineExpected, sb);
 			}

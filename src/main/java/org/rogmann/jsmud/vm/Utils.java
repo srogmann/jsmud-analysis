@@ -68,6 +68,16 @@ public class Utils {
 	}
 
 	/**
+	 * Gets the package of a fully qualified class-name.
+	 * @param className class-name, e.g. "java.util.List"
+	 * @return package, e.g. "java.util"
+	 */
+	public static String getPackage(final String className) {
+		final int idx = className.lastIndexOf('.');
+		return (idx < 0) ? "" : className.substring(0, idx); 
+	}
+	
+	/**
 	 * Guesses the name of a source-file.
 	 * @param classRef class
 	 * @param extension (e.g. "java" or "asm")
