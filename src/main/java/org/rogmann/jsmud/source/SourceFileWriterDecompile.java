@@ -291,7 +291,17 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					|| opcode == Opcodes.FSTORE
 					|| opcode == Opcodes.DSTORE) {
 				final StatementBase stmtValue = stack.pop();
-				final ExpressionBase<?> exprValue = (ExpressionBase<?>) stmtValue;
+				ExpressionBase<?> exprValue = (ExpressionBase<?>) stmtValue;
+				if (exprValue instanceof ExpressionDuplicate) {
+					final ExpressionDuplicate<?> exprDupl = (ExpressionDuplicate<?>) exprValue;
+					final StatementBase lastStmt = peekLastAddedStatement(statements);
+					if (exprDupl.getStatementExpressionDuplicated() == lastStmt
+							&& lastStmt instanceof StatementExpressionDuplicated<?>) {
+						final StatementExpressionDuplicated<?> stmtDupl = (StatementExpressionDuplicated<?>) lastStmt;
+						exprValue = stmtDupl.getExpression();
+						popLastAddedStatement(statements);
+					}
+				}
 				final List<LocalVariableNode> locVars = methodNode.localVariables;
 				final Type typeExpr;
 				if (locVars != null && vi.var < locVars.size()) {
