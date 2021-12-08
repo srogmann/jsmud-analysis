@@ -30,9 +30,8 @@ public class ExpressionConstructor extends ExpressionBase<MethodInsnNode>{
 	@Override
 	public void render(StringBuilder sb) {
 		sb.append("new ");
-		final String newTypeInternal = exprNew.insn.desc;
-		String name = newTypeInternal.replace('/', '.');
-		sb.append(SourceFileWriter.simplifyClassName(name));
+		final String className = computeClassName();
+		sb.append(className);
 		sb.append('(');
 		boolean isFirst = true;
 		for (final ExpressionBase<?> arg : exprArgs) {
@@ -45,6 +44,20 @@ public class ExpressionConstructor extends ExpressionBase<MethodInsnNode>{
 			arg.render(sb);
 		}
 		sb.append(')');
+	}
+
+	private String computeClassName() {
+		final String newTypeInternal = exprNew.insn.desc;
+		String name = newTypeInternal.replace('/', '.');
+		final String className = SourceFileWriter.simplifyClassName(name);
+		return className;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(new %s(...));",
+				getClass().getSimpleName(), computeClassName());
 	}
 
 }
