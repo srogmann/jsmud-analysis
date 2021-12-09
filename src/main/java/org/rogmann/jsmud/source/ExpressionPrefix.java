@@ -45,4 +45,12 @@ public class ExpressionPrefix<A extends AbstractInsnNode> extends ExpressionBase
 				|| expr instanceof ExpressionVariableLoad);
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s%s);",
+				getClass().getSimpleName(),
+				prefix, expr);
+	}
+
 }
