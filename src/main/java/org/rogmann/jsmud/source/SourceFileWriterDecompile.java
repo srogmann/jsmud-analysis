@@ -563,6 +563,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				statements.add(new StatementExpression<>(expr));
 			}
 		}
+		else if (opcode == Opcodes.MONITORENTER
+				|| opcode == Opcodes.MONITOREXIT) {
+			final ExpressionBase<?> exprObj = stack.pop();
+			statements.add(new StatementMonitor(iz, exprObj));
+		}
 		else if (opcode == Opcodes.RETURN) {
 			final StatementReturn stmt = new StatementReturn(iz);
 			statements.add(stmt);

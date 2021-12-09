@@ -127,6 +127,11 @@ public class BytecodeSample {
 		return example + ' ' + comment;
 	}
 
+	public void sync() {
+		synchronized (name) {
+			num += num2;
+		}
+	}
 	public String getName() {
 		return name;
 	}
