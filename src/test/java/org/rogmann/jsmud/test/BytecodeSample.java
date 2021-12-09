@@ -43,6 +43,7 @@ public class BytecodeSample {
 		final byte[] aBuf = { 0, 0x31, (byte) 0xe0 };
 		final long[] aLong = new long[5];
 		aLong[3] -= aLong[4];
+		aLong[3] = -aLong[5];
 		final int s = (aBuf[2] & 0xff) + (aLong.length << 2);
 		
 		final char[][][] aDim3 = new char[1][2][2];

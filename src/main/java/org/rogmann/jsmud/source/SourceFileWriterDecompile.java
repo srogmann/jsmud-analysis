@@ -715,6 +715,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			stack.push(new ExpressionInfixBinary<>(iz, operator, arg1, arg2));
 		}
+		else if (opcode == Opcodes.INEG
+				|| opcode == Opcodes.LNEG) {
+			final ExpressionBase<?> exprArg = stack.pop();
+			stack.add(new ExpressionPrefix<>(iz, "-", exprArg));
+		}
 		else if (opcode == Opcodes.LCMP
 				|| opcode == Opcodes.FCMPL
 				|| opcode == Opcodes.FCMPG
