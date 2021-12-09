@@ -521,19 +521,16 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				stack.push(expr);
 			}
 			else {
-				final String dummyName = createTempName(dupCounter);
-				final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
-				final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
-				statements.add(stmtExprDuplicated);
-				stack.push(exprDuplicate);
+				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr,
+						statements, stack, dupCounter);
 				stack.push(exprDuplicate);
 			}
 		}
 		else if (opcode == Opcodes.DUP_X1 || opcode == Opcodes.DUP2_X1) {
 			if (opcode == Opcodes.DUP2_X1) {
 				// long and double use two entries on stack.
-				// For a correct handling of DUP2_X1 we should know the type expressions.
-				statements.add(new StatementComment("DUP2_X1!->"));
+				// TODO For a correct handling of DUP2_X1 we should know the type expressions.
+				statements.add(new StatementComment("DUP2_X1(assume long)!->"));
 			}
 			final ExpressionBase<?> expr1 = stack.pop();
 			final ExpressionBase<?> expr2 = stack.pop();
@@ -544,14 +541,42 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				stack.push(expr1);
 			}
 			else {
-				final String dummyName = createTempName(dupCounter);
-				final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr1, dummyName);
-				final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
-				statements.add(stmtExprDuplicated);
-				stack.push(exprDuplicate);
+				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr1,
+						statements, stack, dupCounter);
 				stack.push(expr2);
 				stack.push(exprDuplicate);
 			}
+		}
+		else if (opcode == Opcodes.DUP2) {
+			// long and double use two entries on stack.
+			// TODO For a correct handling of DUP2 we should know the type expressions.
+			statements.add(new StatementComment("DUP2!->"));
+			final ExpressionBase<?> expr1 = stack.pop();
+			final ExpressionBase<?> expr2 = stack.pop();
+			final ExpressionBase<?> expr1Dup;
+			final ExpressionBase<?> expr2Dup;
+			if (expr2 instanceof ExpressionDuplicate) {
+				// There is a StatementExpressionDuplicated already.  
+				stack.push(expr2);
+				expr2Dup = expr2;
+			}
+			else {
+				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr2,
+						statements, stack, dupCounter);
+				expr2Dup = exprDuplicate;
+			}
+			if (expr1 instanceof ExpressionDuplicate) {
+				// There is a StatementExpressionDuplicated already.  
+				stack.push(expr1);
+				expr1Dup = expr1;
+			}
+			else {
+				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr1,
+						statements, stack, dupCounter);
+				expr1Dup = exprDuplicate;
+			}
+			stack.push(expr2Dup);
+			stack.push(expr1Dup);
 		}
 		else if (opcode == Opcodes.POP) {
 			if (stack.size() == 0) {
@@ -947,6 +972,25 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 						stmtIf.getExprCond(), expr1, expr2));
 			}
 		}
+	}
+
+	/**
+	 * Creates a StatementExpressionDuplicated and adds it to the statements.
+	 * The duplicated expression is pushed onto the stack.
+	 * @param expr expression to be duplicated
+	 * @param statements list of statements
+	 * @param stack expression-stack
+	 * @param dupCounter dup-counter
+	 * @return duplicated expression
+	 */
+	public static ExpressionDuplicate<?> createStatementExpressionDuplicated(final ExpressionBase<?> expr,
+			final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter) {
+		final String dummyName = createTempName(dupCounter);
+		final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
+		final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
+		statements.add(stmtExprDuplicated);
+		stack.push(exprDuplicate);
+		return exprDuplicate;
 	}
 
 	/**
