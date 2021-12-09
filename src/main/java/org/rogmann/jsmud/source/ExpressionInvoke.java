@@ -58,4 +58,12 @@ public class ExpressionInvoke extends ExpressionBase<MethodInsnNode> {
 		sb.append(')');
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s%s);",
+				getClass().getSimpleName(),
+				insn.name, insn.desc);
+	}
+
 }
