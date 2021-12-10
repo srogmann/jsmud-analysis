@@ -3,6 +3,7 @@ package org.rogmann.jsmud.source;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.rogmann.jsmud.vm.JvmException;
+import org.rogmann.jsmud.vm.OpcodeDisplay;
 
 /**
  * Type-instruction of an expression.
@@ -29,6 +30,12 @@ public class ExpressionTypeInstr extends ExpressionBase<TypeInsnNode>{
 		}
 	}
 
-	
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s %s);",
+				getClass().getSimpleName(),
+				OpcodeDisplay.lookup(insn.getOpcode()), insn.desc);
+	}
 
 }
