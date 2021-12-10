@@ -156,6 +156,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					if (isFailFast) {
 						throw new JvmException(errorMsg, e);
 					}
+					System.err.println(errorMsg);
 					e.printStackTrace();
 					sb.append("/* ").append(e.getMessage()).append("*/");
 					return;
@@ -308,18 +309,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					|| opcode == Opcodes.LSTORE
 					|| opcode == Opcodes.FSTORE
 					|| opcode == Opcodes.DSTORE) {
-				final StatementBase stmtValue = stack.pop();
-				ExpressionBase<?> exprValue = (ExpressionBase<?>) stmtValue;
-				if (exprValue instanceof ExpressionDuplicate) {
-					final ExpressionDuplicate<?> exprDupl = (ExpressionDuplicate<?>) exprValue;
-					final StatementBase lastStmt = peekLastAddedStatement(statements);
-					if (exprDupl.getStatementExpressionDuplicated() == lastStmt
-							&& lastStmt instanceof StatementExpressionDuplicated<?>) {
-						final StatementExpressionDuplicated<?> stmtDupl = (StatementExpressionDuplicated<?>) lastStmt;
-						exprValue = stmtDupl.getExpression();
-						popLastAddedStatement(statements);
-					}
-				}
+				final ExpressionBase<?> exprValue = popExpressionAndMergeDuplicate(statements, stack);
 				final List<LocalVariableNode> locVars = methodNode.localVariables;
 				final Type typeExpr;
 				if (locVars != null && vi.var < locVars.size()) {
@@ -829,7 +819,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			if (stack.size() == 0 || stack.peek() == null) {
 				throw new JvmException(String.format("Stack underfow while reading constructor-args of %s", mi));
 			}
-			exprArgs[j] = stack.pop();
+			exprArgs[j] = popExpressionAndMergeDuplicate(statements, stack);
 		}
 		if (opcode == Opcodes.INVOKESPECIAL && "<init>".equals(mi.name)) {
 			ExpressionBase<?> exprObject = stack.pop();
@@ -1005,6 +995,31 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 */
 	static String createTempName(AtomicInteger dupCounter) {
 		return "__dup" + dupCounter.incrementAndGet();
+	}
+
+	/**
+	 * Pops an expression from stack. In case of a duplicated expressions it may be merged
+	 * with its statement-expression.
+	 * This method is called before storing or using in a constructor.
+	 * @param statements list of statements
+	 * @param stack stack of expressions
+	 * @return expression from stack
+	 */
+	private static ExpressionBase<?> popExpressionAndMergeDuplicate(final List<StatementBase> statements,
+			final Stack<ExpressionBase<?>> stack) {
+		final StatementBase stmtValue = stack.pop();
+		ExpressionBase<?> exprValue = (ExpressionBase<?>) stmtValue;
+		if (exprValue instanceof ExpressionDuplicate) {
+			final ExpressionDuplicate<?> exprDupl = (ExpressionDuplicate<?>) exprValue;
+			final StatementBase lastStmt = peekLastAddedStatement(statements);
+			if (exprDupl.getStatementExpressionDuplicated() == lastStmt
+					&& lastStmt instanceof StatementExpressionDuplicated<?>) {
+				final StatementExpressionDuplicated<?> stmtDupl = (StatementExpressionDuplicated<?>) lastStmt;
+				exprValue = stmtDupl.getExpression();
+				popLastAddedStatement(statements);
+			}
+		}
+		return exprValue;
 	}
 
 	/**

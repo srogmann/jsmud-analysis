@@ -50,7 +50,8 @@ public class BytecodeSample {
 		aDim3[0][0][0] = '0';
 		aDim3[0][0][1] = '1';
 		
-		final String[] texts = { "t1", "t2", Integer.toString(s) };
+		final String t = new String(new char[] { ':', '-', ')'});
+		final String[] texts = { "t1", "t2", Integer.toString(s), t };
 
 		return Integer.parseInt(texts[2]);
 	}
