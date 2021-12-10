@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.source;
 
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 /**
@@ -27,6 +28,12 @@ public class ExpressionInfixBinary<A extends AbstractInsnNode> extends Expressio
 		this.operator = operator;
 		this.expArg1 = exprArg1;
 		this.expArg2 = exprArg2;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Type getType() {
+		return expArg1.getType();
 	}
 
 	/** {@inheritDoc} */

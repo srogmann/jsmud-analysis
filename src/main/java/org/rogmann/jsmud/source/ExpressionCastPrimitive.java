@@ -28,6 +28,12 @@ public class ExpressionCastPrimitive extends ExpressionBase<InsnNode> {
 
 	/** {@inheritDoc} */
 	@Override
+	public Type getType() {
+		return primitiveType;
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public void render(StringBuilder sb) {
 		boolean isNeedBrackets = !ExpressionInfixBinary.isNeedsNoBrackets(expr);
 		sb.append('(');

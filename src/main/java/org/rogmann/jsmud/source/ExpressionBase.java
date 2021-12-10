@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.source;
 
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 /**
@@ -16,5 +17,13 @@ public abstract class ExpressionBase<A extends AbstractInsnNode> extends Stateme
 	protected ExpressionBase(A insn) {
 		super(insn);
 	}
-	
+
+	/**
+	 * Returns the type of the expression.
+	 * @return type or <code>null</code> if unknown
+	 */
+	@SuppressWarnings("static-method")
+	public Type getType() {
+		return null;
+	}
 }

@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.source;
 
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 /**
@@ -25,6 +26,12 @@ public class ExpressionDuplicate<A extends AbstractInsnNode> extends ExpressionB
 	 */
 	public StatementExpressionDuplicated<A> getStatementExpressionDuplicated() {
 		return exprDup;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Type getType() {
+		return exprDup.getExpression().getType();
 	}
 
 	/** {@inheritDoc} */

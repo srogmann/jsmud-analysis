@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.IntInsnNode;
 
 /**
@@ -34,6 +35,12 @@ public class ExpressionInstrIntConstant extends ExpressionBase<IntInsnNode>{
 	 */
 	public int getIntValue() {
 		return insn.operand;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Type getType() {
+		return Type.INT_TYPE;
 	}
 
 	/** {@inheritDoc} */

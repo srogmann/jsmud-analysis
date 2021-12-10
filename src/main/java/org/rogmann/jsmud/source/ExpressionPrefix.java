@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.source;
 
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 /**
@@ -22,6 +23,16 @@ public class ExpressionPrefix<A extends AbstractInsnNode> extends ExpressionBase
 		super(insn);
 		this.prefix = prefix;
 		this.expr = expr;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Type getType() {
+		Type type = null;
+		if ("-".equals(prefix)) {
+			type = expr.getType();
+		}
+		return type;
 	}
 
 	/** {@inheritDoc} */
