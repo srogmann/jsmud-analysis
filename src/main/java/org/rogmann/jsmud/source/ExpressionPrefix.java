@@ -4,7 +4,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
 /**
- * Prefix-expression, e.g. "-" or casting
+ * Prefix-expression, e.g. "++", "-" or casting
  */
 public class ExpressionPrefix<A extends AbstractInsnNode> extends ExpressionBase<A> {
 
@@ -40,12 +40,12 @@ public class ExpressionPrefix<A extends AbstractInsnNode> extends ExpressionBase
 	public void render(StringBuilder sb) {
 		sb.append(prefix);
 
-		final boolean neeedsBrackets = ExpressionSuffix.isNeedsNoBrackets(expr);
-		if (neeedsBrackets) {
+		final boolean needsBrackets = !ExpressionSuffix.isNeedsNoBrackets(expr);
+		if (needsBrackets) {
 			sb.append('(');
 		}
 		expr.render(sb);
-		if (neeedsBrackets) {
+		if (needsBrackets) {
 			sb.append(')');
 		}
 	}

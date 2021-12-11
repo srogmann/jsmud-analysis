@@ -315,8 +315,21 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					|| opcode == Opcodes.LLOAD
 					|| opcode == Opcodes.FLOAD
 					|| opcode == Opcodes.DLOAD) {
-				final ExpressionVariableLoad exprVi = new ExpressionVariableLoad(vi,
-						typeLocals[vi.var], methodNode);
+				final StatementBase lastStmt = peekLastAddedStatement(statements);
+				ExpressionBase<?> exprVi = new ExpressionVariableLoad(vi, typeLocals[vi.var], methodNode);
+				if (opcode == Opcodes.ILOAD && lastStmt instanceof StatementVariableIinc) {
+					StatementVariableIinc stmtIinc = (StatementVariableIinc) lastStmt;
+					if (stmtIinc.getInsn().var == vi.var && stmtIinc.insn.incr == 1) {
+						// We found a ++var-Expression.
+						popLastAddedStatement(statements);
+						exprVi = new ExpressionPrefix<>(stmtIinc.getInsn(), "++", exprVi);
+					}
+					else if (stmtIinc.getInsn().var == vi.var && stmtIinc.insn.incr == -1) {
+						// We found a --var-Expression.
+						popLastAddedStatement(statements);
+						exprVi = new ExpressionPrefix<>(stmtIinc.getInsn(), "--", exprVi);
+					}
+				}
 				stack.push(exprVi);
 			}
 			else if (opcode == Opcodes.ASTORE
@@ -400,7 +413,20 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		else if (type == AbstractInsnNode.IINC_INSN) {
 			final IincInsnNode ii = (IincInsnNode) instr;
-			statements.add(new StatementVariableIinc(ii, methodNode));
+			final ExpressionBase<?> exprLast = (stack.size() > 0) ? stack.peek() : null;
+			ExpressionBase<?> exprNew = null;
+			if (exprLast instanceof ExpressionVariableLoad) {
+				final ExpressionVariableLoad exprVi = (ExpressionVariableLoad) exprLast;
+				if (exprVi.insn.var == ii.var && (ii.incr == +1 || ii.incr == -1)) {
+					// We found var++ or var--.
+					stack.pop();
+					exprNew = new ExpressionSuffix<AbstractInsnNode>(ii, exprLast);
+					stack.push(exprNew);
+				}
+			}
+			if (exprNew == null) {
+				statements.add(new StatementVariableIinc(ii, methodNode));
+			}
 		}
 		else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
 			final InvokeDynamicInsnNode idi = (InvokeDynamicInsnNode) instr;

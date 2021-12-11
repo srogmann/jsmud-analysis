@@ -22,6 +22,11 @@ public class BytecodeSample {
 	public static void main(final String[] args) {
 		BytecodeSample sample = new BytecodeSample(args[0], 1);
 		System.out.println("Name: " + sample.getName());
+		
+		int i = sample.num;
+		BytecodeSample sample2 = new BytecodeSample("=,=-Test2", ++i);
+		BytecodeSample sample3 = new BytecodeSample("=,=-Test3", i--);
+		System.out.println("Name 2: " + sample2.getName() + '-' + sample3.getName());
 	}
 	
 	public BytecodeSample(final String name, final int num) {
