@@ -47,24 +47,29 @@ public class ExpressionInstrZeroConstant extends ExpressionBase<InsnNode>{
 	@Override
 	public Type getType() {
 		final Type type;
-		final int opcode = insn.getOpcode();
-		switch (opcode) {
-		case Opcodes.ACONST_NULL: type = null; break;
-		case Opcodes.ICONST_M1:
-		case Opcodes.ICONST_0:
-		case Opcodes.ICONST_1:
-		case Opcodes.ICONST_2:
-		case Opcodes.ICONST_3:
-		case Opcodes.ICONST_4:
-		case Opcodes.ICONST_5: type = Type.INT_TYPE; break;
-		case Opcodes.LCONST_0:
-		case Opcodes.LCONST_1: type = Type.LONG_TYPE; break;
-		case Opcodes.FCONST_0:
-		case Opcodes.FCONST_1: type = Type.FLOAT_TYPE; break;
-		case Opcodes.DCONST_0:
-		case Opcodes.DCONST_1: type = Type.DOUBLE_TYPE; break;
-		default:
-			throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
+		if (insn == null) {
+			type = null;
+		}
+		else {
+			final int opcode = insn.getOpcode();
+			switch (opcode) {
+			case Opcodes.ACONST_NULL: type = null; break;
+			case Opcodes.ICONST_M1:
+			case Opcodes.ICONST_0:
+			case Opcodes.ICONST_1:
+			case Opcodes.ICONST_2:
+			case Opcodes.ICONST_3:
+			case Opcodes.ICONST_4:
+			case Opcodes.ICONST_5: type = Type.INT_TYPE; break;
+			case Opcodes.LCONST_0:
+			case Opcodes.LCONST_1: type = Type.LONG_TYPE; break;
+			case Opcodes.FCONST_0:
+			case Opcodes.FCONST_1: type = Type.FLOAT_TYPE; break;
+			case Opcodes.DCONST_0:
+			case Opcodes.DCONST_1: type = Type.DOUBLE_TYPE; break;
+			default:
+				throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
+			}
 		}
 		return type;
 	}

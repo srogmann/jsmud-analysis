@@ -185,12 +185,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		LabelNode currentLabel = null;
 		final Type[] typeLocals = new Type[methodNode.maxLocals];
 		final Type[] argTypes = Type.getArgumentTypes(methodNode.desc);
-		final int offsetArg = ((Opcodes.ACC_STATIC & methodNode.access) != 0) ? 0 : 1;
-		if (offsetArg + argTypes.length > typeLocals.length) {
-			throw new JvmException(String.format("More arguments than local variables: offsetArg=%d, argTypes.len=%d, typeLocals.len=%d",
-					Integer.valueOf(offsetArg), Integer.valueOf(argTypes.length), Integer.valueOf(typeLocals.length)));
+		if (argTypes.length > 0 && methodNode.instructions.size() > 0) {
+			final int offsetArg = ((Opcodes.ACC_STATIC & methodNode.access) != 0) ? 0 : 1;
+			if (offsetArg + argTypes.length > typeLocals.length) {
+				throw new JvmException(String.format("More arguments than local variables: offsetArg=%d, argTypes.len=%d, typeLocals.len=%d",
+						Integer.valueOf(offsetArg), Integer.valueOf(argTypes.length), Integer.valueOf(typeLocals.length)));
+			}
+			System.arraycopy(argTypes, 0, typeLocals, offsetArg, argTypes.length);
 		}
-		System.arraycopy(argTypes, 0, typeLocals, offsetArg, argTypes.length);
 
 		//System.out.println(String.format("Class %s, Method %s%s", classNode.name, methodNode.name, methodNode.desc));
 		final InsnList instructions = methodNode.instructions;
