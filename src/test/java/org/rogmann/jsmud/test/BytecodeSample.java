@@ -42,6 +42,7 @@ public class BytecodeSample {
 	public static int arrays() {
 		final byte[] aBuf = { 0, 0x31, (byte) 0xe0 };
 		final long[] aLong = new long[5];
+		aLong[0] = aLong[1] = 7L;
 		aLong[3] -= aLong[4];
 		aLong[3] = -aLong[5];
 		final int s = (aBuf[2] & 0xff) + (aLong.length << 2);

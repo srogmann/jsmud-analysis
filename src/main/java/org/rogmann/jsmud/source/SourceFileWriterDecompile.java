@@ -42,6 +42,7 @@ import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.JvmException;
+import org.rogmann.jsmud.vm.OpcodeDisplay;
 
 /**
  * Source-file-writer which tries to decompile bytecode.
@@ -191,11 +192,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		System.arraycopy(argTypes, 0, typeLocals, offsetArg, argTypes.length);
 
-		System.out.println(String.format("Class %s, Method %s%s", classNode.name, methodNode.name, methodNode.desc));
+		//System.out.println(String.format("Class %s, Method %s%s", classNode.name, methodNode.name, methodNode.desc));
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
-			System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
+			//System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
 			final int type = instr.getType();
 			if (type == AbstractInsnNode.LINE) {
 				final LineNumberNode lnn = (LineNumberNode) instr;
@@ -517,70 +518,87 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				statements.add(new StatementArrayStore(iz, exprArray, exprIndex, exprValue));
 			}
 		}
-		else if (opcode == Opcodes.DUP) {
+		else if (opcode == Opcodes.DUP
+				|| (opcode == Opcodes.DUP2 && ValueCategory.isCat2(stack.peek()))) {
+			if (opcode == Opcodes.DUP2) {
+				// form 2 of DUP 2: long or double.
+				statements.add(new StatementComment("DUP2(cat2)->"));
+			}
 			final ExpressionBase<?> expr = stack.pop();
-			if (expr instanceof ExpressionDuplicate) {
-				// There is a StatementExpressionDuplicated already.  
-				stack.push(expr);
-				stack.push(expr);
-			}
-			else {
-				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr,
-						statements, stack, dupCounter);
-				stack.push(exprDuplicate);
-			}
+			final ExpressionBase<?> exprDuplicated = createStatementExpressionDuplicated(expr,
+					statements, stack, dupCounter);
+			stack.push(exprDuplicated);
 		}
-		else if (opcode == Opcodes.DUP_X1 || opcode == Opcodes.DUP2_X1) {
-			if (opcode == Opcodes.DUP2_X1) {
-				// long and double use two entries on stack.
-				// TODO For a correct handling of DUP2_X1 we should know the type expressions.
-				statements.add(new StatementComment("DUP2_X1(assume long)!->"));
-			}
+		else if (opcode == Opcodes.DUP_X1
+				|| opcode == Opcodes.DUP_X2
+				|| (opcode == Opcodes.DUP2_X1 && ValueCategory.isCat2(stack.peek()))
+				|| (opcode == Opcodes.DUP2_X2 && ValueCategory.isCat2(stack.peek()))) {
 			final ExpressionBase<?> expr1 = stack.pop();
 			final ExpressionBase<?> expr2 = stack.pop();
-			if (expr1 instanceof ExpressionDuplicate) {
-				// There is a StatementExpressionDuplicated already.  
-				stack.push(expr1);
-				stack.push(expr2);
-				stack.push(expr1);
+			final ValueCategory catExpr1 = ValueCategory.lookup(expr1);
+			final ValueCategory catExpr2 = ValueCategory.lookup(expr2);
+			ExpressionBase<?> expr3 = null;
+			if (opcode == Opcodes.DUP_X2) {
+				// category 2: long and double use two entries on stack.
+				statements.add(new StatementComment(String.format("DUP_X2(expr2 is %s)->", catExpr2)));
+				if (catExpr2 == ValueCategory.CAT1) {
+					expr3 = stack.pop();
+				}
 			}
-			else {
-				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr1,
-						statements, stack, dupCounter);
-				stack.push(expr2);
-				stack.push(exprDuplicate);
+			else if (opcode == Opcodes.DUP2_X1 || opcode ==Opcodes.DUP2_X2) {
+				statements.add(new StatementComment(String.format("%s(%s %s)->",
+						OpcodeDisplay.lookup(opcode), catExpr2, catExpr1)));
+				if (opcode == Opcodes.DUP2_X2 && catExpr2 == ValueCategory.CAT1) {
+					expr3 = stack.pop();
+				}
 			}
+			final ExpressionBase<?> exprDuplicated = createStatementExpressionDuplicated(expr1,
+					statements, stack, dupCounter);
+			if (expr3 != null) {
+				stack.push(expr3);
+			}
+			stack.push(expr2);
+			stack.push(exprDuplicated);
 		}
 		else if (opcode == Opcodes.DUP2) {
-			// long and double use two entries on stack.
-			// TODO For a correct handling of DUP2 we should know the type expressions.
-			statements.add(new StatementComment("DUP2!->"));
+			// long and double use two entries on stack, see DUP2/cat2 above at DUP.
+			statements.add(new StatementComment("DUP2(cat1)!->"));
 			final ExpressionBase<?> expr1 = stack.pop();
 			final ExpressionBase<?> expr2 = stack.pop();
-			final ExpressionBase<?> expr1Dup;
-			final ExpressionBase<?> expr2Dup;
-			if (expr2 instanceof ExpressionDuplicate) {
-				// There is a StatementExpressionDuplicated already.  
-				stack.push(expr2);
-				expr2Dup = expr2;
-			}
-			else {
-				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr2,
-						statements, stack, dupCounter);
-				expr2Dup = exprDuplicate;
-			}
-			if (expr1 instanceof ExpressionDuplicate) {
-				// There is a StatementExpressionDuplicated already.  
-				stack.push(expr1);
-				expr1Dup = expr1;
-			}
-			else {
-				final ExpressionDuplicate<?> exprDuplicate = createStatementExpressionDuplicated(expr1,
-						statements, stack, dupCounter);
-				expr1Dup = exprDuplicate;
-			}
+			final ExpressionBase<?> expr2Dup = createStatementExpressionDuplicated(expr2,
+					statements, stack, dupCounter);
+			final ExpressionBase<?> expr1Dup = createStatementExpressionDuplicated(expr1,
+					statements, stack, dupCounter);
 			stack.push(expr2Dup);
 			stack.push(expr1Dup);
+		}
+		else if (opcode == Opcodes.DUP2_X1
+				|| opcode == Opcodes.DUP2_X2) {
+			final ExpressionBase<?> expr1 = stack.pop();
+			final ExpressionBase<?> expr2 = stack.pop();
+			final ExpressionBase<?> expr3 = stack.pop();
+			ExpressionBase<?> expr4 = null;
+			// Category of expression 1 is CAT2 (CAT1 is above at DUP_X1).
+			final ValueCategory catExpr1 = ValueCategory.lookup(expr1);
+			final ValueCategory catExpr2 = ValueCategory.lookup(expr2);
+			final ValueCategory catExpr3 = ValueCategory.lookup(expr3);
+			statements.add(new StatementComment(String.format("%s(%s %s %s)->",
+					OpcodeDisplay.lookup(opcode), catExpr3, catExpr2, catExpr1)));
+			if (opcode == Opcodes.DUP2_X2 && catExpr3 == ValueCategory.CAT1) {
+				expr4 = stack.pop();
+			}
+			
+			final ExpressionBase<?> expr2Duplicated = createStatementExpressionDuplicated(expr2,
+					statements, stack, dupCounter);
+			final ExpressionBase<?> expr1Duplicated = createStatementExpressionDuplicated(expr1,
+					statements, stack, dupCounter);
+
+			if (expr4 != null) {
+				stack.push(expr4);
+			}
+			stack.push(expr3);
+			stack.push(expr2Duplicated);
+			stack.push(expr1Duplicated);
 		}
 		else if (opcode == Opcodes.POP) {
 			if (stack.size() == 0) {
@@ -984,22 +1002,30 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	}
 
 	/**
-	 * Creates a StatementExpressionDuplicated and adds it to the statements.
-	 * The duplicated expression is pushed onto the stack.
+	 * If the expression is a already duplicated expression it is put on stack and returned.
+	 * Otherwise a StatementExpressionDuplicated is created and added to the statements and put on stack.
 	 * @param expr expression to be duplicated
 	 * @param statements list of statements
 	 * @param stack expression-stack
 	 * @param dupCounter dup-counter
-	 * @return duplicated expression
+	 * @return (possibly duplicated) expression
 	 */
-	public static ExpressionDuplicate<?> createStatementExpressionDuplicated(final ExpressionBase<?> expr,
+	public static ExpressionBase<?> createStatementExpressionDuplicated(final ExpressionBase<?> expr,
 			final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter) {
-		final String dummyName = createTempName(dupCounter);
-		final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
-		final ExpressionDuplicate<?> exprDuplicate = new ExpressionDuplicate<>(stmtExprDuplicated);
-		statements.add(stmtExprDuplicated);
-		stack.push(exprDuplicate);
-		return exprDuplicate;
+		final ExpressionBase<?> exprDuplicated;
+		if (expr instanceof ExpressionDuplicate) {
+			// There is a StatementExpressionDuplicated already.  
+			stack.push(expr);
+			exprDuplicated = expr;
+		}
+		else {
+			final String dummyName = createTempName(dupCounter);
+			final StatementExpressionDuplicated<?> stmtExprDuplicated = new StatementExpressionDuplicated<>(expr, dummyName);
+			exprDuplicated = new ExpressionDuplicate<>(stmtExprDuplicated);
+			statements.add(stmtExprDuplicated);
+			stack.push(exprDuplicated);
+		}
+		return exprDuplicated;
 	}
 
 	/**
