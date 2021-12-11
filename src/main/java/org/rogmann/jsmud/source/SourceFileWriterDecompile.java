@@ -457,7 +457,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 	}
 
-	private static void processInstructionInsn(final InsnNode iz, final MethodNode methodNode,
+	private void processInstructionInsn(final InsnNode iz, final MethodNode methodNode,
 			final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter) {
 		final int opcode = iz.getOpcode();
 		if (opcode == Opcodes.ACONST_NULL
@@ -602,6 +602,9 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		else if (opcode == Opcodes.POP) {
 			if (stack.size() == 0) {
+				if (isFailFast) {
+					throw new JvmException("Empty stack at pop");
+				}
 				// TODO TABLESWITCH (POP after IF...) ...
 				statements.add(new StatementComment("empty stack at pop"));
 			}
@@ -609,6 +612,19 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final ExpressionBase<?> expr = stack.pop();
 				statements.add(new StatementExpression<>(expr));
 			}
+		}
+		else if (opcode == Opcodes.POP2) {
+			if (stack.size() == 0) {
+				throw new JvmException("Empty stack at POP2");
+			}
+			final ExpressionBase<?> expr1 = stack.pop();
+			final ValueCategory catExpr1 = ValueCategory.lookup(expr1);
+			statements.add(new StatementComment(String.format("POP2(%s %s)->", catExpr1)));
+			if (catExpr1 == ValueCategory.CAT1) {
+				final ExpressionBase<?> expr2 = stack.pop();
+				statements.add(new StatementExpression<>(expr2));
+			}
+			statements.add(new StatementExpression<>(expr1));
 		}
 		else if (opcode == Opcodes.MONITORENTER
 				|| opcode == Opcodes.MONITOREXIT) {
