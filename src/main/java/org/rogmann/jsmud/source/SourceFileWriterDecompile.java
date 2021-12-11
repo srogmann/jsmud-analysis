@@ -182,12 +182,20 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final Map<Label, String> mapUsedLabels = new IdentityHashMap<>();
 		final AtomicInteger dupCounter = new AtomicInteger();
 		LabelNode currentLabel = null;
+		final Type[] typeLocals = new Type[methodNode.maxLocals];
+		final Type[] argTypes = Type.getArgumentTypes(methodNode.desc);
+		final int offsetArg = ((Opcodes.ACC_STATIC & methodNode.access) != 0) ? 0 : 1;
+		if (offsetArg + argTypes.length > typeLocals.length) {
+			throw new JvmException(String.format("More arguments than local variables: offsetArg=%d, argTypes.len=%d, typeLocals.len=%d",
+					Integer.valueOf(offsetArg), Integer.valueOf(argTypes.length), Integer.valueOf(typeLocals.length)));
+		}
+		System.arraycopy(argTypes, 0, typeLocals, offsetArg, argTypes.length);
 
-		//System.out.println(String.format("Class %s, Method %s%s", classNode.name, methodNode.name, methodNode.desc));
+		System.out.println(String.format("Class %s, Method %s%s", classNode.name, methodNode.name, methodNode.desc));
 		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
-			//System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
+			System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
 			final int type = instr.getType();
 			if (type == AbstractInsnNode.LINE) {
 				final LineNumberNode lnn = (LineNumberNode) instr;
@@ -225,7 +233,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			mapPcLine.put(Integer.valueOf(i), currLine);
 
 			try {
-				processInstruction(classNode, methodNode, instr, statements, stack, dupCounter, mapUsedLabels);
+				processInstruction(classNode, methodNode, instr, statements, stack,
+						typeLocals, dupCounter, mapUsedLabels);
 			} catch (EmptyStackException e) {
 				throw new JvmException(String.format("Unexpected empty expression-stack at instruction %d (%s) of method %s%s",
 						Integer.valueOf(methodNode.instructions.indexOf(instr)),
@@ -243,12 +252,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param instr current instruction
 	 * @param statements list of statements
 	 * @param stack stack of expressions
+	 * @param typeLocals types of local variables
 	 * @param dupCounter counter of dup-statements (dummy dup-variables)
 	 * @param mapUsedLabels map of used labels
 	 */
 	public void processInstruction(final ClassNode classNode, final MethodNode methodNode,
 			final AbstractInsnNode instr, final List<StatementBase> statements,
-			final Stack<ExpressionBase<?>> stack, AtomicInteger dupCounter, final Map<Label, String> mapUsedLabels) {
+			final Stack<ExpressionBase<?>> stack, final Type[] typeLocals,
+			final AtomicInteger dupCounter, final Map<Label, String> mapUsedLabels) {
 		final int opcode = instr.getOpcode();
 		final int type = instr.getType();
 		if (type == AbstractInsnNode.LABEL) {
@@ -301,7 +312,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					|| opcode == Opcodes.LLOAD
 					|| opcode == Opcodes.FLOAD
 					|| opcode == Opcodes.DLOAD) {
-				final ExpressionVariableLoad exprVi = new ExpressionVariableLoad(vi, methodNode);
+				final ExpressionVariableLoad exprVi = new ExpressionVariableLoad(vi,
+						typeLocals[vi.var], methodNode);
 				stack.push(exprVi);
 			}
 			else if (opcode == Opcodes.ASTORE
@@ -317,7 +329,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				}
 				else {
 					switch (opcode) {
-					case Opcodes.ASTORE: typeExpr = Type.getType("Ljava/lang/Object;"); break; // TODO better guess?
+					case Opcodes.ASTORE: typeExpr = (exprValue.getType() != null) ?
+							exprValue.getType() : Type.getType("Ljava/lang/Object;"); break;
 					case Opcodes.ISTORE: typeExpr = Type.INT_TYPE; break;
 					case Opcodes.LSTORE: typeExpr = Type.LONG_TYPE; break;
 					case Opcodes.FSTORE: typeExpr = Type.FLOAT_TYPE; break;
@@ -327,6 +340,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				}
 				final StatementVariableStore stmtStore = new StatementVariableStore(vi,
 						methodNode, typeExpr, exprValue);
+				typeLocals[vi.var] = typeExpr;
 				statements.add(stmtStore);
 			}
 			else {

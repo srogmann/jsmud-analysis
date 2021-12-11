@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.InsnNode;
 import org.rogmann.jsmud.vm.JvmException;
 
@@ -121,6 +122,12 @@ public class ExpressionCompare extends ExpressionBase<InsnNode> {
 					&& !Double.valueOf(Double.NaN).equals(cst);
 		}
 		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Type getType() {
+		return Type.INT_TYPE;
 	}
 
 	/**
