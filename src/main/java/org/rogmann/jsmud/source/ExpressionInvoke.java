@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
@@ -30,6 +31,12 @@ public class ExpressionInvoke extends ExpressionBase<MethodInsnNode> {
 		this.classNode = classNode;
 		this.exprObj = exprObj;
 		this.exprArgs = exprArgs;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public Type getType() {
+		return Type.getReturnType(insn.desc);
 	}
 
 	/** {@inheritDoc} */
