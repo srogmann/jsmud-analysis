@@ -36,7 +36,7 @@ import org.rogmann.jsmud.vm.Utils;
 public class SourceFileWriter {
 
 	/** Java-package "java.lang." */
-	private static final String PKG_JAVA_LANG = "java.lang.";
+	private static final String PKG_JAVA_LANG = "java.lang";
 
 	/** extension of the generated file (e.g. "java" or "asm") */
 	private final String extension;
@@ -136,6 +136,8 @@ public class SourceFileWriter {
 		sb.append(" {"); writeLine(header, sb);
 		writeLine(header, "");
 		level++;
+		
+		final String packageThis = Utils.getPackage(node.name.replace('/', '.'));
 
 		// Append fields.
 		{
@@ -143,7 +145,7 @@ public class SourceFileWriter {
 			for (final FieldNode fieldNode : node.fields) {
 				appendAccessField(sb, fieldNode.access);
 				final Type type = Type.getType(fieldNode.desc);
-				String className = simplifyClassName(type);
+				String className = simplifyClassName(type, packageThis);
 				sb.append(className);
 				sb.append(' ').append(fieldNode.name);
 				sb.append(';'); writeLine(blockFields, sb);
@@ -180,10 +182,7 @@ public class SourceFileWriter {
 				if (i > 0) {
 					sb.append(", ");
 				}
-				String className = argTypes[i].getClassName();
-				if (className.startsWith(PKG_JAVA_LANG)) {
-					className = className.substring(PKG_JAVA_LANG.length());
-				}
+				String className = simplifyClassName(argTypes[i].getClassName());
 				sb.append(className);
 				final String argName;
 				if (localVariables != null && indexFirstArg + i < anzLocVar) {
@@ -244,7 +243,18 @@ public class SourceFileWriter {
 	 */
 	public static String simplifyClassName(final Type type) {
 		String className = type.getClassName();
-		return simplifyClassName(className);
+		return simplifyClassName(className, null);
+	}
+
+	/**
+	 * Removes "java.lang." in a class-name.
+	 * @param type type
+	 * @param packageThis package of current class ("this")
+	 * @return simplified class-name
+	 */
+	public static String simplifyClassName(final Type type, final String packageThis) {
+		String className = type.getClassName();
+		return simplifyClassName(className, packageThis);
 	}
 
 	/**
@@ -253,9 +263,23 @@ public class SourceFileWriter {
 	 * @return simplified class-name
 	 */
 	public static String simplifyClassName(final String className) {
+		return simplifyClassName(className, null);
+	}
+
+	/**
+	 * Removes "java.lang." in a class-name.
+	 * @param className class-name, e.g. "java.lang.System" or "org.apache.abc.Xyz"
+	 * @param packageThis package of current class ("this")
+	 * @return simplified class-name
+	 */
+	public static String simplifyClassName(final String className, final String packageThis) {
 		String name = className;
-		if (name.startsWith(PKG_JAVA_LANG) && name.indexOf('.', PKG_JAVA_LANG.length()) < 0) {
-			name = className.substring(PKG_JAVA_LANG.length());
+		final String classPackage = Utils.getPackage(className);
+		if (PKG_JAVA_LANG.equals(classPackage)) {
+			name = className.substring(PKG_JAVA_LANG.length()  + 1);
+		}
+		else if (classPackage.equals(packageThis)) {
+			name = className.substring(packageThis.length() + 1);
 		}
 		return name;
 	}

@@ -2,6 +2,7 @@ package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.rogmann.jsmud.vm.Utils;
 
 /**
  * Field-instruction which gets a static field.
@@ -26,7 +27,8 @@ public class ExpressionGetStatic extends ExpressionBase<FieldInsnNode> {
 	public void render(StringBuilder sb) {
 		if (!insn.owner.equals(classNode.name)) {
 			String name = insn.owner.replace('/', '.');
-			sb.append(SourceFileWriter.simplifyClassName(name));
+			final String packageThis = Utils.getPackage(classNode.name.replace('/', '.'));
+			sb.append(SourceFileWriter.simplifyClassName(name, packageThis));
 			sb.append('.');
 		}
 		sb.append(insn.name);

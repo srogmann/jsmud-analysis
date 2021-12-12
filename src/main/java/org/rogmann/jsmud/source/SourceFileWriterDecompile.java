@@ -355,7 +355,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					}
 				}
 				final StatementVariableStore stmtStore = new StatementVariableStore(vi,
-						methodNode, typeExpr, exprValue);
+						classNode, methodNode, typeExpr, exprValue);
 				typeLocals[vi.var] = typeExpr;
 				statements.add(stmtStore);
 			}
@@ -913,7 +913,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					}
 					// We have NEW DUP INVOKESPECIAL.
 					final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) stmtExprDuplicated.getExpression();
-					final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, exprNew, exprArgs);
+					final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, classNode, exprNew, exprArgs);
 					stack.push(exprConstr);
 				}
 			}

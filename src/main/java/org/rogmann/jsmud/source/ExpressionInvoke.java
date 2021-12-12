@@ -4,6 +4,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.rogmann.jsmud.vm.Utils;
 
 /**
  * Method-instruction which executes a method returning a result.
@@ -42,9 +43,10 @@ public class ExpressionInvoke extends ExpressionBase<MethodInsnNode> {
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
+		final String packageThis = Utils.getPackage(classNode.name.replace('/', '.'));
 		if (insn.getOpcode() == Opcodes.INVOKESTATIC) {
 			final String className = insn.owner.replace('/', '.');
-			sb.append(SourceFileWriter.simplifyClassName(className));
+			sb.append(SourceFileWriter.simplifyClassName(className, packageThis));
 		}
 		else {
 			exprObj.render(sb);
