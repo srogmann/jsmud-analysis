@@ -647,7 +647,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			final ExpressionBase<?> expr1 = stack.pop();
 			final ValueCategory catExpr1 = ValueCategory.lookup(expr1);
-			statements.add(new StatementComment(String.format("POP2(%s %s)->", catExpr1)));
+			statements.add(new StatementComment(String.format("POP2(%s)->", catExpr1)));
 			if (catExpr1 == ValueCategory.CAT1) {
 				final ExpressionBase<?> expr2 = stack.pop();
 				statements.add(new StatementExpression<>(expr2));
