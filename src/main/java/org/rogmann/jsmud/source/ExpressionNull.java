@@ -18,4 +18,11 @@ public class ExpressionNull extends ExpressionInstrZeroConstant {
 		sb.append("null");
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(null);",
+				getClass().getSimpleName());
+	}
+
 }
