@@ -34,4 +34,10 @@ public class ExpressionGetField extends ExpressionBase<FieldInsnNode> {
 		sb.append(insn.name);
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s)", getClass().getSimpleName(), insn.name);
+	}
+
 }

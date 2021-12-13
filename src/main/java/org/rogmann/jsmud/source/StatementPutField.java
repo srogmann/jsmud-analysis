@@ -36,4 +36,11 @@ public class StatementPutField extends StatementInstr<FieldInsnNode>{
 		sb.append(';');
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		return String.format("%s(%s = %s)", getClass().getSimpleName(),
+				insn.name, exprValue);
+	}
+
 }
