@@ -148,6 +148,11 @@ public class SourceFileWriter {
 				String className = simplifyClassName(type, packageThis);
 				sb.append(className);
 				sb.append(' ').append(fieldNode.name);
+				final Object initVal = fieldNode.value;
+				if (initVal != null) {
+					sb.append(' ').append('=').append(' ');
+					Utils.appendConstant(sb, initVal);
+				}
 				sb.append(';'); writeLine(blockFields, sb);
 			}
 		}

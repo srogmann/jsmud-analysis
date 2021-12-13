@@ -8,6 +8,8 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 public class BytecodeSample {
+	public static final String VERSION = "0.1";
+
 	private String name;
 	private int num;
 	private int num2;
