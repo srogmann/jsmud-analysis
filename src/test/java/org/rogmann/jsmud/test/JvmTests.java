@@ -72,7 +72,7 @@ public class JvmTests {
 //		testsChar();
 //		testsShort();
 //		testsLong();
-//		testsFloat();
+		testsFloat();
 //		testsDouble();
 //		testsArray();
 //		testsArrayIndex();
@@ -106,7 +106,7 @@ public class JvmTests {
 //		testsLambdaReturnPrivate();
 //		testsLambdaAndSecurity();
 //		testsLambdaThreadLocal();
-		testsMethodChoosing();
+//		testsMethodChoosing();
 //		testsMethodRef();
 //		testsMethodArrayArgs();
 //		testsSyntheticMethod();
@@ -272,7 +272,8 @@ public class JvmTests {
 		assertTrue("a > b", a > b);
 		assertTrue("b < a", b < a);
 		
-		assertTrue("!(5 < NaN)", !(Float.parseFloat("5.0") < Float.NaN));
+		final boolean bFiveLowerNaN = Float.parseFloat("5.0") < Float.NaN;
+		assertTrue("!(5 < NaN)", !bFiveLowerNaN);
 	}
 
 	@JsmudTest

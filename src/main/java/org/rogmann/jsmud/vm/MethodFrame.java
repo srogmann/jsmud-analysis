@@ -1175,7 +1175,7 @@ whileInstr:
 					final float b = ((Float) stack.pop()).floatValue();
 					final float a = ((Float) stack.pop()).floatValue();
 					final int res;
-					if (a == Float.NaN || b == Float.NaN) {
+					if (Float.isNaN(a) || Float.isNaN(b)) {
 						res = -1;
 					}
 					else {
@@ -1189,7 +1189,7 @@ whileInstr:
 					final float b = ((Float) stack.pop()).floatValue();
 					final float a = ((Float) stack.pop()).floatValue();
 					final int res;
-					if (a == Float.NaN || b == Float.NaN) {
+					if (Float.isNaN(a) || Float.isNaN(b)) {
 						res = 1;
 					}
 					else {
@@ -1203,7 +1203,7 @@ whileInstr:
 					final double b = ((Double) stack.pop()).doubleValue();
 					final double a = ((Double) stack.pop()).doubleValue();
 					final int res;
-					if (a == Double.NaN || b == Double.NaN) {
+					if (Double.isNaN(a) || Double.isNaN(b)) {
 						res = -1;
 					}
 					else {
@@ -1217,7 +1217,7 @@ whileInstr:
 					final double b = ((Double) stack.pop()).doubleValue();
 					final double a = ((Double) stack.pop()).doubleValue();
 					final int res;
-					if (a == Double.NaN || b == Double.NaN) {
+					if (Double.isNaN(a) || Double.isNaN(b)) {
 						res = +1;
 					}
 					else {
