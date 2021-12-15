@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.log.LoggerFactorySystemOut;
+import org.rogmann.jsmud.vm.JsmudConfiguration;
 import org.rogmann.jsmud.vm.JvmHelper;
 
 @TestMethodOrder(value = OrderAnnotation.class)
@@ -20,6 +21,9 @@ public class JvmTestsJUnit {
 	@BeforeAll
 	static void beforeClass() {
 		LoggerFactory.setLoggerSpi(new LoggerFactorySystemOut(System.out, false, false));
+		
+		System.setProperty(JsmudConfiguration.KEY_PREFIX + "CallSiteDefaultClassLoaderOnly", "false");
+		System.setProperty(JsmudConfiguration.KEY_PREFIX + "CallSiteDontUseOrigCl", "false");
 
 		final String packageClass = JvmTestsJUnit.class.getName().replaceFirst("[.][^.]*$", "");
 		final String nameClassA = packageClass + '.' + "ClassA";

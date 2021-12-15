@@ -7,13 +7,25 @@ import java.security.AccessController;
  */
 public class JsmudConfiguration {
 	/** prefix of configuration-keys */
-	private static final String KEY_PREFIX = "jsmud.";
+	public static final String KEY_PREFIX = "jsmud.";
 
 	/** <code>true</code> if a call-site should be simulated via proxy, <code>false</code> if a call-site should get a generated class (<code>false</code> is default) */
 	protected final boolean isCallsiteViaProxy = getProperty("CallsiteViaProxy", false);
 
 	/** <code>true</code> if System.exit() should be replaced by an exception */
 	protected final boolean isCatchSystemExit = getProperty("CatchSystemExit", true);
+
+	/** optional folder used to dump generated class-site-classes */
+	protected final String folderDumpCallSites = getProperty("FolderDumpCallSites");
+
+	/**
+	 * <code>true</code> if the call-site generator should use the default class-loader only.
+	 * A disadvantage is that INVOKEDYNAMIC-statements in some private methods or classes can't be generated. 
+	 */
+	protected final boolean isCallSiteDefaultClassLoaderOnly = getProperty("CallSiteDefaultClassLoaderOnly", true);
+
+	/** <code>true</code> if defining of classes in original class-loader is forbidden */
+	protected final boolean isCallSiteDontUseOrigCl = getProperty("CallSiteDontUseOrigCl", true);
 
 	/** <code>true</code>, if {@link AccessController} should be executed by the JVM (default is <code>true</code>) */
 	protected final boolean isEmulateAccessController = getProperty("EmulateAccessController", true); 
@@ -25,7 +37,7 @@ public class JsmudConfiguration {
 	protected final boolean isSimulateReflection = getProperty("SimulateReflection", true);
 
 	/**
-	 * Gets the value of the given property.
+	 * Gets the value of the given boolean property.
 	 * The key's prefix is "jsmud.".
 	 * @param name property-suffix
 	 * @param flagDefault default-flag
@@ -40,4 +52,16 @@ public class JsmudConfiguration {
 		}
 		return flag;
 	}
+
+	/**
+	 * Gets the value of the given string-valued property.
+	 * The key's prefix is "jsmud.".
+	 * @param name property-suffix
+	 * @return value or <code>null</code>
+	 */
+	@SuppressWarnings("static-method")
+	protected String getProperty(final String name) {
+		return System.getProperty(KEY_PREFIX + name);
+	}
+
 }

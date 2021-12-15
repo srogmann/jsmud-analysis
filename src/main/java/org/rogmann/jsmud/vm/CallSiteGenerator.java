@@ -43,12 +43,6 @@ public class CallSiteGenerator {
 
 	/** <code>true</code> if an original classloader had been used (e.g. private interface) */
 	private final AtomicBoolean usedOriginalCl = new AtomicBoolean(false);
-	
-	/** <code>true</code> if defining of classes in original class-loader is forbidden */
-	private static final boolean DONT_USE_ORIG_CL = Boolean.getBoolean(CallSiteGenerator.class.getName() + ".dontUseOriginalClassLoader");
-
-	/** optional folder used to dump generated class-site-classes */
-	private static final String FOLDER_DUMP_CALL_SITES = System.getProperty(CallSiteGenerator.class.getName() + ".folderCallSites");
 
 	/** type of the {@link CallSiteContext}-instance */
 	private static final Type TYPE_CALL_SITE_CONTEXT = Type.getType(CallSiteContext.class);
@@ -82,6 +76,9 @@ public class CallSiteGenerator {
 	/** map from INVOKEDYNAMIC-instruction to call-site */
 	private final ConcurrentMap<InvokeDynamicInstructionKey, Class<?>> mapCallSiteClasses = new ConcurrentHashMap<>();
 
+	/** jsmud-configuration */
+	private final JsmudConfiguration config;
+
 	/**
 	 * Internal key-class (internal because of non-considered equals-contract).
 	 */
@@ -110,10 +107,13 @@ public class CallSiteGenerator {
 	/**
 	 * Constructor
 	 * @param classLoader class-loader for generated classes
+	 * @param vm class-registry
+	 * @param config jsmud-configuration
 	 */
-	public CallSiteGenerator(final JsmudClassLoader classLoader, final VM vm) {
+	public CallSiteGenerator(final JsmudClassLoader classLoader, final VM vm, final JsmudConfiguration config) {
 		this.classLoader = classLoader;
 		this.vm = vm;
+		this.config = config;
 	}
 
 	/**
@@ -192,7 +192,13 @@ public class CallSiteGenerator {
 					idin.name, idin.desc, classOwner, Integer.valueOf(tag), Arrays.toString(idin.bsmArgs)));
 		}
 		// Load the interface-class.
-		final ClassLoader clInterface = Utils.getClassLoader(classOwner, classLoader);
+		final ClassLoader clInterface;
+		if (config.isCallSiteDefaultClassLoaderOnly) {
+			clInterface = classLoader;
+		}
+		else {
+			clInterface = Utils.getClassLoader(classOwner, classLoader);
+		}
 		final boolean isDefaultClassLoader = (clInterface == classLoader || clInterface == classLoader.getParent());
 		final Class<?> classIntf;
 		try {
@@ -205,7 +211,7 @@ public class CallSiteGenerator {
 		final boolean isInterfacePrivateOrPackage = !(Modifier.isPublic(classIntf.getModifiers())
 				|| Modifier.isProtected(classIntf.getModifiers()));
 		final boolean isDifferentClassLoader = isInterfacePrivateOrPackage || !isDefaultClassLoader;
-		if (isDifferentClassLoader) {
+		if (isDifferentClassLoader && !config.isCallSiteDefaultClassLoaderOnly) {
 			final long callSiteIdx = COUNTER_CALLSITES_ORIG_CL.incrementAndGet();
 			callSiteName = String.format("%s$jsmudLambda$%d", classOwner.getName(),
 					Long.valueOf(callSiteIdx));
@@ -213,7 +219,7 @@ public class CallSiteGenerator {
 				if (LOG.isDebugEnabled()) {
 					LOG.debug(String.format("Interface (%s) of call-site in (%s) is private", classIntf, classOwner));
 				}
-				if (DONT_USE_ORIG_CL) {
+				if (config.isCallSiteDontUseOrigCl) {
 					throw new JvmException(String.format("Defining call-sites in original classloader has been disabled (interface %s in %s)",
 							clInterface, classOwner));
 				}
@@ -222,7 +228,7 @@ public class CallSiteGenerator {
 				if (LOG.isDebugEnabled()) {
 					LOG.debug(String.format("ClassLoader (%s) of call-site in (%s) is not default", clInterface, classOwner));
 				}
-				if (DONT_USE_ORIG_CL) {
+				if (config.isCallSiteDontUseOrigCl) {
 					throw new JvmException(String.format("Defining call-sites in original classloader (%s) has been disabled (for %s)",
 							clInterface, classOwner));
 				}
@@ -290,8 +296,8 @@ public class CallSiteGenerator {
 		cw.visitEnd();
 		
 		final byte[] bufClass = cw.toByteArray();
-		if (FOLDER_DUMP_CALL_SITES != null) {
-			final File fileCallSiteClass = new File(FOLDER_DUMP_CALL_SITES, callSiteName + ".class");
+		if (config.folderDumpCallSites != null) {
+			final File fileCallSiteClass = new File(config.folderDumpCallSites, callSiteName + ".class");
 			LOG.debug(String.format("Dump call-site-class into (%s)", fileCallSiteClass));
 			try {
 				Files.write(fileCallSiteClass.toPath(), bufClass);
