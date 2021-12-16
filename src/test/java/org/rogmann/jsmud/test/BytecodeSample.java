@@ -35,6 +35,8 @@ public class BytecodeSample {
 		this.name = name;
 		this.num = this.num2 = num; // DUP_X1
 		this.lnum = this.lnum2 = 0x6c6f6e6721L; // DUP2_X1
+		
+		this.name = new String(Integer.toString(this.num += 37));
 	}
 
 	public static void assignments() {

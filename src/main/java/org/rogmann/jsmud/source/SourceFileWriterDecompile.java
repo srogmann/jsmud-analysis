@@ -367,10 +367,45 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else if (type == AbstractInsnNode.FIELD_INSN) {
 			final FieldInsnNode fi = (FieldInsnNode) instr;
 			if (opcode == Opcodes.PUTFIELD) {
+				// Special case: new x(exprs2(y = exprs1(y))).
+				// NEW x; DUP; GETFIELD y; exprs 1; DUP_X1; PUTFIELD y; exprs 2; INVOKE <init>
+				// stack: ..., exprs 1, DUP NEW x, exprs 1
+				// stmts: ..., DUP NEW x, DUP exprs 1
+				// Problem: remaining __DUPs.
 				final ExpressionBase<?> exprValue = stack.pop();
 				final ExpressionBase<?> exprObjInstance = stack.pop();
-				final StatementPutField stmtPutField = new StatementPutField(fi, exprObjInstance, exprValue);
-				statements.add(stmtPutField);
+				final StatementBase lastStmt = peekLastAddedStatement(statements);
+				final boolean ignoreLabels = false;
+				final StatementBase lastStmt2 = peekLastAddedStatement(statements, 2, ignoreLabels);
+				boolean isProcessed = false;
+				if (exprValue instanceof ExpressionDuplicate
+						&& exprObjInstance instanceof ExpressionDuplicate
+						&& lastStmt instanceof StatementExpressionDuplicated<?>
+						&& lastStmt2 instanceof StatementExpressionDuplicated<?>
+						&& stack.size() > 0) {
+					final ExpressionBase<?> exprBefore = stack.peek();
+					final ExpressionDuplicate<?> exprValDupl = (ExpressionDuplicate<?>) exprValue;
+					final ExpressionDuplicate<?> exprObjDupl = (ExpressionDuplicate<?>) exprObjInstance;
+					final StatementExpressionDuplicated<?> stmtExprValDupl = (StatementExpressionDuplicated<?>) lastStmt;
+					final StatementExpressionDuplicated<?> stmtExprObjDupl = (StatementExpressionDuplicated<?>) lastStmt2;
+					if (exprValDupl.getStatementExpressionDuplicated() == stmtExprValDupl
+							&& exprObjDupl.getStatementExpressionDuplicated() == stmtExprObjDupl
+							&& exprBefore == exprValDupl) {
+						final ExpressionPutField exprPutField = new ExpressionPutField(fi,
+								stmtExprObjDupl.getExpression(), stmtExprValDupl.getExpression());
+						stack.pop(); // remove duplicate exprBefore
+						stack.push(exprPutField);
+						statements.add(new StatementComment(String.format("%s = %s",
+								stmtExprObjDupl.getDummyName(), exprObjDupl)));
+						popLastAddedStatement(statements); // remove DUP exprs 1
+						popLastAddedStatement(statements); // remove DUP NEW x
+						isProcessed = true;
+					}
+				}
+				if (!isProcessed) {
+					final StatementPutField stmtPutField = new StatementPutField(fi, exprObjInstance, exprValue);
+					statements.add(stmtPutField);
+				}
 			}
 			else if (opcode == Opcodes.PUTSTATIC) {
 				final ExpressionBase<?> exprValue = stack.pop();
