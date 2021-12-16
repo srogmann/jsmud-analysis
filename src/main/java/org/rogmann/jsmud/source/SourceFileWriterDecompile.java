@@ -395,8 +395,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 								stmtExprObjDupl.getExpression(), stmtExprValDupl.getExpression());
 						stack.pop(); // remove duplicate exprBefore
 						stack.push(exprPutField);
-						statements.add(new StatementComment(String.format("%s = %s",
-								stmtExprObjDupl.getDummyName(), exprObjDupl)));
 						popLastAddedStatement(statements); // remove DUP exprs 1
 						popLastAddedStatement(statements); // remove DUP NEW x
 						isProcessed = true;
