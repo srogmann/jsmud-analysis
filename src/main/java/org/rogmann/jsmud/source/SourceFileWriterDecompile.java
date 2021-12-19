@@ -321,15 +321,25 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				ExpressionBase<?> exprVi = new ExpressionVariableLoad(vi, typeLocals[vi.var], methodNode);
 				if (opcode == Opcodes.ILOAD && lastStmt instanceof StatementVariableIinc) {
 					StatementVariableIinc stmtIinc = (StatementVariableIinc) lastStmt;
-					if (stmtIinc.getInsn().var == vi.var && stmtIinc.insn.incr == 1) {
-						// We found a ++var-Expression.
+					if (stmtIinc.getInsn().var == vi.var) {
 						popLastAddedStatement(statements);
-						exprVi = new ExpressionPrefix<>(stmtIinc.getInsn(), "++", exprVi);
-					}
-					else if (stmtIinc.getInsn().var == vi.var && stmtIinc.insn.incr == -1) {
-						// We found a --var-Expression.
-						popLastAddedStatement(statements);
-						exprVi = new ExpressionPrefix<>(stmtIinc.getInsn(), "--", exprVi);
+						if (stmtIinc.getInsn().var == vi.var && stmtIinc.insn.incr == 1) {
+							// We found a ++var-Expression.
+							exprVi = new ExpressionPrefix<>(stmtIinc.getInsn(), "++", exprVi);
+						}
+						else if (stmtIinc.getInsn().var == vi.var && stmtIinc.insn.incr == -1) {
+							// We found a --var-Expression.
+							exprVi = new ExpressionPrefix<>(stmtIinc.getInsn(), "--", exprVi);
+						}
+						else {
+							final String op = (stmtIinc.insn.incr < 0) ? "-=" : "+=";
+							final int incr = Math.abs(stmtIinc.insn.incr);
+							final IntInsnNode bipush = new IntInsnNode(Opcodes.BIPUSH, incr);
+							final ExpressionInstrIntConstant exprIncr = new ExpressionInstrIntConstant(bipush);
+							exprVi = new ExpressionInfixBinary<>(stmtIinc.getInsn(),
+									op, exprVi, exprIncr);
+						}
+						
 					}
 				}
 				stack.push(exprVi);
