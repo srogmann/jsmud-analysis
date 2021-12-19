@@ -28,6 +28,8 @@ public class BytecodeSample {
 		int i = sample.num;
 		BytecodeSample sample2 = new BytecodeSample("=,=-Test2", ++i);
 		BytecodeSample sample3 = new BytecodeSample("=,=-Test3", i--);
+		BytecodeSample sample5[] = new BytecodeSample[3];
+		sample5[0] = new BytecodeSample(Integer.toString(i += 3), i += 7);
 		System.out.println("Name 2: " + sample2.getName() + '-' + sample3.getName());
 	}
 	

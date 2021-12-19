@@ -284,7 +284,9 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else if (type == AbstractInsnNode.TYPE_INSN) {
 			final TypeInsnNode ti = (TypeInsnNode) instr;
 			if (opcode == Opcodes.NEW) {
-				final ExpressionTypeInstr exprTi = new ExpressionTypeInstr(ti);
+				final boolean isNewRenderingAllowed = !isFailFast;
+				final ExpressionTypeInstr exprTi = new ExpressionTypeInstr(ti,
+						classNode, isNewRenderingAllowed);
 				stack.push(exprTi);
 			}
 			else if (opcode == Opcodes.ANEWARRAY) {
@@ -918,7 +920,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 	}
 
-	private static void processInstructionMethodInsn(final MethodInsnNode mi, final ClassNode classNode,
+	private void processInstructionMethodInsn(final MethodInsnNode mi, final ClassNode classNode,
 			final MethodNode methodNode, final List<StatementBase> statements, final Stack<ExpressionBase<?>> stack) {
 		final int opcode = mi.getOpcode();
 		final Type[] args = Type.getArgumentTypes(mi.desc);
@@ -949,6 +951,13 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, classNode, exprNew, exprArgs);
 					stack.push(exprConstr);
 				}
+				else {
+					if (isFailFast) {
+						throw new JvmException(String.format("Unexpected duplicated expression %s in %s before constructor %s. Expr-args: %s",
+								exprObject, methodNode.name, mi.name, Arrays.toString(exprArgs)));
+					}
+					statements.add(new StatementInvoke(mi, classNode, exprDuplicate, exprArgs));
+				}
 			}
 			else if (exprObject instanceof ExpressionVariableLoad) {
 				final StatementConstructor stmtConstr = new StatementConstructor(mi, classNode, exprObject, exprArgs);
@@ -976,6 +985,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKESTATIC && Type.VOID_TYPE.equals(returnType)) {
+
 			statements.add(new StatementInvoke(mi, classNode, null, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKESTATIC) {
