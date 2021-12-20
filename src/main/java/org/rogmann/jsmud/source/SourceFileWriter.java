@@ -63,7 +63,7 @@ public class SourceFileWriter {
 	private final Map<String, Map<Integer, Integer>> mapMethodInstr = new HashMap<>();
 
 	/** outer list of source-blocks */
-	private final SourceBlockList sourceOuter = new SourceBlockList(0);
+	private final SourceBlockList sourceOuter;
 
 	/**
 	 * Constructor, writes the source-file.
@@ -75,6 +75,7 @@ public class SourceFileWriter {
 	public SourceFileWriter(final String extension, final ClassNode node,
 			final Function<String, ClassNode> innerClassesProvider) throws IOException {
 		this.extension = extension;
+		sourceOuter = new SourceBlockList(0, "outer-class " + node.name.replace('/', '.'));
 		
 		final SourceLines header = new SourceLines(0);
 		sourceOuter.setHeader(header);
@@ -87,7 +88,8 @@ public class SourceFileWriter {
 			writeLine(header, "");
 		}
 		
-		final SourceBlockList sourceBlockList = new SourceBlockList(0);
+		final SourceBlockList sourceBlockList = new SourceBlockList(0,
+				"class " + node.name.replaceFirst(".*[/]", ""));
 		sourceOuter.getList().add(sourceBlockList);
 		writeClass(sourceBlockList, node, innerClassesProvider);
 	}
@@ -158,7 +160,7 @@ public class SourceFileWriter {
 		}
 
 		for (final MethodNode methodNode : node.methods) {
-			SourceBlockList blockMethod = blocks.createSourceBlockList();
+			SourceBlockList blockMethod = blocks.createSourceBlockList("method" + methodNode.name);
 			final SourceLines methodHeader = new SourceLines(blockMethod.getLevel());
 			final SourceLines methodTail = new SourceLines(blockMethod.getLevel());
 			blockMethod.setHeader(methodHeader);
@@ -229,7 +231,8 @@ public class SourceFileWriter {
 				SourceLines blockSep = blocks.createSourceLines();
 				writeLine(blockSep, "");
 
-				final SourceBlockList blockList = blocks.createSourceBlockList();
+				final SourceBlockList blockList = blocks.createSourceBlockList("inner class "
+						+ innerClass.name.replaceFirst(".*[/]", ""));
 				writeClass(blockList, innerClass, innerClassesProvider);
 			}
 		}

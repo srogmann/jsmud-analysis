@@ -61,4 +61,41 @@ public class SourceLines extends SourceBlock {
 		return currentLine - 1;
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	public void dumpStructure(final StringBuilder sb, final int level) {
+		for (int i = 0; i < level; i++) {
+			sb.append(' ');
+		}
+		sb.append("SL");
+		int currMin = Integer.MAX_VALUE;
+		int currMax = Integer.MIN_VALUE;
+		int expMin = Integer.MAX_VALUE;
+		int expMax = Integer.MIN_VALUE;
+		for (SourceLine sourceLine : lines) {
+			final int currLine = sourceLine.getLineCurrent();
+			final int expLine = sourceLine.getLineExpected();
+			currMin = Math.min(currLine, currMin);
+			currMax = Math.max(currLine,  currMax);
+			if (expLine > 0) {
+				expMin = Math.min(expLine, expMin);
+				expMax = Math.max(expLine, expMax);
+			}
+		}
+		if (currMin > 0 || currMax > 0) {
+			sb.append(' ').append(currMin).append("..").append(currMax);
+		}
+		if (expMin < Integer.MAX_VALUE || expMax > 0) {
+			sb.append(" -> ");
+			sb.append(expMin).append("..").append(expMax);
+		}
+		if (lines.size() == 1) {
+			sb.append(", 1 line");
+		}
+		else {
+			sb.append(", ").append(lines.size()).append(" lines");
+		}
+		sb.append(System.lineSeparator());
+	}
+
 }

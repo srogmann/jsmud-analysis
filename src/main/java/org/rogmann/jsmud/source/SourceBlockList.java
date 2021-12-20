@@ -8,6 +8,10 @@ import java.util.List;
  * Block of source-code consisting of header, inner blocks and a trailing block.
  */
 public class SourceBlockList extends SourceBlock {
+
+	/** display name of this block-list */
+	private final String name;
+
 	/** header-block */
 	private SourceLines header;
 	/** list of inner blocks */
@@ -19,8 +23,9 @@ public class SourceBlockList extends SourceBlock {
 	 * Constructor.
 	 * @param level indentation-level
 	 */
-	public SourceBlockList(final int level) {
+	public SourceBlockList(final int level, final String name) {
 		super(level);
+		this.name = name;
 	}
 
 	/**
@@ -59,10 +64,11 @@ public class SourceBlockList extends SourceBlock {
 
 	/**
 	 * Creates a list of blocks and appends it.
+	 * @param name display-name
 	 * @return list of blocks to be filled
 	 */
-	public SourceBlockList createSourceBlockList() {
-		final SourceBlockList block = new SourceBlockList(level + 1);
+	public SourceBlockList createSourceBlockList(final String name) {
+		final SourceBlockList block = new SourceBlockList(level + 1, name);
 		list.add(block);
 		return block;
 	}
@@ -97,6 +103,25 @@ public class SourceBlockList extends SourceBlock {
 			mLastLine = tail.collectLines(sourceLines, mLastLine);
 		}
 		return mLastLine;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void dumpStructure(final StringBuilder sb, final int level) {
+		for (int i = 0; i < level; i++) {
+			sb.append(' ');
+		}
+		sb.append("SBL ").append(name); 
+		sb.append(System.lineSeparator());
+		if (header != null) {
+			header.dumpStructure(sb, level + 1);
+		}
+		for (SourceBlock sourceBlock : list) {
+			sourceBlock.dumpStructure(sb, level + 1);
+		}
+		if (tail != null) {
+			tail.dumpStructure(sb, level + 1);
+		}
 	}
 	
 }

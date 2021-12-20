@@ -50,7 +50,6 @@ import org.rogmann.jsmud.vm.OpcodeDisplay;
  * TODO This class is "work in progress".
  */
 public class SourceFileWriterDecompile extends SourceFileWriter {
-
 	/** <code>true</code> to display bytecode-instructions only (fallback-mode) */
 	private boolean isDisplayInstructionsOnly = false;
 	
@@ -103,6 +102,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 
 		SourceFileWriterDecompile sourceFile = new SourceFileWriterDecompile("java", classNode, cl);
 		final SourceBlockList blockList = sourceFile.getSourceBlockList();
+		
+		//final StringBuilder sb = new StringBuilder(500);
+		//blockList.dumpStructure(sb, 0);
+		//System.out.println(sb);
+		
 		final List<SourceLine> sourceLines = new ArrayList<>(100);
 		blockList.collectLines(sourceLines, 0);
 		final boolean respectSourceLineNumbers = true;

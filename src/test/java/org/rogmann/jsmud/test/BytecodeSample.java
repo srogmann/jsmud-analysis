@@ -21,6 +21,14 @@ public class BytecodeSample {
 		ARRAYS;
 	}
 
+	/** Sample of inner class */
+	static class InnerClass {
+		/** constructor */
+		public InnerClass() {
+			super();
+		}
+	}
+
 	public static void main(final String[] args) {
 		BytecodeSample sample = new BytecodeSample(args[0], 1);
 		System.out.println("Name: " + sample.getName());

@@ -36,4 +36,11 @@ public abstract class SourceBlock {
 	 */
 	public abstract int collectLines(List<SourceLine> sourceLines, int lastLine) throws IOException;
 
+	/**
+	 * Dumps the structure.
+	 * @param sb string-builder
+	 * @param level indentation level
+	 */
+	public abstract void dumpStructure(final StringBuilder sb, final int level);
+
 }
