@@ -123,5 +123,28 @@ public class SourceBlockList extends SourceBlock {
 			tail.dumpStructure(sb, level + 1);
 		}
 	}
+
+	/** {@inheritDoc} */
+	@Override
+	protected void refreshSourceBlockStatistics() {
+		int expMin = Integer.MAX_VALUE;
+		int expMax = Integer.MIN_VALUE;
+		if (header != null) {
+			expMin = Math.min(expMin, header.expectedLineMin);
+			expMax = Math.max(expMax, header.expectedLineMax);
+			numLines += header.numLines;
+		}
+		for (final SourceBlock sourceBlock : list) {
+			sourceBlock.refreshSourceBlockStatistics();
+			expMin = Math.min(expMin, sourceBlock.expectedLineMin);
+			expMax = Math.max(expMax, sourceBlock.expectedLineMax);
+			numLines += sourceBlock.numLines;
+		}
+		if (tail != null) {
+			expMin = Math.min(expMin, tail.expectedLineMin);
+			expMax = Math.max(expMax, tail.expectedLineMax);
+			numLines += tail.numLines;
+		}
+	}
 	
 }

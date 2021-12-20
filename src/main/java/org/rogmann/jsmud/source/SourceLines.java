@@ -98,4 +98,24 @@ public class SourceLines extends SourceBlock {
 		sb.append(System.lineSeparator());
 	}
 
+	/** {@inheritDoc} */
+	@Override
+	protected void refreshSourceBlockStatistics() {
+		int expMin = Integer.MAX_VALUE;
+		int expMax = Integer.MIN_VALUE;
+		for (SourceLine sourceLine : lines) {
+			final int expLine = sourceLine.getLineExpected();
+			if (expLine > 1) {
+				expMin = Math.min(expLine, expMin);
+			}
+			if (expLine > 0) {
+				expMax = Math.max(expLine, expMax);
+			}
+		}
+		expectedLineMin = expMin;
+		expectedLineMax = expMax;
+
+		numLines = lines.size();
+	}
+
 }

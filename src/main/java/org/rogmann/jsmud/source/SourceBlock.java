@@ -11,6 +11,13 @@ public abstract class SourceBlock {
 	/** level of indentation */
 	protected int level;
 
+	// Some source-block statistics
+	//
+
+	protected int expectedLineMin = Integer.MAX_VALUE;
+	protected int expectedLineMax = 0;
+	protected int numLines = 0;
+
 	/**
 	 * Constructor.
 	 * @param level indentation-level
@@ -35,6 +42,9 @@ public abstract class SourceBlock {
 	 * @throws IOException in case of an IO-error
 	 */
 	public abstract int collectLines(List<SourceLine> sourceLines, int lastLine) throws IOException;
+
+	/** Computes the expected minimum and maximum line-numbers of the blocks */
+	protected abstract void refreshSourceBlockStatistics();
 
 	/**
 	 * Dumps the structure.
