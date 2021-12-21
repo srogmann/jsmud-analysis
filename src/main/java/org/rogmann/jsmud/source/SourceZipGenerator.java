@@ -78,7 +78,9 @@ public class SourceZipGenerator {
 								blockList.collectLines(sourceLines, 0);
 								final boolean respectSourceLineNumbers = true;
 								final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(zos, StandardCharsets.UTF_8));
-								sfw.writeLines(bw, sourceLines, "    ", System.lineSeparator(), respectSourceLineNumbers);
+								final boolean dumpLineNumbers = false;
+								sfw.writeLines(bw, sourceLines, "    ", System.lineSeparator(),
+										respectSourceLineNumbers, dumpLineNumbers);
 								bw.flush();
 							} catch (IOException e) {
 								throw new RuntimeException(String.format("IO-error while writing entry (%s) in (%s)",

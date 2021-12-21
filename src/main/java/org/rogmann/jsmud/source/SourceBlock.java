@@ -43,8 +43,11 @@ public abstract class SourceBlock {
 	 */
 	public abstract int collectLines(List<SourceLine> sourceLines, int lastLine) throws IOException;
 
-	/** Computes the expected minimum and maximum line-numbers of the blocks */
-	protected abstract void refreshSourceBlockStatistics();
+	/**
+	 * Computes the expected minimum and maximum line-numbers of the blocks.
+	 * @param doReordering try to reorder the blocks
+	 */
+	protected abstract void refreshSourceBlockStatistics(boolean doReordering);
 
 	/**
 	 * Dumps the structure.

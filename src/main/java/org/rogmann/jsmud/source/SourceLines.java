@@ -100,9 +100,9 @@ public class SourceLines extends SourceBlock {
 
 	/** {@inheritDoc} */
 	@Override
-	protected void refreshSourceBlockStatistics() {
+	protected void refreshSourceBlockStatistics(boolean doReordering) {
 		int expMin = Integer.MAX_VALUE;
-		int expMax = Integer.MIN_VALUE;
+		int expMax = 0;
 		for (SourceLine sourceLine : lines) {
 			final int expLine = sourceLine.getLineExpected();
 			if (expLine > 1) {

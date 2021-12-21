@@ -15,7 +15,7 @@ public class BytecodeSample {
 	private int num2;
 	private long lnum;
 	private long lnum2;
-	
+
 	static enum JavaFeature {
 		ASSIGNMENTS,
 		ARRAYS;

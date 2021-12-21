@@ -116,11 +116,13 @@ public class SourceFileWriter {
 
 		SourceLines header = new SourceLines(blocks.getLevel());
 		blocks.setHeader(header);
-		writeLine(header, "/**");
-		sb.append(" * Pseudocode of class ").append(node.name.replace('/', '.')).append('.'); writeLine(header, sb);
-		writeLine(header, " *");
-		sb.append(" * <p>Generator: ").append(ClassRegistry.VERSION).append("</p>"); writeLine(header, sb);
-		writeLine(header, " */");
+		if (!node.name.contains("$")) {
+			writeLine(header, "/**");
+			sb.append(" * Pseudocode of class ").append(node.name.replace('/', '.')).append('.'); writeLine(header, sb);
+			writeLine(header, " *");
+			sb.append(" * <p>Generator: ").append(ClassRegistry.VERSION).append("</p>"); writeLine(header, sb);
+			writeLine(header, " */");
+		}
 		appendAccessClass(sb, node.access);
 		sb.append(classSimpleName);
 		if (node.superName != null && !"java/lang/Object".equals(node.superName)) {
@@ -160,7 +162,7 @@ public class SourceFileWriter {
 		}
 
 		for (final MethodNode methodNode : node.methods) {
-			SourceBlockList blockMethod = blocks.createSourceBlockList("method" + methodNode.name);
+			SourceBlockList blockMethod = blocks.createSourceBlockList("method " + methodNode.name);
 			final SourceLines methodHeader = new SourceLines(blockMethod.getLevel());
 			final SourceLines methodTail = new SourceLines(blockMethod.getLevel());
 			blockMethod.setHeader(methodHeader);
@@ -343,10 +345,10 @@ public class SourceFileWriter {
 			sb.append("static ");
 		}
 		if ((access & Opcodes.ACC_FINAL) != 0) {
-			sb.append("final  ");
+			sb.append("final ");
 		}
 		if ((access & Opcodes.ACC_ABSTRACT) != 0) {
-			sb.append("abstract  ");
+			sb.append("abstract ");
 		}
 		if ((access & Opcodes.ACC_SYNTHETIC) != 0) {
 			sb.append("synthetic ");

@@ -103,6 +103,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		SourceFileWriterDecompile sourceFile = new SourceFileWriterDecompile("java", classNode, cl);
 		final SourceBlockList blockList = sourceFile.getSourceBlockList();
 		
+		//System.out.println("Reordering");
+		blockList.refreshSourceBlockStatistics(true);
 		//final StringBuilder sb = new StringBuilder(500);
 		//blockList.dumpStructure(sb, 0);
 		//System.out.println(sb);
@@ -110,7 +112,9 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final List<SourceLine> sourceLines = new ArrayList<>(100);
 		blockList.collectLines(sourceLines, 0);
 		final boolean respectSourceLineNumbers = true;
-		sourceFile.writeLines(w, sourceLines, "    ", System.lineSeparator(), respectSourceLineNumbers);
+		final boolean showLineNumbers = false;
+		sourceFile.writeLines(w, sourceLines, "    ", System.lineSeparator(),
+				respectSourceLineNumbers, showLineNumbers);
 	}
 
 	/**
@@ -205,6 +209,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			//System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
 			final int type = instr.getType();
 			if (type == AbstractInsnNode.LINE) {
+				if ((methodNode.access & Opcodes.ACC_SYNTHETIC) != 0) {
+					// Line numbers of synthetic methods may be strange (e.g. in enumerations).
+					continue;
+				}
 				final LineNumberNode lnn = (LineNumberNode) instr;
 				currLine = Integer.valueOf(lnn.line);
 				mapPcLine.put(Integer.valueOf(i), currLine);
@@ -1204,11 +1212,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param sourceLines list of source-lines
 	 * @param indentation optional indentation-string
 	 * @param lineBreak line-break
-	 * @throws IOException
+	 * @param showLineNumbers <code>true</code> if line-numbers should be dumped
+	 * @throws IOException in case of an IO-error
 	 */
 	public void writeLines(final Writer bw, final List<SourceLine> sourceLines,
 			final String indentation, final String lineBreak,
-			final boolean respectSourceLineNumbers) throws IOException {
+			final boolean respectSourceLineNumbers, final boolean showLineNumbers) throws IOException {
 		if (!respectSourceLineNumbers) {
 			super.writeLines(bw, sourceLines, indentation, lineBreak);
 			return;
@@ -1216,6 +1225,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		int currentLine = 1;
 		final StringBuilder sb = new StringBuilder(100);
 		final int numLines = sourceLines.size();
+		int lastPrintedLine = 0;
+loopLines:
 		for (int i = 0; i < numLines; i++) {
 			final SourceLine sourceLine = sourceLines.get(i);
 			int nextLineExpected = 0;
@@ -1233,6 +1244,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				bw.write(lineBreak);
 				currentLine++;
 			}
+			if (showLineNumbers && lineExpected > 0 && lastPrintedLine != lineExpected) {
+				sb.append("/* ").append(lineExpected).append(" */");
+				lastPrintedLine = lineExpected;
+			}
 			if (sb.length() == 0 && indentation != null) {
 				for (int l = 0; l < sourceLine.getLevel(); l++) {
 					sb.append(indentation);
@@ -1246,15 +1261,25 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			sb.append(sourceLine.getSourceLine());
 			if (nextLineExpected == 0 || currentLine < nextLineExpected
 					|| currentLine > nextLineExpected + 10) {
+				for (int j = i + 2; j < numLines && nextLineExpected == 0; j++) {
+					if (sourceLines.get(j).getLineExpected() > 0) {
+						nextLineExpected = sourceLines.get(j).getLineExpected();
+						if (currentLine + 1 >= nextLineExpected) {
+							continue loopLines;
+						}
+					}
+				}
 				if (nextLineExpected == 0 && nextNextLineExp == currentLine + 1) {
 					// The next next line should start without the next line in front.
+					continue;
 				}
-				else {
-					sb.append(lineBreak);
-					bw.write(sb.toString());
-					sb.setLength(0);
-					currentLine++;
-				}
+				sb.append(lineBreak);
+				bw.write(sb.toString());
+				sb.setLength(0);
+				currentLine++;
+				//sb.append("/*real ").append(currentLine);
+				//sb.append('/').append(nextLineExpected).append('/').append(nextNextLineExp);
+				//sb.append("*/");
 			}
 		}
 		if (sb.length() > 0) {

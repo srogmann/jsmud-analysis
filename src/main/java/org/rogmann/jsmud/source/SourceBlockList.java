@@ -111,7 +111,11 @@ public class SourceBlockList extends SourceBlock {
 		for (int i = 0; i < level; i++) {
 			sb.append(' ');
 		}
-		sb.append("SBL ").append(name); 
+		sb.append("SBL ").append(name);
+		if (expectedLineMin < Integer.MAX_VALUE || expectedLineMax > 0) {
+			sb.append(", ").append(expectedLineMin).append("..").append(expectedLineMax);
+		}
+		sb.append(" (").append(numLines).append(numLines == 1 ? " line" : " lines").append(')');
 		sb.append(System.lineSeparator());
 		if (header != null) {
 			header.dumpStructure(sb, level + 1);
@@ -126,16 +130,16 @@ public class SourceBlockList extends SourceBlock {
 
 	/** {@inheritDoc} */
 	@Override
-	protected void refreshSourceBlockStatistics() {
+	protected void refreshSourceBlockStatistics(boolean doReordering) {
 		int expMin = Integer.MAX_VALUE;
-		int expMax = Integer.MIN_VALUE;
+		int expMax = 0;
 		if (header != null) {
 			expMin = Math.min(expMin, header.expectedLineMin);
 			expMax = Math.max(expMax, header.expectedLineMax);
 			numLines += header.numLines;
 		}
 		for (final SourceBlock sourceBlock : list) {
-			sourceBlock.refreshSourceBlockStatistics();
+			sourceBlock.refreshSourceBlockStatistics(doReordering);
 			expMin = Math.min(expMin, sourceBlock.expectedLineMin);
 			expMax = Math.max(expMax, sourceBlock.expectedLineMax);
 			numLines += sourceBlock.numLines;
@@ -144,6 +148,42 @@ public class SourceBlockList extends SourceBlock {
 			expMin = Math.min(expMin, tail.expectedLineMin);
 			expMax = Math.max(expMax, tail.expectedLineMax);
 			numLines += tail.numLines;
+		}
+
+		this.expectedLineMin = expMin;
+		this.expectedLineMax = expMax;
+
+		if (doReordering) {
+			for (int i = 1; i < list.size(); i++) {
+				int prevMax = 0;
+				for (int j = 0; j < i; j++) {
+					prevMax = Math.max(prevMax, list.get(j).expectedLineMax);
+				}
+				final SourceBlock currBlock = list.get(i);
+				final int curExpMin = currBlock.expectedLineMin;
+				final int curExpMax = currBlock.expectedLineMax;
+				if (curExpMax > 1 && curExpMin < Integer.MAX_VALUE && prevMax > curExpMin) {
+					// Can we move this block?
+					Integer destIndex = null;
+					for (int j = 0; j < i; j++) {
+						final int expMinNext = list.get(j).expectedLineMin;
+						if (expMinNext < curExpMax && expMinNext < Integer.MAX_VALUE) {
+							break;
+						}
+						// We can move the block.
+						destIndex = Integer.valueOf(j);
+						if (expMinNext > curExpMax && expMinNext < Integer.MAX_VALUE) {
+							break;
+						}
+					}
+					if (destIndex != null) {
+						for(int j = i; j > destIndex.intValue(); j--) {
+							list.set(j, list.get(j - 1));
+						}
+						list.set(destIndex.intValue(), currBlock);
+					}
+				}
+			}
 		}
 	}
 	
