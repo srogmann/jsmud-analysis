@@ -152,6 +152,7 @@ public class JvmHelper {
 				try (final OutputStream socketOs = socket.getOutputStream()) {
 					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
 							vm, visitor, MAX_LOCK_TIME);
+					visitor.setDebugger(debugger);
 					visitor.visitThreadStarted(Thread.currentThread());
 					vm.suspendThread(vm.getCurrentThreadId());
 					debugger.processPackets();
