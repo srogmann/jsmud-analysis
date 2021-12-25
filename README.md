@@ -108,6 +108,9 @@ The module-system in newer JVMs doesn't allow reflection in internal JVM-classes
 ## Build and Test
 Jsmud-analysis is compiled with Java 8 and ASM, see pom.xml. The execution of Java 11 or Java 17 classes is possible. There are a lot of tests in test-class JvmTests. JUnit-tests can be started with test-class JvmTestsJUnit which executes test-class JvmTests. The junit-tests are generated with test-class GenerateJUnitTests.
 
+## Download
+A compiled and signed Jar of jsmud-analysis is available at <a href="http://www.rogmann.org/releases/">http://www.rogmann.org/releases/</a>.
+
 ## Support
 I wrote this project in my free time and I like my free time so support is given by studying the following links: 
  * [Java bytecode instruction listings](https://en.wikipedia.org/wiki/Java_bytecode_instruction_listings)
