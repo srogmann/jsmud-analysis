@@ -9,6 +9,7 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -198,6 +200,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	
 	/** map from thread to current method-stack */
 	private final ConcurrentMap<Thread, Stack<MethodFrame>> mapStacks = new ConcurrentHashMap<>();
+
+	/** <code>false</code> if there is an inaccessible field */
+	private final AtomicBoolean isHasFieldInaccessible = new AtomicBoolean(true);
 
 	/**
 	 * Constructor
@@ -900,6 +905,19 @@ public class ClassRegistry implements VM, ObjectMonitor {
 		for (final Field field : fields) {
 			RefFieldBean fieldRefBean = mapRefFieldBean.get(field);
 			if (fieldRefBean == null) {
+				if (!Modifier.isPublic(field.getModifiers())) {
+					// Is the field accessible?
+					try {
+						field.setAccessible(true);
+					} catch (RuntimeException e) {
+						// e.g. java.lang.reflect.InaccessibleObjectException in Java 9ff.
+						if (isHasFieldInaccessible.getAndSet(false)) {
+							LOG.error(String.format("Can't access field (%s), field is ignored in list of fields",
+									field));
+						}
+						continue;
+					}
+				}
 				final VMFieldID fieldId = new VMFieldID(objectIdCounter.incrementAndGet());
 				final String signature = Type.getDescriptor(field.getType());
 				final String genericSignature = ""; // TODO genericSignature
