@@ -3,8 +3,8 @@ package org.rogmann.jsmud.test;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Callable;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.objectweb.asm.Opcodes;
 import org.rogmann.jsmud.debugger.DebuggerJvmVisitor;
@@ -41,16 +41,16 @@ public class DebuggerTestMain {
 		boolean acceptHotCodeReplace = true;
 		final ClassLoader cl = new JsmudClassLoader(clParent, c -> false, patchClinit, patchInit, acceptHotCodeReplace);
 		final SourceFileRequester sfr = createSourceFileRequester(folderSources);
-		final DebuggerJvmVisitor visitor = JvmHelper.createDebuggerVisitor(filter, cl, 500, 500, sfr);
-		final Callable<Void> callable = new Callable<Void>() {
+		final DebuggerJvmVisitor visitor = JvmHelper.createDebuggerVisitor(filter, cl, sfr);
+		final Supplier<Void> supplier = new Supplier<Void>() {
 			@Override
-			public Void call() throws Exception {
+			public Void get() {
 				final JvmTests jvmTests = new JvmTests();
 				jvmTests.tests();
 				return null;
 			}
 		};
-		JvmHelper.connectCallableToDebugger(visitor, host, port, callable, Void.class);
+		JvmHelper.connectSupplierToDebugger(visitor, host, port, supplier, Void.class);
 	}
 	
 	private static SourceFileRequester createSourceFileRequester(File folderSources) {

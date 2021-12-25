@@ -6,7 +6,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.Socket;
-import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 import javax.net.SocketFactory;
 
@@ -20,7 +20,7 @@ import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.visitors.InstructionVisitorProvider;
 
 /**
- * Helper-methods for initializing a JVM.
+ * Helper-methods for initializing a JVM-simulation.
  */
 public class JvmHelper {
 	/** Logger */
@@ -33,21 +33,17 @@ public class JvmHelper {
 	 * Creates a vm-simulation with debugger-visitor which can be used to start a debugger in the current thread. 
 	 * @param executionFilter class which should be interpreted
 	 * @param classLoader default class-loader
-	 * @param maxInstrLogged number of instructions to be logged at debug-level
-	 * @param maxMethodsLogged number of method-invocations to be logged at debug-level
 	 * @param sourceFileRequester optional source-file-requester
 	 * @return debugger-visitor
 	 */
 	public static DebuggerJvmVisitor createDebuggerVisitor(final ClassExecutionFilter executionFilter,
 			final ClassLoader classLoader,
-			final int maxInstrLogged, final int maxMethodsLogged,
 			final SourceFileRequester sourceFileRequester) {
 		final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
 		final JsmudConfiguration config = new JsmudConfiguration();
 		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter, config);
 		final ClassRegistry vm = new ClassRegistry(executionFilter, config, classLoader,
 				visitorProvider, invocationHandler);
-		//vm.registerThread(Thread.currentThread());
 		final Class<?>[] classesPreload = {
 				Thread.class,
 				Throwable.class,
@@ -71,17 +67,17 @@ public class JvmHelper {
 	}
 
 	/**
-	 * Connects to a remote-debugger for executing the given callable.
+	 * Connects to a remote-debugger for executing the given supplier.
 	 * @param debugger-visitor debugger-visitor initialized with vm-simulation
 	 * @param host remote-host
 	 * @param port remote-port
-	 * @param callable callable to be executed
+	 * @param supplier supplier to be executed
 	 * @param classReturnObj class of return-type
-	 * @param <T> return-type of callable
+	 * @param <T> return-type of supplier
 	 */
-	public static <T> T connectCallableToDebugger(final DebuggerJvmVisitor visitor, String host, final int port,
-			final Callable<T> callable, final Class<T> classReturnObj) {
-		LOG.info(String.format("connectCallableToDebugger(host=%s, port=%d, version=%s, jre.version=%s)",
+	public static <T> T connectSupplierToDebugger(final DebuggerJvmVisitor visitor, String host, final int port,
+			final Supplier<T> supplier, final Class<T> classReturnObj) {
+		LOG.info(String.format("connectSupplierToDebugger(host=%s, port=%d, version=%s, jre.version=%s)",
 				host, Integer.valueOf(port), ClassRegistry.VERSION, System.getProperty("java.version")));
 		final T t;
 		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
@@ -91,7 +87,7 @@ public class JvmHelper {
 					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
 							visitor.getJvmSimulator(), visitor, MAX_LOCK_TIME);
 					visitor.setDebugger(debugger);
-					t = visitor.executeCallable(callable, classReturnObj);
+					t = visitor.executeSupplier(supplier, classReturnObj);
 				}
 			}
 		} catch (IOException e) {
@@ -108,79 +104,21 @@ public class JvmHelper {
 	 */
 	public static void connectRunnableToDebugger(final String host, final int port,
 			final Runnable runnable) {
-		final ClassExecutionFilter executionFilter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
-		connectRunnableToDebugger(host, port, runnable, executionFilter, null);
+		final Supplier<Void> supplier = new Supplier<Void>() {
+			@Override
+			public Void get() {
+				runnable.run();
+				return null;
+			}
+		};
+		final ClassExecutionFilter filter = JvmHelper.createNonJavaButJavaUtilExecutionFilter();
+		final ClassLoader classLoader = runnable.getClass().getClassLoader();
+		final SourceFileRequester sfr = null;
+		final DebuggerJvmVisitor debuggerVisitor = createDebuggerVisitor(filter, classLoader, sfr);
+		connectSupplierToDebugger(debuggerVisitor, host, port, supplier, Void.class);
 	}
 
-	/**
-	 * Connects to a remote-debugger for executing the given runnable.
-	 * @param host remote-host
-	 * @param port remote-port
-	 * @param runnable runnable to be executed
-	 * @param executionFilter execution-filter
-	 * @param sourceFileRequester optional source-file-requester (on-the-fly pseudo-source-generation)
-	 */
-	public static void connectRunnableToDebugger(final String host, final int port,
-			final Runnable runnable, final ClassExecutionFilter executionFilter,
-			final SourceFileRequester sourceFileRequester) {
-		LOG.info(String.format("connectRunnableToDebugger(host=%s, port=%d, version=%s, jre.version=%s)",
-				host, Integer.valueOf(port), ClassRegistry.VERSION, System.getProperty("java.version")));
-		try (final Socket socket = SocketFactory.getDefault().createSocket(host, port)) {
-			socket.setSoTimeout(200);
-			final ClassLoader classLoader = runnable.getClass().getClassLoader();
-			final DebuggerJvmVisitorProvider visitorProvider = new DebuggerJvmVisitorProvider(sourceFileRequester);
-			final JsmudConfiguration config = new JsmudConfiguration();
-			final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter, config);
-			final ClassRegistry vm = new ClassRegistry(executionFilter, config,
-					classLoader, visitorProvider, invocationHandler);
-			vm.registerThread(Thread.currentThread());
-			final DebuggerJvmVisitor visitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();
-			final Class<?>[] classesPreload = {
-					Thread.class,
-					Throwable.class,
-					Error.class
-			};
-			for (final Class<?> classPreload : classesPreload) {
-				try {
-					vm.loadClass(classPreload.getName(), classPreload);
-				} catch (ClassNotFoundException e) {
-					throw new RuntimeException("Couldn't preload class " + classPreload, e);
-				}
-			}
-			visitor.setJvmSimulator(vm);
-			try (final InputStream socketIs = socket.getInputStream()) {
-				try (final OutputStream socketOs = socket.getOutputStream()) {
-					final JdwpCommandProcessor debugger = new JdwpCommandProcessor(socketIs, socketOs, 
-							vm, visitor, MAX_LOCK_TIME);
-					visitor.setDebugger(debugger);
-					visitor.visitThreadStarted(Thread.currentThread());
-					vm.suspendThread(vm.getCurrentThreadId());
-					debugger.processPackets();
-		
-					vm.registerThread(Thread.currentThread());
-					try {
-						final SimpleClassExecutor executor = new SimpleClassExecutor(vm, runnable.getClass(), invocationHandler);
-						// We have to announce the class to the debugger.
-						visitor.visitLoadClass(runnable.getClass());
-						final OperandStack stackArgs = new OperandStack(1);
-						stackArgs.push(runnable);
-						try {
-							executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
-						} catch (Throwable e) {
-							throw new RuntimeException("Exception while simulating runnable", e);
-						}
-					}
-					finally {
-						vm.unregisterThread(Thread.currentThread());
-					}
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("IO-Exception while speaking to " + host + ':' + port, e);
-		}
-	}
-
-	public static <T> T executeCallable(final Callable<T> callable, final ClassExecutionFilter filter,
+	public static <T> T executeSupplier(final Supplier<T> supplier, final ClassExecutionFilter filter,
 			final PrintStream psOut) {
 		LOG.info(String.format("executeRunnable(version=%s, jre.version=%s)",
 				ClassRegistry.VERSION, System.getProperty("java.version")));
@@ -193,21 +131,21 @@ public class JvmHelper {
 				dumpClassStatistic, dumpInstructionStatistic, dumpMethodCallTrace);
 		visitorProvider.setShowOutput(true);
 
-		final Class<?> classCallable = callable.getClass();
-		final ClassLoader classLoader = classCallable.getClassLoader();
+		final Class<?> classSupplier = supplier.getClass();
+		final ClassLoader classLoader = classSupplier.getClassLoader();
 		final JsmudConfiguration config = new JsmudConfiguration();
 		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(filter, config);
 		final ClassRegistry registry = new ClassRegistry(filter, config,
 				classLoader, visitorProvider, invocationHandler);
 		registry.registerThread(Thread.currentThread());
 		try {
-			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, callable.getClass(), invocationHandler);
+			final SimpleClassExecutor executor = new SimpleClassExecutor(registry, supplier.getClass(), invocationHandler);
 			final OperandStack stackArgs = new OperandStack(1);
-			stackArgs.push(callable);
+			stackArgs.push(supplier);
 			try {
-				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(callable.getClass(), "call"), "()Ljava/lang/Object;", stackArgs);
+				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(supplier.getClass(), "call"), "()Ljava/lang/Object;", stackArgs);
 			} catch (Throwable e) {
-				throw new JvmUncaughtException("Exception while simulating callable", e);
+				throw new JvmUncaughtException("Exception while simulating supplier", e);
 			}
 		}
 		finally {

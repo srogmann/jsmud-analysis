@@ -6,11 +6,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 
 import org.objectweb.asm.Opcodes;
@@ -147,15 +147,15 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	}
 
 	/**
-	 * Executes a callable.
-	 * The call-method is expected in the class of the callable-instance (not in a parent-class).
-	 * @param callable callable to be called
+	 * Executes a supplier.
+	 * The call-method is expected in the class of the supplier-instance (not in a parent-class).
+	 * @param supplier supplier to be called
 	 * @param <T> return-type
 	 * @param classReturnObj class of return-object
 	 * @return return-object
 	 * @throws IOException in case of an {@link IOException}
 	 */
-	public <T> T executeCallable(final Callable<T> callable, final Class<T> classReturnObj) throws IOException {
+	public <T> T executeSupplier(final Supplier<T> supplier, final Class<T> classReturnObj) throws IOException {
 		vm.registerThread(Thread.currentThread());
 		final Object objReturn;
 		try {
@@ -163,25 +163,25 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 			vm.suspendThread(vm.getCurrentThreadId());
 			debugger.processPackets();
 
-			final Class<?> callableClass = callable.getClass();
-			final SimpleClassExecutor executor = new SimpleClassExecutor(vm, callableClass, vm.getInvocationHandler());
+			final Class<?> supplierClass = supplier.getClass();
+			final SimpleClassExecutor executor = new SimpleClassExecutor(vm, supplierClass, vm.getInvocationHandler());
 			// We have to announce the class to the debugger.
-			visitLoadClass(callableClass);
+			visitLoadClass(supplierClass);
 			final OperandStack stackArgs = new OperandStack(2);
-			stackArgs.push(callable);
+			stackArgs.push(supplier);
 			try {
-				final Method methodCall = callableClass.getDeclaredMethod("call");
+				final Method methodCall = supplierClass.getDeclaredMethod("call");
 				final String methodDesc = "()" + Type.getType(methodCall.getReturnType()).getDescriptor();
 				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, methodCall, methodDesc, stackArgs);
 			} catch (Throwable e) {
-				throw new RuntimeException("Exception while simulating callable " + callableClass.getName(), e);
+				throw new RuntimeException("Exception while simulating supplier " + supplierClass.getName(), e);
 			}
 		}
 		finally {
 			vm.unregisterThread(Thread.currentThread());
 		}
 		if (objReturn != null && !classReturnObj.isInstance(objReturn)) {
-			throw new JvmException(String.format("Unexpected return-type (%s) instead of (%s) of callable",
+			throw new JvmException(String.format("Unexpected return-type (%s) instead of (%s) of supplier",
 					objReturn.getClass(), classReturnObj));
 		}
 		@SuppressWarnings("unchecked")
