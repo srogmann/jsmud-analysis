@@ -40,7 +40,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	public JvmInvocationHandlerReflection(final ClassExecutionFilter filterProxy, final JsmudConfiguration configuration) {
 		this.filterProxy = filterProxy;
 		this.configuration = configuration;
-		if (filterProxy != null) {
+		if (filterProxy != null && configuration.isInvocationHandlerUseField) {
 			Field fieldInvocationHandlerJre8;
 			try {
 				fieldInvocationHandlerJre8 = Proxy.class.getDeclaredField("h");

@@ -30,6 +30,9 @@ public class JsmudConfiguration {
 	/** <code>true</code>, if {@link AccessController} should be executed by the JVM (default is <code>true</code>) */
 	protected final boolean isEmulateAccessController = getProperty("EmulateAccessController", true); 
 
+	/** <code>true</code>, if the InvocationHandler of a proxy should be field Proxy#h (default is false) */
+	protected final boolean isInvocationHandlerUseField = getProperty("InvocationHandlerUseField", false); 
+
 	/** <code>true</code>, if {@link Thread}-classes should not be patched (default is <code>true</code>) */
 	protected final boolean isPatchThreadClasses = getProperty("PatchThreadClasses", true);
 
