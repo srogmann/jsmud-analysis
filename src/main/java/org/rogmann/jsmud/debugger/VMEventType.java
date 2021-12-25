@@ -53,7 +53,7 @@ public enum VMEventType {
 
 	/**
 	 * Looks up an event-type by kind.
-	 * @param eventKind event-kind
+	 * @param kind event-kind
 	 * @return event-type or <code>null</code>
 	 */
 	public static VMEventType lookupByKind(byte kind) {
