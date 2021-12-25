@@ -108,7 +108,7 @@ public class MethodFrame {
 	 * @param registry class-registry
 	 * @param pMethod reflection-description of the method
 	 * @param method ASM-description of the method
-	 * @param argDefs type-descriptions of arguments
+	 * @param argsDefs type-descriptions of arguments
 	 * @param visitor JVM-visitor
 	 * @param invocationHandler invocation-handler
 	 */
@@ -309,6 +309,7 @@ public class MethodFrame {
 	 * <p>This rather monolithic method contains the execution of the different instructions.</p>  
 	 * @param args arguments on caller's stack
 	 * @return result or <code>null</code>
+	 * @throws Throwable in case of an exception
 	 */
 	public Object execute(final OperandStack args) throws Throwable {
 		stack.clear();
@@ -2780,8 +2781,6 @@ loopDeclMeth:
 	/**
 	 * Checks if a thrown exception is handled by a try-catch-block.
 	 * In that case the instruction-index will be set to the catch-block.
-	 * @param objRef object-instance
-	 * @param methodClass current method
 	 * @param eCause thrown exception
 	 * @return <code>true</code> if the exception will be handled at the current instruction
 	 */

@@ -9,7 +9,7 @@ public interface JvmInvocationHandler {
 
 	/**
 	 * Called before an invocation of a static method.
-	 * @param frame current method-frame
+	 * @param methodFrame current method-frame
 	 * @param mi method-invocation-instruction
 	 * @param stack current operand-stack
 	 * @return continue-while-flat (<code>true</code> for next step in while, <code>false</code> leave switch only (and increment instr-idx)) or <code>null</code> for normal continuation
@@ -19,7 +19,7 @@ public interface JvmInvocationHandler {
 
 	/**
 	 * Called before an invocation of an instance-method (or constructor).
-	 * @param frame current method-frame
+	 * @param methodFrame current method-frame
 	 * @param mi method-invocation-instruction
 	 * @param objRefStack instance-object
 	 * @param stack current operand-stack

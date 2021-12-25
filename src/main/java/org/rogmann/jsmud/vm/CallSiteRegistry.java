@@ -132,9 +132,11 @@ public class CallSiteRegistry {
 	 * @param method owner-method or owner-constructor
 	 * @param idi INVOKEDYNAMIC-instruction
 	 * @param lambdaHandle lambda-handle
-	 * @param aArguments arguments of INVOKEDYNAMIC-instruction 
+	 * @param aArguments arguments of INVOKEDYNAMIC-instruction
+	 * @return call-site simulation 
 	 */
-	public CallSiteSimulation buildCallSite(final Object caller, final Class<?> clazz, final Executable method, final InvokeDynamicInsnNode idi,
+	public CallSiteSimulation buildCallSite(final Object caller, final Class<?> clazz,
+			final Executable method, final InvokeDynamicInsnNode idi,
 			final Handle lambdaHandle, final Object[] aArguments) {
 		final InvokedynamicKey key = new InvokedynamicKey(clazz, method, idi);
 		final CallSiteSimulation callSite;

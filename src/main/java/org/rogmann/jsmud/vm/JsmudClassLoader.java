@@ -90,7 +90,7 @@ public class JsmudClassLoader extends ClassLoader {
 	 * Constructor
 	 * @param parentClassLoader parent-classloader
 	 * @param patchFilter checks if a class-name belongs to a class to be patched
-	 * @param patchClinit <code>true</code> if static-initializers ("<&lt;linit&gt;") may be patched 
+	 * @param patchClinit <code>true</code> if static-initializers ("&lt;linit&gt;") may be patched 
 	 * @param patchInit <code>true</code> if default-constructors ("&lt;init&gt;") may be patched
 	 * @param redefineClasses <code>true</code> if hot-code-replace-requests should be accepted
 	 */
@@ -126,7 +126,7 @@ public class JsmudClassLoader extends ClassLoader {
 	 * Defines a new class.
 	 * @param name name of the new class
 	 * @param bufBytecode bytecode
-	 * @return
+	 * @return defined class
 	 */
 	public Class<?> defineJsmudClass(final String name, final byte[] bufBytecode) {
 		final Class<?> clazz = defineClass(name, bufBytecode, 0, bufBytecode.length);
@@ -152,7 +152,7 @@ public class JsmudClassLoader extends ClassLoader {
 	 * @param name name of the new class
 	 * @param bufBytecode bytecode
 	 * @param classBefore class before (we need its class-loader)
-	 * @return
+	 * @return redefined class
 	 */
 	public Class<?> redefineJsmudClass(final String name, final byte[] bufBytecode, final Class<?> classBefore) {
 		// We use a new class-loader to redefine a class.

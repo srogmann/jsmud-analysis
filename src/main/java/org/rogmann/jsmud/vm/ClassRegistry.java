@@ -1644,6 +1644,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	
 	/**
 	 * Pushes a method-frame onto the stack.
+	 * @param thread current thread
 	 * @param frame method-frame
 	 */
 	public void pushMethodFrame(final Thread thread, final MethodFrame frame) {
@@ -1653,6 +1654,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	
 	/**
 	 * Removes the method-frame on top of the stack.
+	 * @param thread current thread
 	 */
 	public void popMethodFrame(final Thread thread) {
 		final Stack<MethodFrame> stack = mapStacks.get(thread);

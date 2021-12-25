@@ -49,6 +49,7 @@ public class ThreadMonitor {
 	
 	/**
 	 * Constructor
+	 * @param monitor object-monitor
 	 * @param objMonitor monitor-object
 	 * @param thread owner-thread
 	 */

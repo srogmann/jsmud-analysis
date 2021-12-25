@@ -19,6 +19,7 @@ public class JvmException extends RuntimeException {
 	/**
 	 * Constructor
 	 * @param message message-text
+	 * @param cause cause of the exception
 	 */
 	public JvmException(final String message, final Throwable cause) {
 		super(message, cause);

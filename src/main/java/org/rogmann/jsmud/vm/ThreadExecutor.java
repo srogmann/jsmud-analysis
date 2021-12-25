@@ -22,6 +22,7 @@ public class ThreadExecutor {
 	/**
 	 * Constructor
 	 * @param registry class-registry (VM)
+	 * @param visitorParent visitor of parent-thread
 	 */
 	public ThreadExecutor(final ClassRegistry registry, final JvmExecutionVisitor visitorParent) {
 		this.registry = registry;

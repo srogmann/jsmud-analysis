@@ -19,12 +19,12 @@ public class RefFieldBean {
 	private final int modBits;
 
 	/**
-	 * Construtor
-	 * @param typeTag type-tag
+	 * Constructor
 	 * @param fieldID type-id
+	 * @param name name of the field
 	 * @param signature signature
 	 * @param genericSignature generic signature, empty if there is none
-	 * @param status status of class
+	 * @param modBits modification-bits of the field
 	 */
 	public RefFieldBean(final VMFieldID fieldID, final String name,
 			final String signature, final String genericSignature, final int modBits) {

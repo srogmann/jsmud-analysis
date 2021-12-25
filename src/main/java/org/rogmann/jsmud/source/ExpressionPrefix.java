@@ -17,7 +17,7 @@ public class ExpressionPrefix<A extends AbstractInsnNode> extends ExpressionBase
 	/**
 	 * Constructor
 	 * @param insn instruction, e.g. CHECKCAST
-	 * @param pre prefix of expression
+	 * @param prefix prefix of expression
 	 * @param expr argument
 	 */
 	public ExpressionPrefix(final A insn, final String prefix, final ExpressionBase<?> expr) {

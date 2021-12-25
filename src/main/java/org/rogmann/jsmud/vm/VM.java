@@ -180,7 +180,7 @@ public interface VM {
 
 	/**
 	 * Gets a list of fields of the given class.
-	 * @param clazz given class
+	 * @param classRef given class
 	 * @return list of field-ref-beans
 	 */
 	List<RefFieldBean> getFieldsWithGeneric(Class<?> classRef);
@@ -338,7 +338,7 @@ public interface VM {
 
 	/**
 	 * Gets the suspend-count of a thread.
-	 * @param cThreadId
+	 * @param cThreadId thread-id of thread
 	 * @return suspend or <code>null</code> in case of a unknown thread
 	 */
 	Integer getSuspendCount(VMThreadID cThreadId);

@@ -5,9 +5,15 @@ package org.rogmann.jsmud.visitors;
  */
 public interface MessagePrinter {
 
-	/** Prints a message */
+	/**
+	 * Prints a message.
+	 * @param msg message to be printed
+	 */
 	void println(final String msg);
 
-	/** Dumps a stacktrace */
+	/**
+	 * Dumps a stacktrace.
+	 * @param e throwable
+	 */
 	void dump(final Throwable e);
 }

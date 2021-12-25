@@ -47,7 +47,7 @@ public class SimpleClassExecutor {
 	 * Constructor
 	 * @param registry class-registry
 	 * @param clazz class to be executed
-	 * @param visitor JVM-visitor
+	 * @param invocationHandler invocation-handler
 	 */
 	public SimpleClassExecutor(final ClassRegistry registry, final Class<?> clazz,
 			final JvmInvocationHandler invocationHandler) {
@@ -108,11 +108,12 @@ public class SimpleClassExecutor {
 
 	/**
 	 * Executes an executable (constructor or method).
-	 * @param objInstance instance-object, <code>null</code> in case of a static method
+	 * @param invokeOpcode opcode of INVOKE-instruction
 	 * @param pMethod method
 	 * @param methodDesc descriptor of the method
 	 * @param args stack containing the arguments
 	 * @return return-instance or <code>null</code>
+	 * @throws Throwable in case of an exception
 	 */
 	public Object executeMethod(final int invokeOpcode,
 			final Executable pMethod, final String methodDesc, OperandStack args) throws Throwable {

@@ -119,12 +119,13 @@ public class CallSiteGenerator {
 	/**
 	 * Creates a call-site-proxy by generating a class.
 	 * @param registry class-registry (VM)
-	 * @param owner owner-class
+	 * @param classOwner owner-class
 	 * @param idin INVOKEDYNAMIC
-	 * @param stack current stack 
+	 * @param stack current stack
+	 * @return created call-site instance
 	 */
-	public Object createCallSite(ClassRegistry registry, final Class<?> classOwner, final InvokeDynamicInsnNode idin,
-			final OperandStack stack) {
+	public Object createCallSite(ClassRegistry registry, final Class<?> classOwner,
+			final InvokeDynamicInsnNode idin, final OperandStack stack) {
 		final Handle bsm = idin.bsm;
 		if ("java/lang/runtime/SwitchBootstraps".equals(bsm.getOwner())
 				&& "typeSwitch".equals(bsm.getName())
@@ -164,7 +165,7 @@ public class CallSiteGenerator {
 	
 	/**
 	 * Creates a call-site-proxy by generating a class.
-	 * @param owner owner-class
+	 * @param classOwner owner-class
 	 * @param idin INVOKEDYNAMIC
 	 * @return class of call-site
 	 */

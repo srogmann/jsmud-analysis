@@ -19,12 +19,12 @@ public class RefMethodBean {
 	private final int modBits;
 
 	/**
-	 * Construtor
-	 * @param typeTag type-tag
+	 * Constructor
 	 * @param methodID type-id
+	 * @param name name of the method
 	 * @param signature signature
 	 * @param genericSignature generic signature, empty if there is none
-	 * @param status status of class
+	 * @param modBits modification-bits of the method
 	 */
 	public RefMethodBean(final VMMethodID methodID, final String name,
 			final String signature, final String genericSignature, final int modBits) {

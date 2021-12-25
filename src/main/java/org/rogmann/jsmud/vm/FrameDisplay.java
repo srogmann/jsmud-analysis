@@ -4,7 +4,7 @@ package org.rogmann.jsmud.vm;
  * Helper-class for displaying types of frames.
  */
 public enum FrameDisplay {
-	/** An expanded frame. See {@link ClassReader#EXPAND_FRAMES}. */
+	/** An expanded frame. See ClassReader#EXPAND_FRAMES in asm. */
 	F_NEW(-1),
 	/** A compressed frame with complete frame data. */
 	F_FULL(0),

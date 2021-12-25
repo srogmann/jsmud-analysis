@@ -68,12 +68,13 @@ public class JvmHelper {
 
 	/**
 	 * Connects to a remote-debugger for executing the given supplier.
-	 * @param debugger-visitor debugger-visitor initialized with vm-simulation
+	 * @param visitor debugger-visitor initialized with vm-simulation
 	 * @param host remote-host
 	 * @param port remote-port
 	 * @param supplier supplier to be executed
 	 * @param classReturnObj class of return-type
 	 * @param <T> return-type of supplier
+	 * @return object returned by the supplier
 	 */
 	public static <T> T connectSupplierToDebugger(final DebuggerJvmVisitor visitor, String host, final int port,
 			final Supplier<T> supplier, final Class<T> classReturnObj) {

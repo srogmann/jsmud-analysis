@@ -40,9 +40,9 @@ public class CallSiteContext {
 
 	/**
 	 * Executes a method.
-	 * @param args
+	 * @param args method-arguments
 	 * @return return-instance
-	 * @throws throwable in case of an exception
+	 * @throws Throwable throwable in case of an exception
 	 */
 	public Object executeMethod(final Object[] args) throws Throwable {
 		final String methodClassName = methodHandle.getOwner().replace('/', '.');
