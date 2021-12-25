@@ -674,7 +674,7 @@ public class JvmTests {
 					Float.valueOf(f), Double.valueOf(d));
 		final Callable<String> callable = new Callable<String>() {
 			@Override
-			public String call() throws Exception {
+			public String call() {
 				return function.apply(true, '@',
 						(short) -37, 691, 123456789012l, 1.1f, 1.23);
 			}
