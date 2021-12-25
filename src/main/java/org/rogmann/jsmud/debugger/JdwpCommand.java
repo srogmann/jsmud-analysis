@@ -183,7 +183,8 @@ public enum JdwpCommand {
 	
 	/**
 	 * Lookups a command by number.
-	 * @param number number
+	 * @param cs command-set
+	 * @param number number of command
 	 * @return command or <code>null</code>
 	 */
 	public static JdwpCommand lookupByKind(final JdwpCommandSet cs, final byte number) {

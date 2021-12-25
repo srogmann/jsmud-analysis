@@ -19,7 +19,7 @@ public class CommandBuffer {
 	 * Constructor
 	 * @param buf buffer
 	 * @param offset start-offset of the command in the buffer
-	 * @param offsetEnd end-offse of the command in the buffer
+	 * @param offsetEnd end-offset of the command in the buffer
 	 */
 	public CommandBuffer(byte[] buf, int offset, int offsetEnd) {
 		this.buf = buf;
@@ -97,8 +97,6 @@ public class CommandBuffer {
 
 	/**
 	 * Reads an UTF-8-string with given length
-	 * @param buf buffer
-	 * @param offset offset in buffer
 	 * @param numBytes number of UTF-8-bytes (given length)
 	 * @return string
 	 */

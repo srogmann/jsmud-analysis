@@ -12,11 +12,13 @@ public interface JvmExecutionVisitor {
 
 	/**
 	 * Called when a thread is started.
+	 * @param startedThread started thread
 	 */
 	void visitThreadStarted(Thread startedThread);
 
 	/**
 	 * Called when a class is loaded.
+	 * @param loadedClass class loaded
 	 */
 	void visitLoadClass(Class<?> loadedClass);
 
@@ -48,8 +50,6 @@ public interface JvmExecutionVisitor {
 
 	/**
 	 * Called before execution of a instruction.
-	 * @param currClass current class
-	 * @param method current method
 	 * @param instr instruction to be executed
 	 * @param stack current stack
 	 * @param aLocals current locals

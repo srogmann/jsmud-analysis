@@ -139,7 +139,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	 * @param is Input-stream
 	 * @param os Output-stream
 	 * @param visitor Debugger-visitor
-	 * @param classLoader class-loader
+	 * @param vm interface of VM-simulation
 	 * @param maxLockTime maximal time (in seconds) a thread should wait for sending packets
 	 * @throws IOException in case of an IO-error
 	 */

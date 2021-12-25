@@ -7,6 +7,7 @@ public interface JvmExecutionVisitorProvider {
 
 	/**
 	 * Creates a JVM-execution-visitor
+	 * @param vm interface of VM-simulation
 	 * @param currentThread current thread
 	 * @param visitorParent visitor of parent-thread or <code>null</code>
 	 * @return execution-visitor

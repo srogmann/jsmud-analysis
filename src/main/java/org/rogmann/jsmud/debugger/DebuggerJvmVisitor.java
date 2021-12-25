@@ -95,7 +95,7 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	 * @param eventRequests map from jdwp-request-id to event-request
 	 * @param maxInstrLogged number of instructions to be logged at debug-level
 	 * @param maxMethodsLogged number of method-invocations to be logged at debug-level
-	 * @param eventRequests 
+	 * @param sourceFileRequester optional source-file-requester
 	 */
 	public DebuggerJvmVisitor(final ConcurrentMap<Integer, JdwpEventRequest> eventRequests,
 			final int maxInstrLogged, final int maxMethodsLogged,
