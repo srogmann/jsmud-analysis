@@ -9,7 +9,7 @@ public class StatementComment extends StatementBase {
 
 	/**
 	 * Constructor
-	 * @param comment
+	 * @param comment comment to be rendered
 	 */
 	public StatementComment(final String comment) {
 		this.comment = comment;

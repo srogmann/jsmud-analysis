@@ -12,6 +12,7 @@ public class StatementThrow extends StatementInstr<InsnNode> {
 
 	/**
 	 * Constructor
+	 * @param insn THROW-instruction
 	 * @param expr expression
 	 */
 	public StatementThrow(final InsnNode insn, final ExpressionBase<?> expr) {

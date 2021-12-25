@@ -15,6 +15,7 @@ public class StatementPutField extends StatementInstr<FieldInsnNode>{
 	/**
 	 * Constructor
 	 * @param insn field-instruction, e.g. PUTFIELD
+	 * @param expObject object of field to be written
 	 * @param exprValue value to be stored
 	 */
 	public StatementPutField(FieldInsnNode insn,

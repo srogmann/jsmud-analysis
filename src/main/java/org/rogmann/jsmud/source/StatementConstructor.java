@@ -18,6 +18,7 @@ public class StatementConstructor extends StatementInstr<MethodInsnNode>{
 	/**
 	 * Constructor
 	 * @param insn INVOKESPECIAL-instruction
+	 * @param classNode class containing the method to be called
 	 * @param exprObj object to be initialized
 	 * @param exprArgs arguments of constructor
 	 */

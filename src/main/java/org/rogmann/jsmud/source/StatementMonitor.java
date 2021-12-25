@@ -14,7 +14,7 @@ public class StatementMonitor extends StatementInstr<InsnNode> {
 
 	/**
 	 * Constructor
-	 * @param iz 
+	 * @param iz MONITORENTER- or MONITOREXIT-instruction
 	 * @param exprObj expression
 	 */
 	public StatementMonitor(final InsnNode iz, final ExpressionBase<?> exprObj) {

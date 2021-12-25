@@ -518,7 +518,7 @@ public class SourceFileWriter {
 	 * @param sourceLines list of source-lines
 	 * @param indentation optional indentation-string
 	 * @param lineBreak line-break
-	 * @throws IOException
+	 * @throws IOException in case of an IO-error
 	 */
 	@SuppressWarnings("static-method")
 	public void writeLines(final Writer bw, final List<SourceLine> sourceLines,

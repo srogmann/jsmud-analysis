@@ -22,6 +22,7 @@ public class SourceBlockList extends SourceBlock {
 	/**
 	 * Constructor.
 	 * @param level indentation-level
+	 * @param name display-name of source-block 
 	 */
 	public SourceBlockList(final int level, final String name) {
 		super(level);
@@ -83,7 +84,7 @@ public class SourceBlockList extends SourceBlock {
 
 	/**
 	 * Sets the optional trailing block.
-	 * @param trailing block
+	 * @param tail trailing block
 	 */
 	public void setTail(SourceLines tail) {
 		this.tail = tail;

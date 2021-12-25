@@ -16,7 +16,6 @@ public class StatementVariableIinc extends StatementInstr<IincInsnNode>{
 	 * Constructor
 	 * @param insn variable-instruction, e.g. IINC 1,1
 	 * @param method method-node
-	 * @param exprValue value to be stored
 	 */
 	public StatementVariableIinc(IincInsnNode insn, final MethodNode method) {
 		super(insn);

@@ -60,7 +60,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * Constructor, writes the source-file.
 	 * @param extension extension, e.g. "asm"
 	 * @param node class-node
-	 * @param innerClassesProvider function which returns a class-node corresponding to an internal-name
 	 * @param classLoader class-loader to load inner classes
 	 * @throws IOException in case of an IO-error
 	 */
@@ -1210,6 +1209,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * Writes a list of source-lines, may respect expected line-numbers.
 	 * @param bw writer
 	 * @param sourceLines list of source-lines
+	 * @param respectSourceLineNumbers respect line-numbers of in the class-file
 	 * @param indentation optional indentation-string
 	 * @param lineBreak line-break
 	 * @param showLineNumbers <code>true</code> if line-numbers should be dumped
