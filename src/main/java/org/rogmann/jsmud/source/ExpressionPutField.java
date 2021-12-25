@@ -15,6 +15,7 @@ public class ExpressionPutField extends ExpressionBase<FieldInsnNode>{
 	/**
 	 * Constructor
 	 * @param insn field-instruction, e.g. PUTFIELD
+	 * @param expObject expression of object containing the field
 	 * @param exprValue value to be stored
 	 */
 	public ExpressionPutField(FieldInsnNode insn,

@@ -6,7 +6,6 @@ package org.rogmann.jsmud.source;
 public class ExpressionNull extends ExpressionInstrZeroConstant {
 	/**
 	 * Constructor
-	 * @param insn instruction
 	 */
 	public ExpressionNull() {
 		super(null);

@@ -15,6 +15,8 @@ public class ExpressionArrayLoad extends ExpressionBase<InsnNode>{
 	/**
 	 * Constructor
 	 * @param insn type-instruction, e.g. AALOAD
+	 * @param expArray array-expression
+	 * @param expIndex index-expression
 	 */
 	public ExpressionArrayLoad(final InsnNode insn, final ExpressionBase<?> expArray, final ExpressionBase<?> expIndex) {
 		super(insn);
