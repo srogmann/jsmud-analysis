@@ -170,7 +170,7 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 			final OperandStack stackArgs = new OperandStack(2);
 			stackArgs.push(supplier);
 			try {
-				final Method methodCall = supplierClass.getDeclaredMethod("call");
+				final Method methodCall = supplierClass.getDeclaredMethod("get");
 				final String methodDesc = "()" + Type.getType(methodCall.getReturnType()).getDescriptor();
 				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, methodCall, methodDesc, stackArgs);
 			} catch (Throwable e) {
