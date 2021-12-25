@@ -28,7 +28,6 @@ public class JdwpModifierStep extends JdwpEventModifier {
 
 	/**
 	 * Constructor
-	 * @param req event-request
 	 * @param threadID thread-id 
 	 * @param stepDepth step-size (0 = min, 1 = line)
 	 * @param stepSize step-depth (0 = into, 1 = over, 2 = out)

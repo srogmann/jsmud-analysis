@@ -7,7 +7,7 @@ public class VMBoolean extends VMByte {
 
 	/**
 	 * Constructor
-	 * @param value byte-value
+	 * @param b byte-value of boolean
 	 */
 	public VMBoolean(final boolean b) {
 		super(b ? (byte) 1 : 0);

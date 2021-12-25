@@ -12,7 +12,7 @@ public class JdwpModifierThreadOnly extends JdwpEventModifier {
 
 	/**
 	 * Constructor
-	 * @param count count
+	 * @param thread thread-id
 	 */
 	public JdwpModifierThreadOnly(final VMThreadID threadId) {
 		super(ModKind.THREAD_ONLY);

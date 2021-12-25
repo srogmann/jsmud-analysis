@@ -16,7 +16,7 @@ public class JdwpModifierClassMatch extends JdwpEventModifier {
 	/**
 	 * Constructor
 	 * @param modKind CLASS_MATCH or CLASS_EXCLUDE
-	 * @param count count
+	 * @param classPattern pattern of classes to be matched
 	 */
 	public JdwpModifierClassMatch(final ModKind modKind, final String classPattern) {
 		super(modKind);

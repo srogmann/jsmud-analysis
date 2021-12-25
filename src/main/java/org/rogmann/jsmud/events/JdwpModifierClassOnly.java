@@ -12,7 +12,7 @@ public class JdwpModifierClassOnly extends JdwpEventModifier {
 
 	/**
 	 * Constructor
-	 * @param count count
+	 * @param clazz class-id
 	 */
 	public JdwpModifierClassOnly(final VMReferenceTypeID clazz) {
 		super(ModKind.CLASS_ONLY);

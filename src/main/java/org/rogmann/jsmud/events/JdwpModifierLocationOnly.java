@@ -20,8 +20,7 @@ public class JdwpModifierLocationOnly extends JdwpEventModifier {
 
 	/**
 	 * Constructor
-	 * @param req event-request
-	 * @param type type-tag
+	 * @param typeTag type-tag
 	 * @param classID class-id
 	 * @param methodId method-id
 	 * @param index index in method
