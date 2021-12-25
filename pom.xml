@@ -8,9 +8,9 @@
 
 	<groupId>org.rogmann.jsmud</groupId>
 	<artifactId>jsmud-analysis</artifactId>
-	<version>0.4.1-SNAPSHOT</version>
+	<version>0.5.0</version>
 
-	<name>JSMUD-analysis</name>
+	<name>${project.groupId}:${project.artifactId}</name>
 	<description>Java simulator and multi-user debugger in order to analyze execution of bytecode</description>
 	<url>https://github.com/srogmann/jsmud-analysis/</url>
 	<inceptionYear>2021</inceptionYear>
@@ -35,6 +35,12 @@
 			</roles>
 		</developer>
 	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/srogmann/jsmud-analysis.git</connection>
+		<developerConnection>scm:git:ssh://github.com:srogmann/jsmud-analysis.git</developerConnection>
+		<url>https://github.com/srogmann/jsmud-analysis/tree/master</url>
+	</scm>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -91,7 +97,11 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.3.1</version>
+			</plugin>
 		</plugins>
 	</build>
-
 </project>
