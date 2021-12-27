@@ -114,7 +114,7 @@ GAV in Maven Central Repository:
     <dependency>
         <groupId>org.rogmann.jsmud</groupId>
         <artifactId>jsmud-analysis</artifactId>
-    	<version>0.5.0</version>
+        <version>0.5.0</version>
     </dependency>
 
 A compiled and signed Jar of jsmud-analysis is also available at <a href="http://www.rogmann.org/releases/">http://www.rogmann.org/releases/</a>.
