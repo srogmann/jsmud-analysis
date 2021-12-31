@@ -61,6 +61,9 @@ public class MethodFrame {
 
 	/** configuration */
 	private final JsmudConfiguration configuration;
+	
+	/** reflection helper class */
+	private final ReflectionHelper reflectionHelper;
 
 	/** source-file-writer or <code>null</code> */
 	private final SourceFileWriter sourceFileWriter;
@@ -122,6 +125,7 @@ public class MethodFrame {
 		this.methodName = pMethod.getName();
 		this.pMethod = pMethod;
 		this.method = method;
+		reflectionHelper = new ReflectionHelper();
 		if (sourceFileWriter != null) {
 			sourceFileMapInstrLine = sourceFileWriter.getMethodMapInstrLine(clazz, method);
 			LOG.debug("line-map: " + sourceFileMapInstrLine);
@@ -1597,10 +1601,7 @@ whileInstr:
 						if (Modifier.isFinal(field.getModifiers())
 								&& JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT.equals(methodName)) {
 							// We want to set a final field while executing a constructor.
-							final Field fieldMods = Field.class.getDeclaredField("modifiers");
-							fieldMods.setAccessible(true);
-							final Integer modifiers = (Integer) fieldMods.get(field);
-							fieldMods.set(field, Integer.valueOf(modifiers.intValue() & ~Modifier.FINAL));
+							reflectionHelper.removeFieldsFinalModifier(field);
 						}
 						final Object vFieldStack = stack.pop();
 						final Class<?> fieldType = field.getType();
@@ -1665,10 +1666,7 @@ whileInstr:
 						oValueField = visitor.visitFieldAccess(opcode, fieldInstance, field, oValueField);
 						if (Modifier.isFinal(field.getModifiers()) && pMethod instanceof Constructor<?>) {
 							// We want to set a final field while executing a constructor.
-							final Field fieldMods = Field.class.getDeclaredField("modifiers");
-							fieldMods.setAccessible(true);
-							final Integer modifiers = (Integer) fieldMods.get(field);
-							fieldMods.set(field, Integer.valueOf(modifiers.intValue() & ~Modifier.FINAL));
+							reflectionHelper.removeFieldsFinalModifier(field);
 						}
 						try {
 							field.set(fieldInstance, oValueField);
