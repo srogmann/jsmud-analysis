@@ -39,6 +39,16 @@ public class JsmudConfiguration {
 	/** <code>true</code>, if reflection-calls should be emulated (default is <code>true</code>) */
 	protected final boolean isSimulateReflection = getProperty("SimulateReflection", true);
 
+	/** helper class for reflection */
+	private final ReflectionHelper reflectionHelper;
+
+	/**
+	 * Constructor.
+	 */
+	public JsmudConfiguration() {
+		reflectionHelper = new ReflectionHelper();
+	}
+
 	/**
 	 * Gets the value of the given boolean property.
 	 * The key's prefix is "jsmud.".
@@ -65,6 +75,14 @@ public class JsmudConfiguration {
 	@SuppressWarnings("static-method")
 	protected String getProperty(final String name) {
 		return System.getProperty(KEY_PREFIX + name);
+	}
+
+	/**
+	 * Gets a helper class for doing some reflection.
+	 * @return helper class
+	 */
+	public ReflectionHelper getReflectionHelper() {
+		return reflectionHelper;
 	}
 
 }
