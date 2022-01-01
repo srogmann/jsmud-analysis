@@ -324,7 +324,7 @@ public class JsmudClassLoader extends ClassLoader {
 
 	class InitializerAdapter extends ClassVisitor {
 
-		/** name of the renamed static intializer */
+		/** name of the renamed static initializer */
 		static final String METHOD_JSMUD_CLINIT = "__JSMUD_clinit";
 		/** name of the default-constructor-flag */
 		static final String FIELD_CONSTR_FLAG = "__JSMUD_constr_flag";
@@ -398,7 +398,7 @@ public class JsmudClassLoader extends ClassLoader {
 
 		/**
 		 * Patches a super-class.
-		 * @param superType tspe of super-class
+		 * @param superType type of super-class
 		 * @param reason reason why we want to patch this class (used in error-messages)
 		 */
 		private void patchSuperClass(Type superType, String reason) {
