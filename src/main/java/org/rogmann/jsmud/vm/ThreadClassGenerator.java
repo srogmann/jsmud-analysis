@@ -52,6 +52,12 @@ public class ThreadClassGenerator {
 		this.classLoader = classLoader;
 	}
 
+	/**
+	 * Generates a child-class which calls a {@link ThreadExecutor} in the run-method.
+	 * @param classParent parent-class
+	 * @param constrDesc description of constructor of parent-class
+	 * @return child-class
+	 */
 	public Class<?> generateClass(final Class<?> classParent, final String constrDesc) {
 		final Class<?> classChild = mapThreadChildClasses.get(classParent);
 		if (classChild != null) {
