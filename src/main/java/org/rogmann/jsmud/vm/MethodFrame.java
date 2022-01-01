@@ -2446,7 +2446,7 @@ whileSuperClass:
 	}
 
 	/**
-	 * Executes and INVOKESPECIAL-instruction.
+	 * Executes an INVOKESPECIAL-instruction.
 	 * @param mi INVOKESPECIAL
 	 * @return <code>true</code> if the exception will be handled at the set instruction-index
 	 * @throws Throwable in case of an exception
@@ -2487,23 +2487,18 @@ whileSuperClass:
 
 		final Object instanceInit;
 		SimpleClassExecutor executor = null;
-		if (registry.isClassConstructorJsmudPatched(classConstr)) {
+		if (reflectionHelper.canConstructViaReflectionFactory()
+				|| registry.isClassConstructorJsmudPatched(classConstr)
+				|| "()V".equals(mi.desc)) {
 			executor = registry.getClassExecutor(classConstr);
 		}
 		if (executor != null) {
 			if (uninstType == null) {
-				// The instance is instanciated already.
+				// The instance is instantiated already.
 				instanceInit = null;
 			}
 			else {
-				try {
-					final Constructor<?> constrDefault = classConstr.getDeclaredConstructor();
-					constrDefault.setAccessible(true);
-					instanceInit = constrDefault.newInstance();
-				} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
-						| IllegalArgumentException | InvocationTargetException e) {
-					throw new JvmException(String.format("Couldn't instanciate %s via default-constructor", classConstr.getName()), e);
-				}
+				instanceInit = reflectionHelper.instantiateClass(classConstr);
 				stack.replaceUninitialized(uninstType, instanceInit);
 			}
 			try {
