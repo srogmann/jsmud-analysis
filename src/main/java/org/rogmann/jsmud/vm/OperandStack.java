@@ -188,7 +188,14 @@ public class OperandStack {
 				sbTypes.append(so);
 			}
 			else {
-				sbTypes.append(so.getClass().getSimpleName());
+				final String simpleName = so.getClass().getSimpleName();
+				if (simpleName.length() > 0) {
+					sbTypes.append(simpleName);
+				}
+				else {
+					// e.g. class net.sf.cglib.core.internal.LoadingCache$2
+					sbTypes.append(so.getClass());
+				}
 			}
 		}
 		return String.format("stack: currLen=%d, maxLen=%d, types=[%s], values=%s",
