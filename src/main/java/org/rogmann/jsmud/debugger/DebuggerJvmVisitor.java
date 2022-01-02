@@ -156,10 +156,16 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	 * @throws IOException in case of an {@link IOException}
 	 */
 	public <T> T executeSupplier(final Supplier<T> supplier, final Class<T> classReturnObj) throws IOException {
-		vm.registerThread(Thread.currentThread());
+		final boolean isThreadNew = vm.registerThread(Thread.currentThread());
+		if (!isThreadNew) {
+			LOG.info(String.format("The thread (%s) to execute the supplier (%s) is known already.",
+					Thread.currentThread(), supplier));
+		}
 		final Object objReturn;
 		try {
-			visitThreadStarted(Thread.currentThread());
+			if (isThreadNew) {
+				visitThreadStarted(Thread.currentThread());
+			}
 			vm.suspendThread(vm.getCurrentThreadId());
 			debugger.processPackets();
 
@@ -178,7 +184,9 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 			}
 		}
 		finally {
-			vm.unregisterThread(Thread.currentThread());
+			if (isThreadNew) {
+				vm.unregisterThread(Thread.currentThread());
+			}
 		}
 		if (objReturn != null && !classReturnObj.isInstance(objReturn)) {
 			throw new JvmException(String.format("Unexpected return-type (%s) instead of (%s) of supplier",
