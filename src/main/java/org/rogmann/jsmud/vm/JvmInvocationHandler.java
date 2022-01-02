@@ -30,6 +30,14 @@ public interface JvmInvocationHandler {
 			Object objRefStack, OperandStack stack) throws Throwable;
 
 	/**
+	 * Called before an invocation of an INVOKESPECIAL-execution (e.g. constructor-call).
+	 * @param mi method-invocation-instruction
+	 * @param methodFrame current method-frame
+	 * @param stack current operand-stack
+	 */
+	void preprocessInvokeSpecialCall(MethodInsnNode mi, MethodFrame frame, OperandStack stack);
+
+	/**
 	 * Called after a invocation of a method (or constructor).
 	 * @param frame current method-frame
 	 * @param mi method-invocation-instruction

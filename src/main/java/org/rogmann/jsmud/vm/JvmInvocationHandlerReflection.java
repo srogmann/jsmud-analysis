@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
+import java.util.concurrent.Callable;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -429,6 +430,28 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			doContinueWhile = Boolean.FALSE;
 		}
 		return doContinueWhile;
+	}
+
+	/** {@inhericDoc} */
+	@Override
+	public void preprocessInvokeSpecialCall(final MethodInsnNode mi, MethodFrame frame, final OperandStack stack) {
+		if ("java/util/concurrent/FutureTask".equals(mi.owner) && "<init>".equals(mi.name) && "(Ljava/util/concurrent/Callable;)V".equals(mi.desc)) {
+			// Replace the callable with one controlled by jsmud-analysis.
+			final Callable<?> callable = (Callable<?>) stack.pop();
+			final ThreadExecutor threadExecutor = new ThreadExecutor(frame.registry, frame.visitor);
+			final Callable<Object> callableJsmud = new Callable<Object>() {
+				/** {@inheritDoc} */
+				@Override
+				public Object call() {
+					final Object returnObj = threadExecutor.call(callable);
+					return returnObj;
+				}
+			};
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("FutureTask#call: replace callable %s with %s", callable, callableJsmud));
+			}
+			stack.push(callableJsmud);
+		}
 	}
 
 	/**

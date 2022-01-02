@@ -96,7 +96,7 @@ public class MethodFrame {
 	private final Map<Label, Integer> mapLabel;
 
 	/** visitor */
-	private final JvmExecutionVisitor visitor;
+	final JvmExecutionVisitor visitor;
 
 	/** invocation-handler used for modifying method-executions */
 	private final JvmInvocationHandler invocationHandler;
@@ -2451,7 +2451,9 @@ whileSuperClass:
 	 * @return <code>true</code> if the exception will be handled at the set instruction-index
 	 * @throws Throwable in case of an exception
 	 */
-	public boolean executeInvokeSpecial(final MethodInsnNode mi) throws Throwable{
+	public boolean executeInvokeSpecial(final MethodInsnNode mi) throws Throwable {
+		invocationHandler.preprocessInvokeSpecialCall(mi, this, stack);
+
 		final Type[] types = Type.getArgumentTypes(mi.desc);
 		final int anzArgs = types.length;
 

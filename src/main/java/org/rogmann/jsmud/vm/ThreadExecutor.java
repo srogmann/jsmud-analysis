@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.vm;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
 
 import org.objectweb.asm.Opcodes;
 import org.rogmann.jsmud.log.Logger;
@@ -30,15 +31,68 @@ public class ThreadExecutor {
 	}
 
 	/**
-	 * Runs a thread via JSMUD.
+	 * Runs a callable in the current thread (e.g. FutureTask) via jsmud-analysis.
+	 * @param thread thread to be executed
+	 * @return result
+	 */
+	public Object call(final Callable<?> callable) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("run: callable %s", callable));
+		}
+		final Thread thread = Thread.currentThread();
+		final boolean isThreadIsNew = registry.registerThread(thread, visitorParent);
+		if (isThreadIsNew) {
+			visitorParent.visitThreadStarted(thread);
+		}
+		final Object returnObj;
+		try {
+			final Class<?> threadClass = callable.getClass();
+			final SimpleClassExecutor executor = registry.getClassExecutor(threadClass);
+			if (executor == null) {
+				throw new JvmException(String.format("No executor for callable-class (%s) of thread (%s)",
+						threadClass, thread));
+			}
+			final Method methodCall;
+			try {
+				methodCall = threadClass.getDeclaredMethod("call");
+			}
+			catch (NoSuchMethodException e) {
+				throw new JvmException(String.format("call-method of (%s) is missing", threadClass), e);
+			}
+			catch (SecurityException e) {
+				throw new JvmException(String.format("Executing call-method of (%s) is not allowed", threadClass), e);
+			}
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("callable: execute method %s", methodCall));
+			}
+			final OperandStack stack = new OperandStack(1);
+			stack.push(callable);
+			try {
+				returnObj = executor.executeMethod(Opcodes.INVOKEVIRTUAL, methodCall, "()Ljava/lang/Object;", stack);
+			} catch (Throwable e) {
+				throw new JvmException(String.format("Throwable occured while executing thread (%s)", thread), e);
+			}
+		}
+		finally {
+			if (isThreadIsNew) {
+				registry.unregisterThread(thread);
+			}
+		}
+		return returnObj;
+	}
+
+	/**
+	 * Runs a thread via jsmud-analysis.
 	 * @param thread thread to be executed
 	 */
 	public void run(final Thread thread) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug(String.format("run: %s", thread));
 		}
-		registry.registerThread(thread, visitorParent);
-		visitorParent.visitThreadStarted(thread);
+		final boolean isThreadIsNew = registry.registerThread(thread, visitorParent);
+		if (isThreadIsNew) {
+			visitorParent.visitThreadStarted(thread);
+		}
 		try {
 			final Class<? extends Thread> threadClass = thread.getClass();
 			final SimpleClassExecutor executor = registry.getClassExecutor(threadClass);
@@ -81,7 +135,9 @@ public class ThreadExecutor {
 			}
 		}
 		finally {
-			registry.unregisterThread(thread);
+			if (isThreadIsNew) {
+				registry.unregisterThread(thread);
+			}
 		}
 	}
 }
