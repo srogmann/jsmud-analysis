@@ -1629,7 +1629,11 @@ whileInstr:
 					if (fieldInstance == null) {
 						throw new NullPointerException();
 					}
-					final Class<?> classFieldOwner = fieldInstance.getClass();
+					Class<?> classFieldOwner = fieldInstance.getClass();
+					final String fiOwnerName = fi.owner.replace('/', '.');
+					if (!classFieldOwner.getName().equals(fiOwnerName)) {
+						classFieldOwner = registry.loadClass(fiOwnerName, clazz);
+					}
 					try {
 						final Field field = findDeclaredField(classFieldOwner, fi);
 						assert field != null;
