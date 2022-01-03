@@ -72,7 +72,7 @@ public class JvmTests {
 //		testsChar();
 //		testsShort();
 //		testsLong();
-		testsFloat();
+//		testsFloat();
 //		testsDouble();
 //		testsArray();
 //		testsArrayIndex();
@@ -108,6 +108,7 @@ public class JvmTests {
 //		testsLambdaThreadLocal();
 //		testsMethodChoosing();
 //		testsMethodRef();
+		testsLdcArray();
 //		testsMethodArrayArgs();
 //		testsSyntheticMethod();
 //		testsFields();
@@ -851,6 +852,22 @@ public class JvmTests {
 			assertEquals("Class-Lambda-Name1", "ClassB", supplier1.get());
 			assertEquals("Class-Lambda-Name2", "ClassB", supplier2.get());
 			System.out.println("Supplier 2: " + supplier2);
+		}
+	}
+
+	/**
+	 * Checks the execution of instructions like "LDC [B".
+	 */
+	@JsmudTest
+	public void testsLdcArray() {
+		final Class<?>[] aClasses = { byte.class, byte[].class, byte[][].class,
+				boolean.class, char[].class
+		};
+		final String[] sClasses = { "byte", "byte[]", "byte[][]", "boolean", "char[]" };
+		assert(aClasses.length == sClasses.length);
+
+		for (int i = 0; i < aClasses.length; i++) {
+			assertEquals("LdcArray-" + i, sClasses[i], aClasses[i].getSimpleName());
 		}
 	}
 

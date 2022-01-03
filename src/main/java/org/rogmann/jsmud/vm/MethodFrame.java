@@ -408,8 +408,11 @@ whileInstr:
 					if (li.cst instanceof Type) {
 						final Type type = (Type) li.cst;
 						if (type.getSort() == Type.ARRAY) {
-							final Class<?> classArray = getClassArrayViaType(type, registry, clazz);
-							obj = classArray;
+							final int dims = type.getDimensions();
+							final Class<?> elClass = getClassArrayViaType(type, registry, clazz);
+							final int[] aDims = new int[dims];
+							final Object oArray = Array.newInstance(elClass, aDims);
+							obj = oArray.getClass();
 						}
 						else {
 							final Class<?> liClass = registry.loadClass(type.getClassName(), clazz);
@@ -2711,6 +2714,14 @@ loopDeclMeth:
 		return invMethod;
 	}
 
+	/**
+	 * Gets the base class of an array type.
+	 * @param aType array-type
+	 * @param vm VM
+	 * @param clazz array class
+	 * @return base class
+	 * @throws ClassNotFoundException in case of an unknown class
+	 */
 	static Class<?> getClassArrayViaType(final Type aType, final VM vm, final Class<?> clazz) throws ClassNotFoundException {
 		final Type elType = aType.getElementType();
 		final Class<?> classArray;
