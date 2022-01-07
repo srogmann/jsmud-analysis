@@ -18,6 +18,9 @@ public class JsmudConfiguration {
 	/** optional folder used to dump generated class-site-classes */
 	protected final String folderDumpCallSites = getProperty("FolderDumpCallSites");
 
+	/** optional folder used to dump classes defined at runtime by the application executed*/
+	protected final String folderDumpDefinedClasses = getProperty("FolderDumpDefinedClasses");
+
 	/**
 	 * <code>true</code> if the call-site generator should use the default class-loader only.
 	 * A disadvantage is that INVOKEDYNAMIC-statements in some private methods or classes can't be generated. 

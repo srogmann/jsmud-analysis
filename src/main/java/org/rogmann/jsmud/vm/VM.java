@@ -88,6 +88,14 @@ public interface VM {
 	Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException;
 
 	/**
+	 * Gets the bytecode of a class if it was defined at runtime.
+	 * @param classLoader class-loader
+	 * @param className binary name of defined class, e.g. "net.sf.cglib.proxy.Enhancer$EnhancerKey$$KeyFactoryByCGLIB$$7fb24d72"
+	 * @return bytecode or <code>null</code>
+	 */
+	byte[] getBytecodeOfDefinedClass(ClassLoader classLoader, String className);
+
+	/**
 	 * Redefines a class.
 	 * @param refType reference-type of the class
 	 * @param classUntilNow class until now

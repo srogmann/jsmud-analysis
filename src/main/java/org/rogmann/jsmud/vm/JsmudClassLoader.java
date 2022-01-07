@@ -164,17 +164,17 @@ public class JsmudClassLoader extends ClassLoader {
 	/** {@inheritDoc} */
 	@Override
 	public Class<?> findClass(String name) throws ClassNotFoundException {
-		return findClass(name, parentClassLoader);
+		return findClass(name, parentClassLoader, null);
 	}
 
 	/**
 	 * Loads a class. The bytecode will be patched if the patch-filter matches.
 	 * @param name name of the class to be loaded (and patched)
 	 * @param classLoader classLoader to be used for loading the original-bytecode
-	 * @return class
+	 * @param classRegistry optional VM (may know classes defined at runtime) 
 	 * @throws ClassNotFoundException if the class couldn't be found
 	 */
-	public Class<?> findClass(final String name, final ClassLoader classLoader) throws ClassNotFoundException {
+	public Class<?> findClass(final String name, final ClassLoader classLoader, VM vm) throws ClassNotFoundException {
 		Class<?> clazz = mapPatchedClasses.get(name);
 		if (clazz == null) {
 			final ConcurrentMap<String, Class<?>> mapNameClass = mapJsmudClasses.get(classLoader);
@@ -183,21 +183,28 @@ public class JsmudClassLoader extends ClassLoader {
 			}
 		}
 		if (clazz == null) {
-			LOG.debug("findClass: looking for " + name);
-			if (patchFilter.test(name) && (patchClinit || patchInit)) {
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("findClass: looking for %s in %s", name, classLoader));
+			}
+			final boolean classMayBePatched = patchFilter.test(name) && (patchClinit || patchInit);
+			boolean classIsAlreadyDefined = false;
+			if (classMayBePatched && classLoader != null) {
+				classIsAlreadyDefined = (vm != null) && (vm.getBytecodeOfDefinedClass(classLoader, name) != null);
+			}
+			if (classMayBePatched && !classIsAlreadyDefined) {
 				final String nameClass = name.replace('.', '/') + ".class";
 				final byte[] bytecodePatched;
-				try (final InputStream isBytecode = classLoader.getResourceAsStream(nameClass)) {
+				try (InputStream isBytecode = classLoader.getResourceAsStream(nameClass)) {
 					if (isBytecode == null) {
 						throw new ClassNotFoundException(String.format("Bytecode of (%s) is not found in class-loader (%s)",
-								nameClass, parentClassLoader));
+								nameClass, classLoader));
 					}
 					//LOG.debug("findClass: patching " + name);
 					bytecodePatched = patchClass(name, isBytecode);
 				}
 				catch (IOException e) {
 					throw new ClassNotFoundException(String.format("IO-error while reading class (%s) via class-loader (%s)",
-							name, parentClassLoader), e);
+							name, classLoader), e);
 				}
 				if (FOLDER_JSMUD_BYTECODE != null) {
 					try {
@@ -213,6 +220,11 @@ public class JsmudClassLoader extends ClassLoader {
 				mapPatchedClasses.put(name, clazz);
 				setClassFlag(name, FLAG_PATCHED_CLASS);
 			}
+			else if (classIsAlreadyDefined && classLoader instanceof JsmudClassLoader) {
+				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoader;
+				LOG.info("Check " + jsmudClassLoader + " for " + name);
+				clazz = jsmudClassLoader.loadDefinedClass(name);
+			}
 			else if (classLoader != null) {
 				clazz = classLoader.loadClass(name);
 			}
@@ -221,6 +233,16 @@ public class JsmudClassLoader extends ClassLoader {
 			}
 		}
 		return clazz;
+	}
+
+	/**
+	 * Loads a class defined defined at runtime without patching.
+	 * @param name class-name
+	 * @return clazz
+	 * @throws ClassNotFoundException in case of an unknown clas
+	 */
+	private Class<?> loadDefinedClass(final String name) throws ClassNotFoundException {
+		return super.loadClass(name);
 	}
 
 	/** {@inheritDoc} */

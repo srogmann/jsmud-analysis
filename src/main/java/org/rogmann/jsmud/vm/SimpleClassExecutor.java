@@ -90,6 +90,9 @@ public class SimpleClassExecutor {
 					bufBytecode = registry.getThreadClassGenerator().getBytecode(clazz);
 				}
 				if (bufBytecode == null) {
+					bufBytecode = registry.getBytecodeOfDefinedClass(classLoader, clazz.getName());
+				}
+				if (bufBytecode == null) {
 					throw new IllegalArgumentException(String.format("Can't read ressource (%s) of class (%s) in class-loader (%s)",
 							resName, clazz.getName(), clazz.getClassLoader()));
 				}

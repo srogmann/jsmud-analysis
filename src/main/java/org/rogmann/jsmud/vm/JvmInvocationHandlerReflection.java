@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 
 import org.objectweb.asm.Opcodes;
@@ -74,19 +75,27 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				&& configuration.isSimulateReflection) {
 			// Emulation of Class.forName, we may want to patch the class to be loaded.
 			final Type[] argumentTypes = Type.getArgumentTypes(mi.desc);
+			final int numArgs = argumentTypes.length;
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("Emulate Class.forName(%s) loading class (%s), stack %s",
-						mi.desc, stack.peek(argumentTypes.length - 1), stack));
+						mi.desc, stack.peek(numArgs - 1), stack));
 			}
 			// We ignore initialize-flag and class-loader in the arguments.
-			for (int i = 1; i < argumentTypes.length; i++) {
+			final boolean hasClassLoader = "java.lang.ClassLoader".equals(argumentTypes[numArgs - 1].getClassName());
+			final ClassLoader classLoader = hasClassLoader ? (ClassLoader) stack.peek() : null;
+			for (int i = 1; i < numArgs; i++) {
 				stack.pop();
 			}
 			final String className = (String) stack.pop();
 			final Class<?> loadedClass;
 			try {
 				// Class.forName: We use the registry itself as reference-class-loader.
-				loadedClass = frame.registry.loadClass(className, frame.registry.getClass());
+				if (classLoader != null) {
+					loadedClass = frame.registry.loadClass(className, classLoader);
+				}
+				else {
+					loadedClass = frame.registry.loadClass(className, frame.registry.getClass());
+				}
 			}
 			catch (JvmUncaughtException e) {
 				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e.getCause()));
@@ -376,6 +385,25 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					}
 				}
 				doContinueWhile = Boolean.FALSE;
+			}
+			else if ("defineClass".equals(reflMethod.getName()) && ClassLoader.class.equals(reflMethod.getDeclaringClass())
+					&& reflMethod.getParameterCount() == 5) {
+				// Example:
+				// INVOKEVIRTUAL java/lang/reflect/Method#invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;:
+				// stack: currLen=3, maxLen=6, types=[Method, JsmudClassLoader, Object[]],
+				// values=[protected final java.lang.Class java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int,java.security.ProtectionDomain) throws java.lang.ClassFormatError,
+				//         org.rogmann.jsmud.vm.JsmudClassLoader@4cb2c100, [Ljava.lang.Object;@443dae2]
+				final ClassLoader classLoader = (ClassLoader) stack.peek(1);
+				final Object[] args = (Object[]) stack.peek(0);
+				final String className = (String) args[0];
+				final byte[] buf = (byte[]) args[1];
+				final int offset = ((Integer) args[2]).intValue();
+				final int len = ((Integer) args[3]).intValue();
+				LOG.info(String.format("defineClass (%s) of (%s) in buffer (%s/%d/%d), store bytecode",
+						className, classLoader, buf,
+						Integer.valueOf(offset), Integer.valueOf(len)));
+				final byte[] bufBytecode = Arrays.copyOfRange(buf, offset, len);
+				frame.registry.defineClass(classLoader, className, bufBytecode);
 			}
 		}
 		else if (objRefStack instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {

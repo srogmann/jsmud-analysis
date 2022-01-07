@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.vm;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
@@ -10,6 +11,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -153,7 +155,10 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	
 	/** map of known class-loaders */
 	private final ConcurrentMap<ClassLoader, VMClassLoaderID> mapClassLoader = new ConcurrentHashMap<>();
-	
+
+	/** map of class-loader to bytecode of classes defined at runtime */
+	private final ConcurrentMap<ClassLoader, Map<String, byte[]>> mapClassLoaderDefinedClasses = new ConcurrentHashMap<>();
+
 	/** map of loaded classes */
 	private final ConcurrentMap<String, Class<?>> mapLoadedClasses = new ConcurrentHashMap<>();
 
@@ -304,15 +309,38 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** {@inheritDoc} */
 	@Override
 	public Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException {
+		final ClassLoader ctxClassLoader = (ctxClass != null) ? ctxClass.getClassLoader() : null;
+		return loadClass(className, ctxClassLoader, ctxClass);
+	}
+
+	/**
+	 * Loads a class.
+	 * @param className qualified class-name, e.g. "java.lang.String"
+	 * @param classLoader class-loader of the class to be loaded
+	 * @return loaded class
+	 * @throws ClassNotFoundException if the class can't be found
+	 */
+	public Class<?> loadClass(String className, ClassLoader classLoader) throws ClassNotFoundException {
+		return loadClass(className, classLoader, null);
+	}
+
+	/**
+	 * Loads a class.
+	 * The context-class is used to determine the class-loader to be used.
+	 * @param className qualified class-name, e.g. "java.lang.String"
+	 * @param ctxClass context-class, i.e. a class which knows the class to be loaded, or <code>null</code>
+	 * @param classLoader class-loader of the class to be loaded or <code>null</code>
+	 * @return loaded class
+	 * @throws ClassNotFoundException if the class can't be found
+	 */
+	private Class<?> loadClass(String className, ClassLoader ctxClassLoader, final Class<?> ctxClass) throws ClassNotFoundException {
 		// This implementation discards the used class-loader.
 		// The handling of classes with the same name in different class-loaders is not correct.
 		Class<?> clazz = mapLoadedClasses.get(className);
 		if (clazz == null) {
 			final ClassLoader classLoaderClass;
-			final ClassLoader ctxClassLoader = (ctxClass != null) ? ctxClass.getClassLoader() : null;
-			if (ctxClassLoader instanceof JsmudClassLoader) {
+			if (ctxClassLoader instanceof JsmudClassLoader && ctxClass != null) {
 				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) ctxClassLoader;
-				@SuppressWarnings("null")
 				final ClassLoader classLoaderOrig = jsmudClassLoader.getPatchedClassClassLoader(ctxClass.getName());
 				classLoaderClass = (classLoaderOrig != null) ? classLoaderOrig : classLoaderDefault;
 			}
@@ -340,7 +368,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			}
 			else if (classLoaderDefault instanceof JsmudClassLoader) {
 				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoaderDefault;
-				clazz = jsmudClassLoader.findClass(className, classLoaderClass);
+				clazz = jsmudClassLoader.findClass(className, classLoaderClass, this);
 			}
 			else {
 				try {
@@ -380,6 +408,44 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			}
 		}
 		return clazz;
+	}
+
+	/**
+	 * Stores the bytecode of a class defined at runtime.
+	 * @param classLoader class-loader of defined class
+	 * @param className binary name of defined class, e.g. "net.sf.cglib.proxy.Enhancer$EnhancerKey$$KeyFactoryByCGLIB$$7fb24d72"
+	 * @param buf bytecode
+	 */
+	public void defineClass(final ClassLoader classLoader, final String className, final byte[] buf) {
+		final Map<String, byte[]> mapClassNameBytecode = mapClassLoaderDefinedClasses.computeIfAbsent(classLoader, cl -> new ConcurrentHashMap<>());
+		final String folderClasses = configuration.folderDumpDefinedClasses;
+		if (folderClasses != null) {
+			final File fileDefinedClass = new File(folderClasses, className + ".class");
+			LOG.debug(String.format("Dump defined class of (%s) into (%s)", classLoader, fileDefinedClass));
+			try {
+				Files.write(fileDefinedClass.toPath(), buf);
+			} catch (IOException e) {
+				throw new JvmException(String.format("IO-error while dumping class (%s) into file (%s)",
+						className, fileDefinedClass), e);
+			}
+		}
+		mapClassNameBytecode.put(className, buf);
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public byte[] getBytecodeOfDefinedClass(ClassLoader classLoader, String className) {
+		ClassLoader classLoaderUsed = classLoader;
+		if (classLoader == null) {
+			classLoaderUsed = classLoaderDefault;
+		}
+		final Map<String, byte[]> mapDefinedClasses = mapClassLoaderDefinedClasses.get(classLoaderUsed);
+		if (mapDefinedClasses == null) {
+			// No known class had been defined in this class-loader at runtime.
+			return null;
+		}
+		// Return bytecode or null.
+		return mapDefinedClasses.get(className);
 	}
 
 	/** {@inheritDoc} */
