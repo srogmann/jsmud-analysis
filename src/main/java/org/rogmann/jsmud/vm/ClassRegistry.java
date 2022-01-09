@@ -162,6 +162,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** map of loaded classes */
 	private final ConcurrentMap<String, Class<?>> mapLoadedClasses = new ConcurrentHashMap<>();
 
+	/** set of patched classes whose CLINIT-method has been called */
+	private final ConcurrentMap<Class<?>, Boolean> mapClassesClinitExecuted = new ConcurrentHashMap<>();
+
 	/** map containing ref-type-beans of class-signatures */
 	private final ConcurrentMap<String, RefTypeBean> mapClassSignatures = new ConcurrentHashMap<>(100);
 
@@ -310,6 +313,26 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	@Override
 	public Class<?> loadClass(String className, final Class<?> ctxClass) throws ClassNotFoundException {
 		final ClassLoader ctxClassLoader = (ctxClass != null) ? ctxClass.getClassLoader() : null;
+		if (ctxClassLoader instanceof JsmudClassLoader) {
+			final JsmudClassLoader jsmudCL = (JsmudClassLoader) ctxClassLoader;
+			final ClassLoader clOrig = jsmudCL.getPatchedClassClassLoader(className);
+			if (clOrig != null) {
+				// There is an already patched class.
+				final Class<?> classLoaded = jsmudCL.loadClass(className);
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("loadClass: className=%s, ctxClass=%s, ctxClassLoader=%s, classLoaderOrig=%s, classLoaderClassLoaded=%s",
+							className, ctxClass, ctxClassLoader, clOrig, classLoaded.getClassLoader()));
+				}
+				if (!classLoaded.isArray()) {
+					final SimpleClassExecutor executor = getClassExecutor(classLoaded);
+					if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
+						final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
+						checkAndExecutePatchedClinit(classLoaded, executor, jsmudCl);
+					}
+				}
+				return classLoaded;
+			}
+		}
 		return loadClass(className, ctxClassLoader, ctxClass);
 	}
 
@@ -383,31 +406,54 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				final SimpleClassExecutor executor = getClassExecutor(clazz);
 				if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
 					final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
-					if (jsmudCl.isStaticInitializerPatched(clazz)) {
-						final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
-						final Executable pMethod;
-						try {
-							pMethod = clazz.getDeclaredMethod(methodName);
-						} catch (NoSuchMethodException | SecurityException e) {
-							throw new JvmException(String.format("Can't execute patched static initializer (%s) in (%s)",
-									methodName, className), e);
-						}
-						String methodDesc = "()V";
-						OperandStack args = new OperandStack(0);
-						try {
-							if (LOG.isDebugEnabled()) {
-								LOG.debug(String.format("Execute patched static initializer of (%s)", className));
-							}
-							executor.executeMethod(Opcodes.INVOKESTATIC, pMethod, methodDesc, args);
-						} catch (final Throwable e) {
-							throw new JvmException(String.format("Error while executing static initializer (%s) in (%s)",
-									methodName, className), e);
-						}
-					}
+					checkAndExecutePatchedClinit(clazz, executor, jsmudCl);
 				}
 			}
 		}
 		return clazz;
+	}
+
+	/**
+	 * Checks if the class has an patched CLINIT-method and executes it.
+	 * @param clazz class
+	 * @param executor executor to be used
+	 * @param jsmudCl class-loader of jsmud-analysis
+	 */
+	private void checkAndExecutePatchedClinit(Class<?> clazz, final SimpleClassExecutor executor,
+			final JsmudClassLoader jsmudCl) {
+		if (jsmudCl.isStaticInitializerPatched(clazz) &&
+				!Boolean.TRUE.equals(mapClassesClinitExecuted.putIfAbsent(clazz, Boolean.TRUE))) {
+			// We have to initialize the parent-class before its child-class.
+			final Class<?> classSuper = clazz.getSuperclass();
+			if (!Object.class.equals(classSuper) && classSuper != null) {
+				final SimpleClassExecutor executorSuper = getClassExecutor(classSuper);
+				if (executorSuper != null) {
+					checkAndExecutePatchedClinit(classSuper, executorSuper, jsmudCl);
+				}
+			}
+			
+			String className = clazz.getName();
+			final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
+			final Executable pMethod;
+			try {
+				pMethod = clazz.getDeclaredMethod(methodName);
+			} catch (NoSuchMethodException | SecurityException e) {
+				throw new JvmException(String.format("Can't execute patched static initializer (%s) in (%s)",
+						methodName, className), e);
+			}
+			String methodDesc = "()V";
+			OperandStack args = new OperandStack(0);
+			try {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Execute patched static initializer of (%s) of (%s)",
+							className, clazz.getClassLoader()));
+				}
+				executor.executeMethod(Opcodes.INVOKESTATIC, pMethod, methodDesc, args);
+			} catch (final Throwable e) {
+				throw new JvmException(String.format("Error while executing static initializer (%s) in (%s)",
+						methodName, className), e);
+			}
+		}
 	}
 
 	/**

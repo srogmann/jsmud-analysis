@@ -112,14 +112,21 @@ public class JsmudClassLoader extends ClassLoader {
 		}
 		boolean isJreXmlClass = name.startsWith("org.xml.") || name.startsWith("org.w3c.");
 		boolean isJsmud = name.startsWith(PREFIX_JSMUD);
+		final Class<?> clazz;
 		if (CallSiteContext.class.getName().equals(name)) {
 			// CallSiteContext is used in generated classes supporting INVOKEDYNAMIC.
-			return CallSiteContext.class;
+			clazz = CallSiteContext.class;
 		}
 		else if (patchFilter.test(name) && !isJreXmlClass && !isJsmud) {
-			return findClass(name);
+			clazz = findClass(name);
 		}
-		return parentClassLoader.loadClass(name);
+		else {
+			clazz = parentClassLoader.loadClass(name);
+		}
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("loadClass: return %s of %s", clazz, clazz.getClassLoader()));
+		}
+		return clazz;
 	}
 
 	/**
@@ -218,6 +225,7 @@ public class JsmudClassLoader extends ClassLoader {
 					LOG.debug("mapPatchedClass: put " + name);
 				}
 				mapPatchedClasses.put(name, clazz);
+				mapPatchedClassesClassLoader.put(name, classLoader);
 				setClassFlag(name, FLAG_PATCHED_CLASS);
 			}
 			else if (classIsAlreadyDefined && classLoader instanceof JsmudClassLoader) {
