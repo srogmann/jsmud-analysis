@@ -198,9 +198,9 @@ public class JsmudClassLoader extends ClassLoader {
 			if (classMayBePatched && classLoader != null) {
 				classIsAlreadyDefined = (vm != null) && (vm.getBytecodeOfDefinedClass(classLoader, name) != null);
 			}
+			byte[] bytecodePatched = null;
 			if (classMayBePatched && !classIsAlreadyDefined) {
 				final String nameClass = name.replace('.', '/') + ".class";
-				final byte[] bytecodePatched;
 				try (InputStream isBytecode = classLoader.getResourceAsStream(nameClass)) {
 					if (isBytecode == null) {
 						throw new ClassNotFoundException(String.format("Bytecode of (%s) is not found in class-loader (%s)",
@@ -213,7 +213,10 @@ public class JsmudClassLoader extends ClassLoader {
 					throw new ClassNotFoundException(String.format("IO-error while reading class (%s) via class-loader (%s)",
 							name, classLoader), e);
 				}
+			}
+			if (bytecodePatched != null) {
 				if (FOLDER_JSMUD_BYTECODE != null) {
+					final String nameClass = name.replace('.', '/') + ".class";
 					try {
 						Files.write(new File(FOLDER_JSMUD_BYTECODE, nameClass.replace('/', '.')).toPath(), bytecodePatched, StandardOpenOption.CREATE);
 					} catch (IOException e) {
@@ -339,11 +342,16 @@ public class JsmudClassLoader extends ClassLoader {
 	 * Patches static initializer and constructors of a class.
 	 * @param name class-name
 	 * @param isBytecode input-stream of bytecode
-	 * @return patched bytecode
+	 * @return patched bytecode, <code>null</code> in case of an interface
 	 * @throws IOException in case of an IO-error while reading the class 
 	 */
 	byte[] patchClass(String name, InputStream isBytecode) throws IOException {
 		final ClassReader classReader = new ClassReader(isBytecode);
+		if ((classReader.getAccess() & (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC))
+				== (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC)) {
+			LOG.info("patchClass: Don't duplicate public interface " + name + " with " + Integer.toHexString(classReader.getAccess()));
+			return null;
+		}
 		final int flags = ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS;
 		final ClassWriter classWriter = new ClassWriter(classReader, flags);
 		final ClassVisitor classVisitor = new InitializerAdapter(classWriter);
