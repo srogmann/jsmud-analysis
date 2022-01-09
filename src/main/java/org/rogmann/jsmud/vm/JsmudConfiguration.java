@@ -33,6 +33,9 @@ public class JsmudConfiguration {
 	/** <code>true</code> if defining of classes in original class-loader is forbidden */
 	protected final boolean isCallSiteDontUseOrigCl = getProperty("CallSiteDontUseOrigCl", true);
 
+	/** <code>true</code> if public interfaces shouldn't be duplicated into JsmudClassLoader when patching classes */
+	protected final boolean isDontPatchPublicInterfaces = getProperty("DontPatchPublicInterfaces", true);
+
 	/** <code>true</code>, if {@link AccessController} should be executed by the JVM (default is <code>true</code>) */
 	protected final boolean isEmulateAccessController = getProperty("EmulateAccessController", true); 
 

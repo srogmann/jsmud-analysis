@@ -350,9 +350,13 @@ public class JsmudClassLoader extends ClassLoader {
 	 */
 	byte[] patchClass(String name, InputStream isBytecode) throws IOException {
 		final ClassReader classReader = new ClassReader(isBytecode);
-		if ((classReader.getAccess() & (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC))
-				== (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC)) {
-			LOG.info("patchClass: Don't duplicate public interface " + name + " with " + Integer.toHexString(classReader.getAccess()));
+		if ((configuration.isDontPatchPublicInterfaces
+			&& (classReader.getAccess() & (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC))
+				== (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC))) {
+			if (LOG.isDebugEnabled()) {
+				LOG.debug(String.format("patchClass: Don't duplicate public interface (%s) with 0x%x into %s",
+						name, Integer.valueOf(classReader.getAccess()), this));
+			}
 			return null;
 		}
 		final int flags = ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS;
