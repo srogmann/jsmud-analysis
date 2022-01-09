@@ -1857,8 +1857,8 @@ whileInstr:
 					if (obj != null) {
 						boolean canCast = handleCheckcast(tin.desc, obj);
 						if (!canCast) {
-							final ClassCastException e = new ClassCastException(String.format("Can't convert object of type (%s) to (%s)",
-									obj.getClass(), tin.desc));
+							final ClassCastException e = new ClassCastException(String.format("Can't convert object of type (%s) in (%s) to (%s)",
+									obj.getClass(), obj.getClass().getClassLoader(), tin.desc));
 							final boolean doContinueWhileE = handleCatchException(e);
 							if (doContinueWhileE) {
 								continue whileInstr;
