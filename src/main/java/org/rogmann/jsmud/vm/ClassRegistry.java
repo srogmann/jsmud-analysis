@@ -234,7 +234,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			jsmudClassLoader = (JsmudClassLoader) classLoader;
 		}
 		else {
-			jsmudClassLoader = new JsmudClassLoader(classLoader, name -> false, false, false, false);
+			jsmudClassLoader = new JsmudClassLoader(classLoader, configuration, name -> false, false, false, false);
 		}
 		callSiteGenerator = new CallSiteGenerator(jsmudClassLoader, this, configuration);
 		threadClassGenerator = new ThreadClassGenerator(jsmudClassLoader);

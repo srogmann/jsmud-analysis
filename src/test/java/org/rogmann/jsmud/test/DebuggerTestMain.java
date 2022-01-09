@@ -13,6 +13,7 @@ import org.rogmann.jsmud.debugger.SourceFilesLocalDirectory;
 import org.rogmann.jsmud.vm.ClassExecutionFilter;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JsmudClassLoader;
+import org.rogmann.jsmud.vm.JsmudConfiguration;
 import org.rogmann.jsmud.vm.JvmHelper;
 import org.rogmann.jsmud.vm.OperandStack;
 import org.rogmann.jsmud.vm.SimpleClassExecutor;
@@ -39,7 +40,9 @@ public class DebuggerTestMain {
 		boolean patchClinit = false;
 		boolean patchInit = false;
 		boolean acceptHotCodeReplace = true;
-		final ClassLoader cl = new JsmudClassLoader(clParent, c -> false, patchClinit, patchInit, acceptHotCodeReplace);
+		final JsmudConfiguration config = new JsmudConfiguration();
+		final ClassLoader cl = new JsmudClassLoader(clParent, config,
+				c -> false, patchClinit, patchInit, acceptHotCodeReplace);
 		final SourceFileRequester sfr = createSourceFileRequester(folderSources);
 		final DebuggerJvmVisitor visitor = JvmHelper.createDebuggerVisitor(filter, cl, sfr);
 		final Supplier<Void> supplier = new Supplier<Void>() {

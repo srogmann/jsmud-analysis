@@ -48,10 +48,10 @@ public class ClassExecutionMain {
 		final boolean patchClinit = false;
 		final boolean patchInit = false;
 		final boolean redefineClass = false;
-		final JsmudClassLoader classLoader = new JsmudClassLoader(classLoaderParent, name ->
-					!name.startsWith("java.") && !name.startsWith("com.sun.") && !name.startsWith("sun."),
-				patchClinit, patchInit, redefineClass);
 		final JsmudConfiguration config = new JsmudConfiguration();
+		final JsmudClassLoader classLoader = new JsmudClassLoader(classLoaderParent, config,
+				name -> !name.startsWith("java.") && !name.startsWith("com.sun.") && !name.startsWith("sun."),
+				patchClinit, patchInit, redefineClass);
 		final JvmInvocationHandler invocationHandler = new JvmInvocationHandlerReflection(executionFilter, config);
 		final ClassRegistry registry = new ClassRegistry(executionFilter, config,
 				classLoader, visitorProvider, invocationHandler);
