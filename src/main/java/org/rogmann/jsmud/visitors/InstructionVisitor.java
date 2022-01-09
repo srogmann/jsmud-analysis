@@ -109,7 +109,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitLoadClass(Class<?> loadedClass) {
 		if (showOutput) {
-			printer.println(String.format("Load class: %s", loadedClass.getName()));
+			printer.println(String.format("Loaded class: %s", loadedClass.getName()));
 		}
 	}
 
