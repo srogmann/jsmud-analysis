@@ -44,7 +44,7 @@ public class SimpleClassExecutor {
 	private final JvmInvocationHandler fInvocationHandler;
 
 	/**
-	 * Constructor
+	 * Constructor with class-instance.
 	 * @param registry class-registry
 	 * @param clazz class to be executed
 	 * @param invocationHandler invocation-handler

@@ -191,9 +191,6 @@ public class JsmudClassLoader extends ClassLoader {
 			}
 		}
 		if (clazz == null) {
-			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("findClass: looking for %s in %s", name, classLoader));
-			}
 			final boolean classMayBePatched = patchFilter.test(name) && (patchClinit || patchInit);
 			boolean classIsAlreadyDefined = false;
 			if (classMayBePatched && classLoader != null) {
@@ -207,12 +204,19 @@ public class JsmudClassLoader extends ClassLoader {
 						throw new ClassNotFoundException(String.format("Bytecode of (%s) is not found in class-loader (%s)",
 								nameClass, classLoader));
 					}
-					//LOG.debug("findClass: patching " + name);
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("findClass: patching %s of %s", nameClass, classLoader));
+					}
 					bytecodePatched = patchClass(name, isBytecode);
 				}
 				catch (IOException e) {
 					throw new ClassNotFoundException(String.format("IO-error while reading class (%s) via class-loader (%s)",
 							name, classLoader), e);
+				}
+			}
+			else {
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("findClass: looking for %s in %s", name, classLoader));
 				}
 			}
 			if (bytecodePatched != null) {
