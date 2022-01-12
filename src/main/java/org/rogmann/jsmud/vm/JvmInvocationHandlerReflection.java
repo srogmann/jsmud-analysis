@@ -80,13 +80,25 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				LOG.debug(String.format("Emulate Class.forName(%s) loading class (%s), stack %s",
 						mi.desc, stack.peek(numArgs - 1), stack));
 			}
-			// We ignore initialize-flag and class-loader in the arguments.
+			// We ignore initialize-flag in the arguments.
 			final boolean hasClassLoader = "java.lang.ClassLoader".equals(argumentTypes[numArgs - 1].getClassName());
-			final ClassLoader classLoader = hasClassLoader ? (ClassLoader) stack.peek() : null;
+			ClassLoader classLoader = hasClassLoader ? (ClassLoader) stack.peek() : null;
 			for (int i = 1; i < numArgs; i++) {
 				stack.pop();
 			}
 			final String className = (String) stack.pop();
+			LOG.info("cl: " + classLoader + ", bytecode: " + frame.registry.getBytecodeOfDefinedClass(frame.registry.getClassLoader(), className));
+			if (hasClassLoader
+					&& frame.registry.getBytecodeOfDefinedClass(frame.registry.getClassLoader(), className) != null
+					&& classLoader != frame.registry.getClassLoader()
+					&& frame.registry.getClassLoader() instanceof JsmudClassLoader) {
+				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) frame.registry.getClassLoader();
+				if (jsmudClassLoader.patchFilter.test(className)) {
+					LOG.info(String.format("Load class (%s) via (%s) instead of (%s)",
+							className, frame.registry.getClassLoader(), classLoader));
+					classLoader = frame.registry.getClassLoader();
+				}
+			}
 			final Class<?> loadedClass;
 			try {
 				// Class.forName: We use the registry itself as reference-class-loader.
@@ -393,9 +405,25 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				// stack: currLen=3, maxLen=6, types=[Method, JsmudClassLoader, Object[]],
 				// values=[protected final java.lang.Class java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int,java.security.ProtectionDomain) throws java.lang.ClassFormatError,
 				//         org.rogmann.jsmud.vm.JsmudClassLoader@4cb2c100, [Ljava.lang.Object;@443dae2]
-				final ClassLoader classLoader = (ClassLoader) stack.peek(1);
+				ClassLoader classLoader = (ClassLoader) stack.peek(1);
 				final Object[] args = (Object[]) stack.peek(0);
 				final String className = (String) args[0];
+                final ClassLoader classLoaderDefault = frame.registry.getClassLoader();
+                if (classLoaderDefault instanceof JsmudClassLoader) {
+                        final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoaderDefault;
+                        if (jsmudClassLoader.patchFilter.test(className)) {
+                                // The class should be loaded in the JsmudClassLoader because
+                                // otherwise its classes would reference the application's classloader
+                                // but the patched classes would reference the JsmudClassLoader.
+                                LOG.info(String.format("defineClass: Replace class-loader %s by %s",
+                                                classLoader, jsmudClassLoader));
+                                stack.pop(); // arguments
+                                stack.pop(); // classLoader
+                                stack.push(jsmudClassLoader);
+                                stack.push(args);
+                                classLoader = jsmudClassLoader;
+                        }
+                }
 				final byte[] buf = (byte[]) args[1];
 				final int offset = ((Integer) args[2]).intValue();
 				final int len = ((Integer) args[3]).intValue();
