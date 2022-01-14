@@ -245,8 +245,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			final Constructor<?> constr = (Constructor<?>) stack.peek(1);
 			final Class<?> classInit = constr.getDeclaringClass();
 			final SimpleClassExecutor executor = frame.registry.getClassExecutor(classInit);
-			if (executor != null && frame.registry.isClassConstructorJsmudPatched(classInit)) {
-				// The class is patched. We can instantiate the instance.
+			if (executor != null) {
+				// We try to instantiate the instance.
 				if (LOG.isDebugEnabled()) {
 					LOG.debug(String.format("Emulate constructor (%s) in class (%s), stack %s",
 							constr, classInit.getName(), stack));

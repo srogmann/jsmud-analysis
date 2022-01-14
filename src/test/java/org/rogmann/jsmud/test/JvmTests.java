@@ -87,7 +87,7 @@ public class JvmTests {
 //		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
-		testsLambdaObjectMethodReferences();
+//		testsLambdaObjectMethodReferences();
 //		testsLambdaInterfaceMethodReferences();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
@@ -127,6 +127,7 @@ public class JvmTests {
 //		testsReflection();
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
+		testReflectionConstructorNewInstance();
 //		testsClassForName();
 //		testsReflectionAnnotation();
 //		testsAccessController();
@@ -1361,6 +1362,20 @@ public class JvmTests {
 		assertEquals("testReflectionDeclaredConstructors",
 				String.format("[public %s$%s(int,int)]", JvmTests.class.getName(), TestConstructorWithoutDefault.class.getSimpleName()),
 				Arrays.toString(constrDesc));
+	}
+
+	/** Execution of a constructor with two arguments using reflection. */
+	@JsmudTest
+	public void testReflectionConstructorNewInstance() {
+		TestConstructor testObj;
+		try {
+			final Constructor<TestConstructor> constr = TestConstructor.class.getDeclaredConstructor(int.class, int.class);
+			testObj = constr.newInstance(Integer.valueOf(100), Integer.valueOf(200));
+		} catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
+				| IllegalArgumentException | InvocationTargetException e) {
+			throw new RuntimeException("Exception while invoking constructor(II)", e);
+		}
+		assertEquals("testReflectionConstructorNewInstance", Integer.valueOf(300), Integer.valueOf(testObj.getSum()));
 	}
 
 	@JsmudTest(description = "reflection on annotation-method")
