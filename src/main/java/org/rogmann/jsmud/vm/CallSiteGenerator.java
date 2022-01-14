@@ -46,6 +46,20 @@ public class CallSiteGenerator {
 
 	/** type of the {@link CallSiteContext}-instance */
 	private static final Type TYPE_CALL_SITE_CONTEXT = Type.getType(CallSiteContext.class);
+	/** type of the {@link Integer}-instance */
+	private static final Type TYPE_BOOLEAN = Type.getType(Boolean.class);
+	/** type of the {@link Integer}-instance */
+	private static final Type TYPE_CHARACTER = Type.getType(Character.class);
+	/** type of the {@link Integer}-instance */
+	private static final Type TYPE_SHORT = Type.getType(Short.class);
+	/** type of the {@link Integer}-instance */
+	private static final Type TYPE_INTEGER = Type.getType(Integer.class);
+	/** type of the {@link Integer}-instance */
+	private static final Type TYPE_LONG = Type.getType(Long.class);
+	/** type of the {@link Integer}-instance */
+	private static final Type TYPE_FLOAT = Type.getType(Float.class);
+	/** type of the {@link Integer}-instance */
+	private static final Type TYPE_DOUBLE = Type.getType(Double.class);
 
 	/**
 	 * static field to check if a method is executed by JSMUD
@@ -447,7 +461,7 @@ public class CallSiteGenerator {
 			constr.visitVarInsn(Opcodes.ALOAD, 0);
 			final Type arg = callSiteConstrArgs[i];
 			try {
-				loadLocalVariable(constr, indexInLocals, arg, null);
+				loadLocalVariable(constr, indexInLocals, arg, null, null);
 			}
 			catch (JvmException e) {
 				throw new JvmException(String.format("Error while generating constructor of call-site-class (%s) for call-site-method (%s) in (%s): %s",
@@ -533,7 +547,7 @@ public class CallSiteGenerator {
 			final Type arg = callSiteMethodArgsRuntime[i];
 			final Type argCompile = callSiteMethodArgsCompile[i];
 			try {
-				loadLocalVariable(mv, indexInLocals, arg, argCompile);
+				loadLocalVariable(mv, indexInLocals, arg, argCompile, null);
 			}
 			catch (JvmException e) {
 				throw new JvmException(String.format("Error while processing call-site-method (%s) in (%s): %s",
@@ -626,6 +640,35 @@ public class CallSiteGenerator {
 	}
 
 	/**
+	 * Converts an object of a primitive into its corresponding primitive type.
+	 * @param mv method-visitor
+	 * @param arg type of topmost type
+	 */
+	private static void convertObjectToPrimitive(final MethodVisitor mv, final Type arg) {
+		if (Type.BOOLEAN_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_BOOLEAN.getInternalName(), "booleanValue", "()Z", false);
+		}
+		else if (Type.CHAR_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_CHARACTER.getInternalName(), "charValue", "()C", false);
+		}
+		else if (Type.SHORT_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_SHORT.getInternalName(), "shortValue", "()S", false);
+		}
+		else if (Type.INT_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_INTEGER.getInternalName(), "intValue", "()I", false);
+		}
+		else if (Type.LONG_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_LONG.getInternalName(), "longValue", "()J", false);
+		}
+		else if (Type.FLOAT_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_FLOAT.getInternalName(), "floatValue", "()F", false);
+		}
+		else if (Type.DOUBLE_TYPE.equals(arg)) {
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, TYPE_DOUBLE.getInternalName(), "doubleValue", "()D", false);
+		}
+	}
+
+	/**
 	 * Converts a primitive-type on stack into the corresponding object-type.
 	 * @param mv method-visitor
 	 * @param arg type of topmost type
@@ -680,23 +723,28 @@ public class CallSiteGenerator {
 			mv.visitTypeInsn(Opcodes.NEW, methodHandle.getOwner());
 			mv.visitInsn(Opcodes.DUP);
 		}
+		final Type[] methodHandleTypes = Type.getArgumentTypes(methodHandle.getDesc());
+		int indexMethArg = (methodHandle.getTag() == Opcodes.H_INVOKESTATIC) ? 0 : -1;
 		for (int i = 0; i < callSiteConstrArgs.length; i++) {
 			mv.visitVarInsn(Opcodes.ALOAD, 0);
 			final Type arg = callSiteConstrArgs[i];
 			mv.visitFieldInsn(Opcodes.GETFIELD, callSiteNameInt, fieldNames[i], arg.getDescriptor());
+			indexMethArg++;
 		}
 		int indexInLocals = 1;
 		for (int i = 0; i < callSiteMethodArgsRuntime.length; i++) {
 			final Type arg = callSiteMethodArgsRuntime[i];
 			final Type argCompile = callSiteMethodArgsCompile[i];
 			try {
-				loadLocalVariable(mv, indexInLocals, arg, argCompile);
+				final Type mhType = (indexMethArg >= 0) ? methodHandleTypes[indexMethArg] : null;
+				loadLocalVariable(mv, indexInLocals, arg, argCompile, mhType);
 			}
 			catch (JvmException e) {
 				throw new JvmException(String.format("Error while processing call-site-method (%s) in (%s): %s",
 						callSiteMethodDescRuntime, classOwner, e.getMessage()));
 			}
 			indexInLocals += (Type.LONG_TYPE.equals(arg) || Type.DOUBLE_TYPE.equals(arg)) ? 2 : 1;
+			indexMethArg++;
 		}
 	}
 
@@ -706,13 +754,18 @@ public class CallSiteGenerator {
 	 * @param indexInLocals index of local variable
 	 * @param arg type of argument
 	 * @param argCompile optional type be casted to
+	 * @param argDest optional destination-type (may be a primitive)
 	 * @throws JvmException in case of an unexpected argument-type
 	 */
-	public static void loadLocalVariable(final MethodVisitor mv, final int indexInLocals, final Type arg, final Type argCompile) throws JvmException {
+	public static void loadLocalVariable(final MethodVisitor mv, final int indexInLocals, final Type arg, final Type argCompile,
+			final Type argDest) throws JvmException {
 		if (arg.getSort() == Type.OBJECT) {
 			mv.visitVarInsn(Opcodes.ALOAD, indexInLocals);
 			if (argCompile != null && "java/lang/Object".equals(arg.getInternalName()) && !arg.equals(argCompile)) {
 				mv.visitTypeInsn(Opcodes.CHECKCAST, argCompile.getInternalName());
+				if (argDest != null) {
+					convertObjectToPrimitive(mv, argDest);
+				}
 			}
 		}
 		else if (arg.getSort() == Type.ARRAY) {

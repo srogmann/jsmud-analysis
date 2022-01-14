@@ -85,7 +85,7 @@ public class ThreadClassGenerator {
 			final Type[] argumentTypes = Type.getArgumentTypes(constrDesc);
 			for (int i = 0; i < argumentTypes.length; i++) {
 				final int indexInLocals = 1 + i;
-				CallSiteGenerator.loadLocalVariable(constr, indexInLocals, argumentTypes[i], argumentTypes[i]);
+				CallSiteGenerator.loadLocalVariable(constr, indexInLocals, argumentTypes[i], argumentTypes[i], argumentTypes[i]);
 			}
 			constr.visitMethodInsn(Opcodes.INVOKESPECIAL, Type.getInternalName(classParent),
 					"<init>", constrDesc, false);

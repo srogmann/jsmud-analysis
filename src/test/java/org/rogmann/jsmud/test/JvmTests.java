@@ -87,7 +87,7 @@ public class JvmTests {
 //		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
 //		testsLambdaClassMethodReferences();
-//		testsLambdaObjectMethodReferences();
+		testsLambdaObjectMethodReferences();
 //		testsLambdaInterfaceMethodReferences();
 //		testsLambdaNonStatic();
 //		testsLambdaInterface();
@@ -108,7 +108,7 @@ public class JvmTests {
 //		testsLambdaThreadLocal();
 //		testsMethodChoosing();
 //		testsMethodRef();
-		testsLdcArray();
+//		testsLdcArray();
 //		testsMethodArrayArgs();
 //		testsSyntheticMethod();
 //		testsFields();
@@ -573,8 +573,33 @@ public class JvmTests {
 
 		final Supplier<String> supplierTriple = supplierDoubled::get;
 		assertEquals("obj::method::method::method", "cat", supplierTriple.get());
+
+		final Set<Integer> setInteger = new HashSet<>();
+		setInteger.add(Integer.valueOf(34));
+		setInteger.add(Integer.valueOf(55));
+		final SumInt sumInt = new SumInt();
+		setInteger.forEach(sumInt::add);
+		assertEquals("obj::method(I)V", Integer.valueOf(89), Integer.valueOf(sumInt.getSum()));
 	}
 
+	/** Class which contains a method with signature "(I)V". */
+	static class SumInt {
+		private int sum;
+		/**
+		 * Adds an integer.
+		 * @param i int-value
+		 */
+		public void add(int i) {
+			sum += i;
+		}
+		/**
+		 * Gets the sum.
+		 * @return sum
+		 */
+		public int getSum() {
+			return sum;
+		}
+	}
 	/**
 	 * Example of a lambda-function with method-references on an interface.
 	 */
