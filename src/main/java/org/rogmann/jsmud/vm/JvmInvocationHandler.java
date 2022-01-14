@@ -19,6 +19,9 @@ public interface JvmInvocationHandler {
 
 	/**
 	 * Called before an invocation of an instance-method (or constructor).
+	 * This offers the possibility to replace the invocation with an own implementation,
+	 * return Boolean.FALSE in that case.
+	 * 
 	 * @param methodFrame current method-frame
 	 * @param mi method-invocation-instruction
 	 * @param objRefStack instance-object
