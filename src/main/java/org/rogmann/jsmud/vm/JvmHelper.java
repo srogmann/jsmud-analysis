@@ -144,7 +144,7 @@ public class JvmHelper {
 			final OperandStack stackArgs = new OperandStack(1);
 			stackArgs.push(supplier);
 			try {
-				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(supplier.getClass(), "call"), "()Ljava/lang/Object;", stackArgs);
+				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(supplier.getClass(), "get"), "()Ljava/lang/Object;", stackArgs);
 			} catch (Throwable e) {
 				throw new JvmUncaughtException("Exception while simulating supplier", e);
 			}
