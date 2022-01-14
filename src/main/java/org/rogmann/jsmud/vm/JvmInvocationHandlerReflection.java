@@ -239,7 +239,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				return doContinueWhile;
 			}
 		}
-		if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name)
+		else if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name)
 				&& configuration.isSimulateReflection) {
 			// Emulation of Constructor#newInstance?
 			final Constructor<?> constr = (Constructor<?>) stack.peek(1);
@@ -405,6 +405,9 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				// stack: currLen=3, maxLen=6, types=[Method, JsmudClassLoader, Object[]],
 				// values=[protected final java.lang.Class java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int,java.security.ProtectionDomain) throws java.lang.ClassFormatError,
 				//         org.rogmann.jsmud.vm.JsmudClassLoader@4cb2c100, [Ljava.lang.Object;@443dae2]
+				final Method m = (Method) stack.peek(2);
+				LOG.info(String.format("defineClass: method %s, class-loader of declared class %s",
+						m, m.getDeclaringClass().getClassLoader()));
 				ClassLoader classLoader = (ClassLoader) stack.peek(1);
 				final Object[] args = (Object[]) stack.peek(0);
 				final String className = (String) args[0];
