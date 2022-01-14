@@ -155,7 +155,13 @@ public class CallSiteGenerator {
 		}
 		
 		final Type[] callSiteConstrArgs = Type.getArgumentTypes(idin.desc);
-		final Constructor<?> constr = classCallSite.getDeclaredConstructors()[0];
+		final Constructor<?> constr;
+		try {
+			constr = classCallSite.getDeclaredConstructors()[0];
+		} catch (VerifyError e) {
+			throw new JvmException(String.format("Error in call-site-class %s generated for %s (INVOKEDYNAMIC %s%s)",
+					classCallSite, classOwner, idin.name, idin.desc), e);
+		}
 		constr.setAccessible(true);
 		final Object[] args = new Object[1 + callSiteConstrArgs.length];
 		final Handle methodHandle = (Handle) idin.bsmArgs[1];
