@@ -69,8 +69,8 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 
 	/** {@inheritDoc} */
 	@Override
-	public Boolean preprocessStaticCall(MethodFrame frame, final MethodInsnNode mi, OperandStack stack) throws Throwable {
-		Boolean doContinueWhile = null;
+	public InvokeFlow preprocessStaticCall(MethodFrame frame, final MethodInsnNode mi, OperandStack stack) throws Throwable {
+		InvokeFlow doContinueWhile = null;
 		if ("java/lang/Class".equals(mi.owner) && "forName".equals(mi.name)
 				&& configuration.isSimulateReflection) {
 			// Emulation of Class.forName, we may want to patch the class to be loaded.
@@ -110,23 +110,23 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				}
 			}
 			catch (JvmUncaughtException e) {
-				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e.getCause()));
-				if (doContinueWhile.booleanValue()) {
-					return Boolean.TRUE;
+				final boolean handleException = frame.handleCatchException(e.getCause());
+				if (handleException) {
+					return InvokeFlow.EXEC_CATCH;
 				}
 				// This exception isn't handled here.
 				throw e;
 			}
 			catch (Exception e) {
-				doContinueWhile = Boolean.valueOf(frame.handleCatchException(e));
-				if (doContinueWhile.booleanValue()) {
-					return Boolean.TRUE;
+				final boolean handleException = frame.handleCatchException(e.getCause());
+				if (handleException) {
+					return InvokeFlow.EXEC_CATCH;
 				}
 				// This exception isn't handled here.
 				throw e;
 			}
 			stack.push(loadedClass);
-			doContinueWhile = Boolean.FALSE;
+			doContinueWhile = InvokeFlow.EXEC_OK;
 		}
 		else if ("java/security/AccessController".equals(mi.owner) && "doPrivileged".equals(mi.name)
 				&& configuration.isEmulateAccessController) {
@@ -170,13 +170,13 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			catch (JvmUncaughtException e) {
 				final boolean doContinueWhileFlag = frame.handleCatchException(e.getCause());
 				if (doContinueWhileFlag) {
-					return Boolean.TRUE;
+					return InvokeFlow.EXEC_CATCH;
 				}
 				// This exception isn't handled here.
 				throw e;
 			}
 			stack.push(objReturn);
-			doContinueWhile = Boolean.FALSE;
+			doContinueWhile = InvokeFlow.EXEC_OK;
 		}
 		else if ("java/lang/System".equals(mi.owner) && "exit".equals(mi.name)
 				&& configuration.isCatchSystemExit) {
@@ -188,9 +188,9 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 
 	/** {@inheritDoc} */
 	@Override
-	public Boolean preprocessInstanceCall(MethodFrame frame, final MethodInsnNode mi,
+	public InvokeFlow preprocessInstanceCall(MethodFrame frame, final MethodInsnNode mi,
 			final Object objRefStack, final OperandStack stack) throws Throwable {
-		Boolean doContinueWhile = null;
+		InvokeFlow doContinueWhile = null;
 		if ("java/lang/Object".equals(mi.owner)) {
 			if ("wait".equals(mi.name)) {
 				final Long timeout;
@@ -217,25 +217,25 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				} catch (InterruptedException e) {
 					final boolean doContinueWhileE = frame.handleCatchException(e);
 					if (doContinueWhileE) {
-						return Boolean.TRUE;
+						return InvokeFlow.EXEC_CATCH;
 					}
 					// This exception isn't handled here.
 					throw new JvmUncaughtException(String.format("interruption of Object#wait(%d,%d)",
 							timeout, nanos), e);
 				}
-				doContinueWhile = Boolean.FALSE;
+				doContinueWhile = InvokeFlow.EXEC_OK;
 				return doContinueWhile;
 			}
 			if ("notify".equals(mi.name) && "()V".equals(mi.desc)) {
 				final Object monitorObj = stack.peek();
 				frame.registry.doNotify(monitorObj);
-				doContinueWhile = Boolean.FALSE;
+				doContinueWhile = InvokeFlow.EXEC_OK;
 				return doContinueWhile;
 			}
 			if ("notifyAll".equals(mi.name) && "()V".equals(mi.desc)) {
 				final Object monitorObj = stack.peek();
 				frame.registry.doNotifyAll(monitorObj);
-				doContinueWhile = Boolean.FALSE;
+				doContinueWhile = InvokeFlow.EXEC_OK;
 				return doContinueWhile;
 			}
 		}
@@ -278,13 +278,13 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				catch (JvmUncaughtException e) {
 					final boolean doContinueWhileE = frame.handleCatchException(e.getCause());
 					if (doContinueWhileE) {
-						return Boolean.TRUE;
+						return InvokeFlow.EXEC_CATCH;
 					}
 					// This exception isn't handled here.
 					throw e;
 				}
 				stack.push(oObjRef);
-				doContinueWhile = Boolean.FALSE;
+				doContinueWhile = InvokeFlow.EXEC_OK;
 			}
 		}
 		else if ("java/lang/reflect/Method".equals(mi.owner) && "invoke".equals(mi.name)
@@ -387,7 +387,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 					catch (JvmUncaughtException e) {
 						final boolean doContinueWhileFlag = frame.handleCatchException(e.getCause());
 						if (doContinueWhileFlag) {
-							return Boolean.TRUE;
+							return InvokeFlow.EXEC_CATCH;
 						}
 						// This exception isn't handled here.
 						throw e;
@@ -396,7 +396,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 						stack.push(objReturn);
 					}
 				}
-				doContinueWhile = Boolean.FALSE;
+				doContinueWhile = InvokeFlow.EXEC_OK;
 			}
 			else if ("defineClass".equals(reflMethod.getName()) && ClassLoader.class.equals(reflMethod.getDeclaringClass())
 					&& reflMethod.getParameterCount() == 5) {
@@ -435,6 +435,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 						Integer.valueOf(offset), Integer.valueOf(len)));
 				final byte[] bufBytecode = Arrays.copyOfRange(buf, offset, len);
 				frame.registry.defineClass(classLoader, className, bufBytecode);
+				doContinueWhile = InvokeFlow.EXEC_OK;
 			}
 		}
 		else if (objRefStack instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
@@ -486,7 +487,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 			else {
 				throw new JvmException(String.format("Unexpected clone-object of type (%s)", obj.getClass()));
 			}
-			doContinueWhile = Boolean.FALSE;
+			doContinueWhile = InvokeFlow.EXEC_OK;
 		}
 		return doContinueWhile;
 	}
@@ -572,13 +573,13 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 	 * @param stack current stack
 	 * @param miName name of the method to be executed
 	 * @param miDesc signature of the method to be executed
-	 * @return continue-while-flag, <code>null</code> in case of missing executor
+	 * @return how to continue execution
 	 * @throws Throwable
 	 */
-	private Boolean executeProxyInvokeMethod(MethodFrame frame, final Proxy proxy, final OperandStack stack,
+	private InvokeFlow executeProxyInvokeMethod(MethodFrame frame, final Proxy proxy, final OperandStack stack,
 			final String miName, final String miDesc)
 			throws IllegalAccessException, NoSuchMethodException, Throwable {
-		Boolean doContinueWhile = null;
+		InvokeFlow doContinueWhile = null;
 		final Class<? extends Proxy> proxyClass = proxy.getClass();
 		if (filterProxy != null) {
 			final InvocationHandler ih = getInvocationHandler(proxy);
@@ -643,13 +644,13 @@ loopClassIh:
 	 * @param defaultExecutor default executor
 	 * @param ihMethod method to be called
 	 * @param stack stack
-	 * @return continue-while-flag
+	 * @return how to continue execution
 	 * @throws Throwable in case of an exception
 	 */
-	private static Boolean executeInvokeMethod(MethodFrame frame, final InvocationHandler ih, final SimpleClassExecutor defaultExecutor,
+	private static InvokeFlow executeInvokeMethod(MethodFrame frame, final InvocationHandler ih, final SimpleClassExecutor defaultExecutor,
 			final Method ihMethod, final OperandStack stack) throws Throwable {
 		SimpleClassExecutor executor = defaultExecutor;
-		Boolean doContinueWhile;
+		InvokeFlow doContinueWhile;
 		final Class<?> loopIh = ihMethod.getDeclaringClass();
 		if (!ih.getClass().equals(loopIh)) {
 			// We need the executor of a super-class.
@@ -667,13 +668,13 @@ loopClassIh:
 		catch (JvmUncaughtException e) {
 			final boolean doContinueWhileE = frame.handleCatchException(e.getCause());
 			if (doContinueWhileE) {
-				return Boolean.TRUE;
+				return InvokeFlow.EXEC_CATCH;
 			}
 			// This exception isn't handled here.
 			throw e;
 		}
 		stack.push(objReturn);
-		doContinueWhile = Boolean.FALSE;
+		doContinueWhile = InvokeFlow.EXEC_OK;
 		return doContinueWhile;
 	}
 

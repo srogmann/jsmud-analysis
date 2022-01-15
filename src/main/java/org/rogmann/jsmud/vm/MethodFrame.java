@@ -2075,9 +2075,9 @@ whileInstr:
 		boolean isMethodOverriden = false;
 		boolean lIsStatic = isStatic;
 		if (lIsStatic) {
-			Boolean doContinueWhile = invocationHandler.preprocessStaticCall(this, mi, stack);
-			if (doContinueWhile != null) {
-				return doContinueWhile.booleanValue();
+			final InvokeFlow invokeFlow = invocationHandler.preprocessStaticCall(this, mi, stack);
+			if (invokeFlow == InvokeFlow.EXEC_OK || invokeFlow == InvokeFlow.EXEC_CATCH) {
+				return invokeFlow.isHandleException();
 			}
 			if (configuration.isEmulateAccessController
 					&& "java/security/AccessController".equals(mi.owner)
@@ -2107,10 +2107,10 @@ whileInstr:
 			if (objRefStack == null) {
 				throw new NullPointerException("invokevirtual: NPE at " + mi.name + " with " + mi.desc);
 			}
-			Boolean doContinueWhile = invocationHandler.preprocessInstanceCall(this, mi, objRefStack, stack);
-			if (doContinueWhile != null) {
+			final InvokeFlow invokeFlow = invocationHandler.preprocessInstanceCall(this, mi, objRefStack, stack);
+			if (invokeFlow == InvokeFlow.EXEC_OK || invokeFlow == InvokeFlow.EXEC_CATCH) {
 				visitor.visitMethodExitBack(clazz, pMethod, this, null);
-				return doContinueWhile.booleanValue();
+				return invokeFlow.isHandleException();
 			}
 			objRef = objRefStack;
 			classOwner = objRefStack.getClass();
