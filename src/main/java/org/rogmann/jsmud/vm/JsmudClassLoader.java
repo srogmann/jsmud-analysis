@@ -480,7 +480,7 @@ public class JsmudClassLoader extends ClassLoader {
 		public MethodVisitor visitMethod(final int access, final String name, final String descriptor,
 				final String signature, final String[] exceptions) {
 			if ("<clinit>".equals(name) && "()V".equals(descriptor) && !patchClinitForbidden
-					&& ((classAccess & Opcodes.ACC_INTERFACE) == 0)) {
+					&& patchClinit && ((classAccess & Opcodes.ACC_INTERFACE) == 0)) {
 				if (LOG.isDebugEnabled()) {
 					LOG.debug(String.format("visitMethod <clinit>: name=%s, class=%s, classAccess=%d", name, tClassName, Integer.valueOf(classAccess)));
 				}
