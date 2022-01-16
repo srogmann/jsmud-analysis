@@ -142,6 +142,37 @@ public class JsmudClassLoader extends ClassLoader {
 	}
 
 	/**
+	 * Defines and registers a class patched by this classloader.
+	 * @param name class-name
+	 * @param classLoader jsmud-classloader-instance
+	 * @param bytecodePatched patched bytecode
+	 * @return class defined
+	 * @throws ClassFormatError in case of a class-format-error
+	 */
+	public Class<?> definePatchedClass(final String name, final ClassLoader classLoader, byte[] bytecodePatched)
+			throws ClassFormatError {
+		Class<?> clazz;
+		final String folderJsmudBytecode = configuration.folderDumpJsmudPatchedBytecode;
+		if (folderJsmudBytecode != null) {
+			final String nameClass = name.replace('.', '/') + ".class";
+			try {
+				Files.write(new File(folderJsmudBytecode,
+						nameClass.replace('/', '.')).toPath(), bytecodePatched, StandardOpenOption.CREATE);
+			} catch (IOException e) {
+				System.err.println("Fehler beim Schreiben: " + e);
+			}
+		}
+		clazz = defineClass(name, bytecodePatched, 0, bytecodePatched.length);
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("mapPatchedClass: put " + name);
+		}
+		mapPatchedClasses.put(name, clazz);
+		mapPatchedClassesClassLoader.put(name, classLoader);
+		setClassFlag(name, FLAG_PATCHED_CLASS);
+		return clazz;
+	}
+
+	/**
 	 * Registers a in JSMUD generated class.
 	 * @param clazz class
 	 * @param name fully qualified name of the class
@@ -220,23 +251,7 @@ public class JsmudClassLoader extends ClassLoader {
 				}
 			}
 			if (bytecodePatched != null) {
-				final String folderJsmudBytecode = configuration.folderDumpJsmudPatchedBytecode;
-				if (folderJsmudBytecode != null) {
-					final String nameClass = name.replace('.', '/') + ".class";
-					try {
-						Files.write(new File(folderJsmudBytecode,
-								nameClass.replace('/', '.')).toPath(), bytecodePatched, StandardOpenOption.CREATE);
-					} catch (IOException e) {
-						System.err.println("Fehler beim Schreiben: " + e);
-					}
-				}
-				clazz = defineClass(name, bytecodePatched, 0, bytecodePatched.length);
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("mapPatchedClass: put " + name);
-				}
-				mapPatchedClasses.put(name, clazz);
-				mapPatchedClassesClassLoader.put(name, classLoader);
-				setClassFlag(name, FLAG_PATCHED_CLASS);
+				clazz = definePatchedClass(name, classLoader, bytecodePatched);
 			}
 			else if (classIsAlreadyDefined && classLoader instanceof JsmudClassLoader) {
 				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoader;
@@ -346,13 +361,13 @@ public class JsmudClassLoader extends ClassLoader {
 	}
 
 	/**
-	 * Patches static initializer and constructors of a class.
+	 * Patches static initializer and optional constructors of a class.
 	 * @param name class-name
 	 * @param isBytecode input-stream of bytecode
 	 * @return patched bytecode, <code>null</code> in case of an interface
 	 * @throws IOException in case of an IO-error while reading the class 
 	 */
-	byte[] patchClass(String name, InputStream isBytecode) throws IOException {
+	public byte[] patchClass(String name, InputStream isBytecode) throws IOException {
 		final ClassReader classReader = new ClassReader(isBytecode);
 		if ((configuration.isDontPatchPublicInterfaces
 			&& (classReader.getAccess() & (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC))

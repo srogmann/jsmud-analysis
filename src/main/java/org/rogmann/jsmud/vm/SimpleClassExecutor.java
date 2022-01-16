@@ -121,10 +121,18 @@ public class SimpleClassExecutor {
 	public Object executeMethod(final int invokeOpcode,
 			final Executable pMethod, final String methodDesc, OperandStack args) throws Throwable {
 		String methodName = (pMethod instanceof Constructor<?>) ? "<init>" : pMethod.getName();
-		if (JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT.equals(methodName)) {
-			methodName = "<clinit>";
+		MethodNode method;
+		try {
+			method = loopkupMethod(methodName, methodDesc);
+		} catch (NoSuchMethodError e) {
+			if (JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT.equals(methodName)) {
+				methodName = "<clinit>";
+				method = loopkupMethod(methodName, methodDesc);
+			}
+			else {
+				throw e;
+			}
 		}
-		final MethodNode method = loopkupMethod(methodName, methodDesc);
 
 		final Type[] argsDefs = fMethodArgs.get(methodDesc);
 		final MethodFrame frame = new MethodFrame(fRegistry, pMethod, method, argsDefs, fVisitor, fInvocationHandler);

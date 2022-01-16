@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.vm;
 
+import java.io.ByteArrayInputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -118,7 +119,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				throw e;
 			}
 			catch (Exception e) {
-				final boolean handleException = frame.handleCatchException(e.getCause());
+				final boolean handleException = frame.handleCatchException(e);
 				if (handleException) {
 					return InvokeFlow.EXEC_CATCH;
 				}
@@ -241,7 +242,6 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		}
 		else if ("java/lang/reflect/Constructor".equals(mi.owner) && "newInstance".equals(mi.name)
 				&& configuration.isSimulateReflection) {
-			// Emulation of Constructor#newInstance?
 			final Constructor<?> constr = (Constructor<?>) stack.peek(1);
 			final Class<?> classInit = constr.getDeclaringClass();
 			final SimpleClassExecutor executor = frame.registry.getClassExecutor(classInit);
@@ -264,8 +264,11 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				// Remove the Constructor-instance and replace it with the new instance.
 				stack.pop();
 				stack.push(oObjRef);
-				for (int i = 0; i < oArgs.length; i++) {
-					stack.push(oArgs[i]);
+				if (oArgs != null) {
+					// cglib calls newInstance with null
+					for (int i = 0; i < oArgs.length; i++) {
+						stack.push(oArgs[i]);
+					}
 				}
 				final String descr = Type.getConstructorDescriptor(constr);
 				if (LOG.isDebugEnabled()) {
@@ -412,6 +415,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				final Object[] args = (Object[]) stack.peek(0);
 				final String className = (String) args[0];
                 final ClassLoader classLoaderDefault = frame.registry.getClassLoader();
+                JsmudClassLoader patchClassLoader = null;
                 if (classLoaderDefault instanceof JsmudClassLoader) {
                         final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoaderDefault;
                         if (jsmudClassLoader.patchFilter.test(className)) {
@@ -425,17 +429,36 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
                                 stack.push(jsmudClassLoader);
                                 stack.push(args);
                                 classLoader = jsmudClassLoader;
+                                patchClassLoader = jsmudClassLoader;
                         }
                 }
 				final byte[] buf = (byte[]) args[1];
 				final int offset = ((Integer) args[2]).intValue();
 				final int len = ((Integer) args[3]).intValue();
+				final byte[] bufBytecode;
+				if (patchClassLoader != null) {
+					// We patch the bytecode before loading.
+					final ByteArrayInputStream bais = new ByteArrayInputStream(buf, offset, len);
+					final byte[] bufBytecodePatched = patchClassLoader.patchClass(className, bais);
+					if (bufBytecodePatched != null) {
+						LOG.info(String.format("defineClass (%s) of (%s) in buffer (%s/%d/%d), patch bytecode",
+								className, classLoader, buf,
+								Integer.valueOf(offset), Integer.valueOf(len)));
+						final Class<?> classPatched = patchClassLoader.definePatchedClass(className,
+								patchClassLoader, bufBytecodePatched);
+						stack.pop();
+						stack.pop();
+						stack.push(classPatched);
+						frame.registry.defineClass(classLoader, className, bufBytecodePatched);
+						return InvokeFlow.EXEC_OK;
+					}
+				}
 				LOG.info(String.format("defineClass (%s) of (%s) in buffer (%s/%d/%d), store bytecode",
 						className, classLoader, buf,
 						Integer.valueOf(offset), Integer.valueOf(len)));
-				final byte[] bufBytecode = Arrays.copyOfRange(buf, offset, len);
-				frame.registry.defineClass(classLoader, className, bufBytecode);
+				bufBytecode = Arrays.copyOfRange(buf, offset, len);
 				doContinueWhile = InvokeFlow.EXEC_OK;
+				frame.registry.defineClass(classLoader, className, bufBytecode);
 			}
 		}
 		else if (objRefStack instanceof Proxy && !(objRefStack instanceof JvmCallSiteMarker)) {
