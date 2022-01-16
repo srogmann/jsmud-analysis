@@ -150,7 +150,15 @@ public class MethodFrame {
 	public Class<?> getFrameClass() {
 		return clazz;
 	}
-	
+
+	/**
+	 * Gets the reflection-helper.
+	 * @return reflection-helper
+	 */
+	public ReflectionHelper getReflectionHelper() {
+		return reflectionHelper;
+	}
+
 	/**
 	 * Gets a array of the local-variables.
 	 * @return locals
