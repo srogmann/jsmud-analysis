@@ -84,7 +84,13 @@ public class JsmudClassLoader extends ClassLoader {
 	final boolean redefineClasses;
 
 	/**
-	 * Constructor
+	 * Constructor.
+	 * <p>Default is patchFilter = (name -> false), patchClinit = patchInit = redefineClasses = false.</p>
+	 * <p>Use patchFilter and patchClinit = redefineClasses = true, patchInit = false, to
+	 * analyze or debug static initializers.</p>
+	 * <p>If the reflection-helper can't build a class you may try patchInit to
+	 * analyze or debug a constructors.</p> 
+	 * 
 	 * @param parentClassLoader parent-classloader
 	 * @param configuration jsmud-configuration
 	 * @param patchFilter checks if a class-name belongs to a class to be patched
