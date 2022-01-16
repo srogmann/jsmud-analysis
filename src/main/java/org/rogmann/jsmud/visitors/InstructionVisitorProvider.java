@@ -3,6 +3,7 @@ package org.rogmann.jsmud.visitors;
 import java.io.PrintStream;
 
 import org.rogmann.jsmud.vm.ClassRegistry;
+import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.JvmExecutionVisitorProvider;
 
@@ -67,6 +68,9 @@ public class InstructionVisitorProvider implements JvmExecutionVisitorProvider {
 			}
 			@Override
 			public void dump(Throwable e) {
+				if (e == null) {
+					throw new JvmException("dump called without exception");
+				}
 				e.printStackTrace(psOut);
 			}
 		};
