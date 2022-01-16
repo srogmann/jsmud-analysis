@@ -32,7 +32,7 @@ public class ThreadExecutor {
 
 	/**
 	 * Runs a callable in the current thread (e.g. FutureTask) via jsmud-analysis.
-	 * @param thread thread to be executed
+	 * @param callable callable to be executed
 	 * @return result
 	 */
 	public Object call(final Callable<?> callable) {

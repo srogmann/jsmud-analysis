@@ -85,7 +85,7 @@ public class JsmudClassLoader extends ClassLoader {
 
 	/**
 	 * Constructor.
-	 * <p>Default is patchFilter = (name -> false), patchClinit = patchInit = redefineClasses = false.</p>
+	 * <p>Default is patchFilter = (name -&gt; false), patchClinit = patchInit = redefineClasses = false.</p>
 	 * <p>Use patchFilter and patchClinit = redefineClasses = true, patchInit = false, to
 	 * analyze or debug static initializers.</p>
 	 * <p>If the reflection-helper can't build a class you may try patchInit to
@@ -216,7 +216,8 @@ public class JsmudClassLoader extends ClassLoader {
 	 * Loads a class. The bytecode will be patched if the patch-filter matches.
 	 * @param name name of the class to be loaded (and patched)
 	 * @param classLoader classLoader to be used for loading the original-bytecode
-	 * @param classRegistry optional VM (may know classes defined at runtime) 
+	 * @param vm optional VM (may know classes defined at runtime)
+	 * @return class being looked for
 	 * @throws ClassNotFoundException if the class couldn't be found
 	 */
 	public Class<?> findClass(final String name, final ClassLoader classLoader, VM vm) throws ClassNotFoundException {

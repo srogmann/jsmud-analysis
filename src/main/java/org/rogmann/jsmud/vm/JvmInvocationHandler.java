@@ -35,7 +35,7 @@ public interface JvmInvocationHandler {
 	/**
 	 * Called before an invocation of an INVOKESPECIAL-execution (e.g. constructor-call).
 	 * @param mi method-invocation-instruction
-	 * @param methodFrame current method-frame
+	 * @param frame current method-frame
 	 * @param stack current operand-stack
 	 */
 	void preprocessInvokeSpecialCall(MethodInsnNode mi, MethodFrame frame, OperandStack stack);

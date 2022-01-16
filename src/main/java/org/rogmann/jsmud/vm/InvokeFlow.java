@@ -29,7 +29,7 @@ public enum InvokeFlow {
 	/**
 	 * Gets <code>true</code> if the while-loop executing instructions should be continue.
 	 * <code>true</code> to skip the instruction increment, execute catch block.
-	 * @return
+	 * @return handle-exception flag
 	 */
 	public boolean isHandleException() {
 		return continueWhileFlag;

@@ -509,7 +509,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 		return doContinueWhile;
 	}
 
-	/** {@inhericDoc} */
+	/** {@inheritDoc} */
 	@Override
 	public void preprocessInvokeSpecialCall(final MethodInsnNode mi, MethodFrame frame, final OperandStack stack) {
 		if ("java/util/concurrent/FutureTask".equals(mi.owner) && "<init>".equals(mi.name) && "(Ljava/util/concurrent/Callable;)V".equals(mi.desc)) {
