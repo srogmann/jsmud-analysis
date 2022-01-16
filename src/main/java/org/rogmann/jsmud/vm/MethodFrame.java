@@ -1601,9 +1601,10 @@ whileInstr:
 						final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
 						final Field field = findDeclaredField(classFieldOwner, fi);
 						field.setAccessible(true);
-						if (Modifier.isFinal(field.getModifiers())
-								&& JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT.equals(methodName)) {
+						if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(pMethod.getModifiers())) {
 							// We want to set a final field while executing a constructor.
+							// Instead of static we could check for JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT.equals(methodName) in this or a calling method.
+							// Example: <clinit> in cglib-enhancer calls CGLIB$STATICHOOK1.
 							reflectionHelper.removeFieldsFinalModifier(field);
 						}
 						final Object vFieldStack = stack.pop();
