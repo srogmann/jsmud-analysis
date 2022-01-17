@@ -175,8 +175,8 @@ public class SimpleClassExecutor {
 	public MethodNode loopkupMethod(final String methodName, final String methodDesc) throws NoSuchMethodError {
 		final List<MethodNode> methods = fMethods.get(methodName);
 		if (methods == null) {
-			throw new NoSuchMethodError(String.format("No such method (%s) in (%s)",
-					methodName, fClass.getName()));
+			throw new NoSuchMethodError(String.format("No such method (%s) in (%s) of (%s)",
+					methodName, fClass.getName(), fClass.getClassLoader()));
 		}
 		MethodNode method = null;
 		for (MethodNode loopMethod : methods) {

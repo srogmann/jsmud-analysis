@@ -174,6 +174,7 @@ public class JsmudClassLoader extends ClassLoader {
 		}
 		mapPatchedClasses.put(name, clazz);
 		mapPatchedClassesClassLoader.put(name, classLoader);
+		registerJsmudClass(clazz, name, bytecodePatched);
 		setClassFlag(name, FLAG_PATCHED_CLASS);
 		return clazz;
 	}
