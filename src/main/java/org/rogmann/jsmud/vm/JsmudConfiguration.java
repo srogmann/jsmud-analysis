@@ -22,7 +22,7 @@ public class JsmudConfiguration {
 	protected final String folderDumpDefinedClasses = getProperty("FolderDumpDefinedClasses");
 
 	/** optional folder used to dump bytecode of classes patched by JsmudClassLoader */
-	protected final String folderDumpJsmudPatchedBytecode = System.getProperty("FolderDumpJsmudPatchedBytecode");
+	protected final String folderDumpJsmudPatchedBytecode = getProperty("FolderDumpJsmudPatchedBytecode");
 
 	/**
 	 * <code>true</code> if the call-site generator should use the default class-loader only.
