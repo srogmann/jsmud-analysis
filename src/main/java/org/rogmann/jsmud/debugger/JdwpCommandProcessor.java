@@ -48,6 +48,7 @@ import org.rogmann.jsmud.events.JdwpEventRequest;
 import org.rogmann.jsmud.events.JdwpModifierClassMatch;
 import org.rogmann.jsmud.events.JdwpModifierClassOnly;
 import org.rogmann.jsmud.events.JdwpModifierCount;
+import org.rogmann.jsmud.events.JdwpModifierFieldOnly;
 import org.rogmann.jsmud.events.JdwpModifierLocationOnly;
 import org.rogmann.jsmud.events.JdwpModifierStep;
 import org.rogmann.jsmud.events.JdwpModifierThreadOnly;
@@ -1052,8 +1053,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 	private void sendCapabilitiesNew(final int id) throws IOException {
 		final boolean isJsmudClassloader = (vm.getClassLoader() instanceof JsmudClassLoader);
 
-		boolean	canWatchFieldModification = false;
-		boolean	canWatchFieldAccess	= false;
+		boolean	canWatchFieldModification = true;
+		boolean	canWatchFieldAccess	= true;
 		boolean	canGetBytecodes	= true;
 		boolean	canGetSyntheticAttribute = true;
 		boolean	canGetOwnedMonitorInfo = true;
@@ -1593,8 +1594,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			final long start = lineTable.getStart();
 			final long end = lineTable.getEnd();
 			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("sendLineTable: refType=%s, class=%s, method=%s, numLines=%d, start=%d, end=%d",
-						refType, clazz, method, Integer.valueOf(numLines),
+				LOG.debug(String.format("sendLineTable: refType=%s, methodId=%s, class=%s, method=%s, numLines=%d, start=%d, end=%d",
+						refType, methodID, clazz, method, Integer.valueOf(numLines),
 						Long.valueOf(start), Long.valueOf(end)));
 				int i = 0;
 				for (LineCodeIndex lci : listLci) {
@@ -1909,11 +1910,13 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 				}
 				switch (modKind) {
 				case COUNT: // Case Count
+				{
 					final int count = cmdBuf.readInt();
 					LOG.debug("  Case Count: " + count);
 					final JdwpModifierCount modCount = new JdwpModifierCount(count);
 					evReq.addModifier(modCount);
 					break;
+				}
 				case THREAD_ONLY: // Case ThreadOnly
 				{
 					final VMThreadID threadID = new VMThreadID(cmdBuf.readLong());
@@ -1947,6 +1950,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					evReq.addModifier(modMatch);
 					break;
 				case LOCATION_ONLY: // Case Location
+				{
 					final byte typeTag = cmdBuf.readByte();
 					final VMClassID classID = new VMClassID(cmdBuf.readLong());
 					final VMMethodID methodId = new VMMethodID(cmdBuf.readLong());
@@ -1958,14 +1962,33 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					final JdwpModifierLocationOnly modLocOnly = new JdwpModifierLocationOnly(typeTag, classID, methodId, index);
 					evReq.addModifier(modLocOnly);
 					break;
+				}
 				case EXCEPTION_ONLY: // Case ExceptionOnly
+				{
 					final VMReferenceTypeID refTypeId = new VMReferenceTypeID(cmdBuf.readLong());
 					final boolean caught = (cmdBuf.readByte() != 0);
 					final boolean uncaught = (cmdBuf.readByte() != 0);
 					LOG.debug(String.format("  Case ExceptionOnly: refTypeId=%s, caught=%s, uncaught=%s",
 							refTypeId, Boolean.toString(caught), Boolean.toString(uncaught)));
 					break;
+				}
+				case FIELD_ONLY: // Case FieldOnly
+				{
+					final VMReferenceTypeID classID = new VMReferenceTypeID(cmdBuf.readLong());
+					final VMFieldID fieldId = new VMFieldID(cmdBuf.readLong());
+					final Object vmObject = vm.getVMObject(classID);
+					final RefFieldBean refFieldBean = vm.getRefFieldBean(fieldId);
+					if (vmObject instanceof Class && refFieldBean != null) {
+						final Class<?> clazz = (Class<?>) vmObject;
+						final String fieldName = refFieldBean.getName();
+						LOG.debug(String.format("  Case FieldOnly: clazz=%s, field=%s", clazz, fieldName));
+						final JdwpModifierFieldOnly modField = new JdwpModifierFieldOnly(classID, fieldId, clazz, fieldName);
+						evReq.addModifier(modField);
+					}
+					break;
+				}
 				case STEP: // Case Step
+				{
 					final VMThreadID threadID = new VMThreadID(cmdBuf.readLong());
 					final int stepSize = cmdBuf.readInt();
 					final int stepDepth = cmdBuf.readInt();
@@ -1974,6 +1997,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					final JdwpModifierStep modStep = new JdwpModifierStep(threadID, stepSize, stepDepth);
 					evReq.addModifier(modStep);
 					break;
+				}
 				default:
 					throw new RuntimeException("Unknown modifier kind: " + bModKind);
 				}

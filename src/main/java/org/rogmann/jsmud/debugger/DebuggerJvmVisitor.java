@@ -16,11 +16,13 @@ import java.util.regex.Matcher;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.rogmann.jsmud.datatypes.VMByte;
 import org.rogmann.jsmud.datatypes.VMDataField;
 import org.rogmann.jsmud.datatypes.VMInt;
 import org.rogmann.jsmud.datatypes.VMLong;
+import org.rogmann.jsmud.datatypes.VMMethodID;
 import org.rogmann.jsmud.datatypes.VMString;
 import org.rogmann.jsmud.datatypes.VMThreadID;
 import org.rogmann.jsmud.datatypes.VMValue;
@@ -29,6 +31,7 @@ import org.rogmann.jsmud.events.JdwpEventRequest;
 import org.rogmann.jsmud.events.JdwpModifierClassMatch;
 import org.rogmann.jsmud.events.JdwpModifierClassOnly;
 import org.rogmann.jsmud.events.JdwpModifierCount;
+import org.rogmann.jsmud.events.JdwpModifierFieldOnly;
 import org.rogmann.jsmud.events.JdwpModifierLocationOnly;
 import org.rogmann.jsmud.events.JdwpModifierStep;
 import org.rogmann.jsmud.events.JdwpModifierThreadOnly;
@@ -36,6 +39,7 @@ import org.rogmann.jsmud.events.ModKind;
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.replydata.RefTypeBean;
+import org.rogmann.jsmud.replydata.TypeTag;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmException;
@@ -553,7 +557,8 @@ loopEvents:
 					Integer.valueOf(currFrame.frame.instrNum),
 					InstructionVisitor.displayInstruction(instr, currFrame.frame.getMethodNode())));
 		}
-		if (instr.getOpcode() < 0 && !(instr instanceof LineNumberNode)) {
+		final int opcode = instr.getOpcode();
+		if (opcode < 0 && !(instr instanceof LineNumberNode)) {
 			// Suspend at real instructions or line-nodes only.
 			// No suspend at frame- or label-nodes.
 			return;
@@ -621,7 +626,8 @@ stepSearch:
 		}
 
 		for (JdwpEventRequest evReq : eventRequests.values()) {
-			if (evReq.getEventType() == VMEventType.BREAKPOINT) {
+			final VMEventType eventType = evReq.getEventType();
+			if (eventType == VMEventType.BREAKPOINT) {
 				for (JdwpEventModifier modifier : evReq.getModifiers()) {
 					if (modifier.getModKind() != ModKind.LOCATION_ONLY) {
 						continue;
@@ -656,6 +662,70 @@ stepSearch:
 							}
 							giveDebuggerControl(threadId, suspendPolicy);
 						}
+					}
+				}
+			}
+			else if ((eventType == VMEventType.FIELD_ACCESS
+						&& (opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC))
+					|| (eventType == VMEventType.FIELD_MODIFICATION
+						&& (opcode == Opcodes.PUTFIELD || opcode == Opcodes.PUTSTATIC))) {
+				// Check for an watchpoint event.
+				final FieldInsnNode fi = (FieldInsnNode) instr;
+				final String nameFiOwner = fi.owner.replace('/', '.');
+				Class<?> oClass = null;
+				if (opcode == Opcodes.GETFIELD) {
+					final Object obj = opStack.peek();
+					if (obj != null) {
+						oClass = obj.getClass();
+					}
+				}
+				else if (opcode == Opcodes.PUTFIELD) {
+					final Object obj = opStack.peek(1);
+					if (obj != null) {
+						oClass = obj.getClass();
+					}
+				}
+				else {
+					try {
+						oClass = vm.loadClass(nameFiOwner, currFrame.frame.clazz);
+					} catch (ClassNotFoundException e) {
+						LOG.error(String.format("Can't find class (%s) of field (%s)", nameFiOwner, fi.name));
+					}
+				}
+				final Executable currMethod = currFrame.frame.getMethod();
+				for (JdwpEventModifier modifier : evReq.getModifiers()) {
+					if (oClass == null) {
+						break;
+					}
+					if (modifier.getModKind() != ModKind.FIELD_ONLY) {
+						continue;
+					}
+					JdwpModifierFieldOnly fieldOnly = (JdwpModifierFieldOnly) modifier;
+					final Class<?> clazz = fieldOnly.getClazz();
+					if (oClass.equals(clazz) && fieldOnly.getFieldName().equals(fi.name)) {
+						// We detected a field-access.
+						final JdwpSuspendPolicy suspendPolicy = evReq.getSuspendPolicy();
+						LOG.debug(String.format("field access: clazz=%s, fieldName=%s, method=%s, line=%d, suspPolicy=%s",
+								clazz, fi.name, currMethod.getName(),
+								Integer.valueOf(currFrame.frame.getCurrLineNum()),
+								suspendPolicy));
+						final VMThreadID threadId = vm.getCurrentThreadId();
+						final VMByte typeTag = new VMByte(TypeTag.CLASS.getTag());
+						final VMMethodID methodId = vm.getMethodId(currFrame.frame.getMethod());
+						final VMLong vIndex = new VMLong(currFrame.frame.instrNum);
+						try {
+							if (LOG.isDebugEnabled()) {
+								LOG.debug(String.format("sendVMEvent: sP=%s, type=%s, reqId=0x%x, refId=%s, fieldId=%s",
+										suspendPolicy, eventType, Integer.valueOf(evReq.getRequestId()),
+										fieldOnly.getClassId(), fieldOnly.getFieldId()));
+							}
+							debugger.sendVMEvent(suspendPolicy, eventType,
+									new VMInt(evReq.getRequestId()), threadId,
+									typeTag, fieldOnly.getClassId(), methodId, vIndex);
+						} catch (IOException e) {
+							throw new RuntimeException("IO-error while talking with the debugger (breakopint)", e);
+						}
+						giveDebuggerControl(threadId, suspendPolicy);
 					}
 				}
 			}

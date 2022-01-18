@@ -8,7 +8,7 @@ import org.rogmann.jsmud.datatypes.VMReferenceTypeID;
 public class JdwpModifierClassOnly extends JdwpEventModifier {
 
 	/** reference-type */
-	private VMReferenceTypeID clazz;
+	private final VMReferenceTypeID clazz;
 
 	/**
 	 * Constructor

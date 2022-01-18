@@ -19,6 +19,8 @@ public enum VMEventType {
 	CLASS_PREPARE(8),
 	/** Notification of a class unload in the target VM. */
 	CLASS_UNLOAD(9),
+	/** Notification of a field access in the target VM. */
+	FIELD_ACCESS(20),
 	/** Notification of a field modification in the target VM. */
 	FIELD_MODIFICATION(21),
 	/** Notification of a method invocation in the target VM. */
