@@ -1512,7 +1512,8 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else {
 			final Class<?> classRef = (Class<?>) oClassRef;
 			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("sendMethodsWithGeneric: classRef=%s", classRef));
+				LOG.debug(String.format("sendMethodsWithGeneric: classRef=%s in %s",
+						classRef, classRef.getClassLoader()));
 			}
 			final List<RefMethodBean> listRefMethodBeans = vm.getMethodsWithGeneric(classRef);
 			final int declared = listRefMethodBeans.size();

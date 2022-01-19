@@ -113,9 +113,9 @@ public class JsmudClassLoader extends ClassLoader {
 	/** {@inheritDoc} */
 	@Override
 	public Class<?> loadClass(String name) throws ClassNotFoundException {
-		if (LOG.isDebugEnabled()) {
-			LOG.debug("loadClass: looking for " + name);
-		}
+		//if (LOG.isDebugEnabled()) {
+		//	LOG.debug("loadClass: looking for " + name);
+		//}
 		boolean isJreXmlClass = name.startsWith("org.xml.") || name.startsWith("org.w3c.");
 		boolean isJsmud = name.startsWith(PREFIX_JSMUD);
 		final Class<?> clazz;
@@ -129,9 +129,9 @@ public class JsmudClassLoader extends ClassLoader {
 		else {
 			clazz = parentClassLoader.loadClass(name);
 		}
-		if (LOG.isDebugEnabled()) {
-			LOG.debug(String.format("loadClass: return %s of %s", clazz, clazz.getClassLoader()));
-		}
+		//if (LOG.isDebugEnabled()) {
+		//	LOG.debug(String.format("loadClass: return %s of %s", clazz, clazz.getClassLoader()));
+		//}
 		return clazz;
 	}
 
@@ -299,7 +299,7 @@ public class JsmudClassLoader extends ClassLoader {
 					final byte[] bufClass = mapJsmudClassBytecode.get(clazz);
 					if (bufClass != null) {
 						if (LOG.isDebugEnabled()) {
-							LOG.debug(String.format("Send bytecode (len %d) of defined class (%s)",
+							LOG.debug(String.format("getResourceAsStream: return bytecode (len %d) of defined class (%s)",
 									Integer.valueOf(bufClass.length), className));
 						}
 						return new ByteArrayInputStream(bufClass);

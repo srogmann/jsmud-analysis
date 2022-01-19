@@ -326,7 +326,9 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	/** {@inheritDoc} */
 	@Override
 	public void visitLoadClass(Class<?> loadedClass) {
-		LOG.debug("visitLoadClass: " + loadedClass.getName());
+		if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("visitLoadClass: %s in %s", loadedClass.getName(), loadedClass.getClassLoader()));
+		}
 		
 		if (sourceFileRequester != null && sourceFileRequester.isSourceRequested(loadedClass)) {
 			try {
