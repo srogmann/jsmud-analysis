@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.vm;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
@@ -101,7 +102,7 @@ public class CallSiteContext {
 			final Class<?>[] aArgs = new Class<?>[argTypes.length];
 			for (int i = 0; i < argTypes.length; i++) {
 				final Type type = argTypes[i];
-				final Class<?> clazz = convertTypeToClass(type);
+				final Class<?> clazz = convertTypeToClass(type, classOwner);
 				aArgs[i] = clazz;
 			}
 			final Executable method = classMethod.getDeclaredMethod(methodHandle.getName(), aArgs);
@@ -118,7 +119,7 @@ public class CallSiteContext {
 		return objReturn;
 	}
 
-	private Class<?> convertTypeToClass(final Type type) throws ClassNotFoundException {
+	private Class<?> convertTypeToClass(final Type type, Class<?> classOwner) throws ClassNotFoundException {
 		final Class<?> clazz;
 		final int sort = type.getSort();
 		if (sort == Type.BOOLEAN) {
@@ -144,6 +145,13 @@ public class CallSiteContext {
 		}
 		else if (sort == Type.SHORT) {
 			clazz = short.class;
+		}
+		else if (sort == Type.ARRAY) {
+			final int dims = type.getDimensions();
+			final Class<?> elClass = MethodFrame.getClassArrayViaType(type, registry, classOwner);
+			final int[] aDims = new int[dims];
+			final Object oArray = Array.newInstance(elClass, aDims);
+			clazz = oArray.getClass();
 		}
 		else {
 			clazz = registry.loadClass(type.getClassName(), classOwner);

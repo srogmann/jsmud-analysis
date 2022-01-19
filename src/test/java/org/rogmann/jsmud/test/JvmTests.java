@@ -83,6 +83,7 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
+		testsLambdaArrays();
 //		testsLambdaCallSiteConstructor();
 //		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
@@ -127,7 +128,7 @@ public class JvmTests {
 //		testsReflection();
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
-		testReflectionConstructorNewInstance();
+//		testReflectionConstructorNewInstance();
 //		testsClassForName();
 //		testsReflectionAnnotation();
 //		testsAccessController();
@@ -508,6 +509,35 @@ public class JvmTests {
 				|| iFctClass.contains("$jsmudLambda")
 				|| iFctClass.contains("$Proxy")
 				|| iFctClass.startsWith(packageGen));
+	}
+
+	/** Functional interface which consumes different types of arrays. */
+	@FunctionalInterface
+	public interface ConsumeArrays {
+		int apply(Object[] aObj, final int[] aInt, final float[][] aFloat);
+	}
+
+	@JsmudTest
+	public void testsLambdaArrays() {
+		final ConsumeArrays consumer = (aObj, aInt, aFloat) -> (aObj.length + aInt[0] + aFloat.length);
+		final Object[] ao = new Object[2]; // -> 2
+		final int[] ai = { 3, 6 }; // -> 3
+		final float[][] af = new float[5][7]; // -> 5
+		
+		// Test 1: Execution via jsmud
+		final int sum = consumer.apply(ao, ai, af);
+		assertEquals("lambda-arrays", Integer.valueOf(10), Integer.valueOf(sum));
+		
+		// Test 2: Execution via CallSiteContext
+		// java.lang.String is executed directly, i.e. without jsmud-analysis.
+		final Object oToString = new Object() {
+			@Override
+			public String toString() {
+				return Integer.toString(consumer.apply(ao,  ai,  af));
+			}
+		};
+		final String sum2 = String.format("%s", oToString);
+		assertEquals("lambda-arrays(CSC)", "10", sum2);
 	}
 
 	@JsmudTest
