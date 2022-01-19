@@ -225,7 +225,18 @@ public class OperandStack {
 				sb.append(", ");
 			}
 			try {
-				final String sObject = (object != null) ? object.toString() : "null";
+				final String sObject;
+				if (object == null) {
+					sObject = "null";
+				}
+				else if (object.getClass().getName().contains("$$")) {
+					// CGLIB-classes like ExampleService1$$EnhancerByCGLIB$$3d7dcd21 might result in StackOverflowError.
+					// A map of StackOverflowError-toString()-objects is thinkable.
+					sObject = new StringBuilder(30).append("obj$$(").append(object.getClass()).append(')').toString();
+				}
+				else {
+					sObject = object.toString();
+				}
 				final int maxLen = (i <= lastIdx) ? MAX_LEN_VALUE : maxLenUnusedValue;
 				for (int j = 0; j < Math.min(sObject.length(), maxLen); j++) {
 					final char c = sObject.charAt(j);
