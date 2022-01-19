@@ -319,10 +319,10 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			if (clOrig != null) {
 				// There is an already patched class.
 				final Class<?> classLoaded = jsmudCL.loadClass(className);
-				if (LOG.isDebugEnabled()) {
-					LOG.debug(String.format("loadClass: className=%s, ctxClass=%s, ctxClassLoader=%s, classLoaderOrig=%s, classLoaderClassLoaded=%s",
-							className, ctxClass, ctxClassLoader, clOrig, classLoaded.getClassLoader()));
-				}
+				//if (LOG.isDebugEnabled()) {
+				//	LOG.debug(String.format("loadClass: className=%s, ctxClass=%s, ctxClassLoader=%s, classLoaderOrig=%s, classLoaderClassLoaded=%s",
+				//			className, ctxClass, ctxClassLoader, clOrig, classLoaded.getClassLoader()));
+				//}
 				if (!classLoaded.isArray()) {
 					final SimpleClassExecutor executor = getClassExecutor(classLoaded);
 					if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
