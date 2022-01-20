@@ -886,7 +886,12 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				Class<?> lSuperClass;
 				try {
 					lSuperClass = loadClass(superclass.getName(), superclass);
-					final RefTypeBean refTypeBean = mapClassRefType.get(lSuperClass);
+					RefTypeBean refTypeBean = mapClassRefType.get(lSuperClass);
+					if (refTypeBean == null) {
+						LOG.error(String.format("Unexpected unknown super-class %s of %s in %s until yet",
+								lSuperClass, clazz, clazz.getClassLoader()));
+						refTypeBean = registerClass(superclass, superclass.getName());
+					}
 					superClassId = new VMClassID(refTypeBean.getTypeID().getValue());
 				} catch (ClassNotFoundException e) {
 					if (LOG.isDebugEnabled()) {
