@@ -259,6 +259,13 @@ public class JvmHelper {
 	 * @param psOut optional print-stream
 	 */
 	public static void dumpStacktrace(final JvmUncaughtException e, final PrintStream psOut) {
+		final String errorMsg = "JvmUncaughException: " + e.getMessage();
+		if (psOut != null) {
+			psOut.println(errorMsg);
+		}
+		else {
+			LOG.info(errorMsg);
+		}
 		final List<StackTraceElement> simStacktrace = e.getSimStacktrace();
 		for (int i = 0; i < simStacktrace.size(); i++) {
 			final StackTraceElement ste = simStacktrace.get(i);
