@@ -12,6 +12,7 @@ import org.rogmann.jsmud.vm.JsmudConfiguration;
 import org.rogmann.jsmud.vm.JvmHelper;
 import org.rogmann.jsmud.vm.JvmInvocationHandler;
 import org.rogmann.jsmud.vm.JvmInvocationHandlerReflection;
+import org.rogmann.jsmud.vm.JvmUncaughtException;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.OperandStack;
 import org.rogmann.jsmud.vm.SimpleClassExecutor;
@@ -128,7 +129,11 @@ public class ClassExecutionMain {
 			final Constructor<? extends Object> defaultConstr = jvmTests.getClass().getDeclaredConstructor();
 			executorNC.executeMethod(Opcodes.INVOKESPECIAL, defaultConstr, "()V", stackArgs);
 			stackArgs.push(jvmTests);
-			executorNC.executeMethod(Opcodes.INVOKEDYNAMIC, JvmHelper.lookup(jvmTests.getClass(), "tests"), "()V", stackArgs);
+			try {
+				executorNC.executeMethod(Opcodes.INVOKEDYNAMIC, JvmHelper.lookup(jvmTests.getClass(), "tests"), "()V", stackArgs);
+			} catch (JvmUncaughtException e) {
+				JvmHelper.dumpStacktrace(e, System.err);
+			}
 		}
 		else if (testNr == 12) {
 			final SimpleClassExecutor executorNC = new SimpleClassExecutor(registry, SwingTest.class, invocationHandler);

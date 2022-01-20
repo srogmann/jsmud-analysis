@@ -140,7 +140,14 @@ public class SimpleClassExecutor {
 		final Object methodReturnObj;
 		try {
 			fRegistry.pushMethodFrame(thread, frame);
-			methodReturnObj = frame.execute(args);
+			try {
+				methodReturnObj = frame.execute(args);
+			} catch (JvmUncaughtException e) {
+				final StackTraceElement ste = new StackTraceElement(frame.clazz.getName(),
+						pMethod.getName(), "", frame.getCurrLineNum());
+				e.getSimStacktrace().add(ste);
+				throw e;
+			}
 		}
 		finally {
 			fRegistry.popMethodFrame(thread);

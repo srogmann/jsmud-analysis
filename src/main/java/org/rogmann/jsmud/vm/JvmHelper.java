@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.Socket;
+import java.util.List;
 import java.util.function.Supplier;
 
 import javax.net.SocketFactory;
@@ -250,6 +251,26 @@ public class JvmHelper {
 			}
 		};
 		return filter;
+	}
+
+	/**
+	 * Dumps the simulated stack-trace in a JvmUncaughtException.
+	 * @param e JvmUncaughtException
+	 * @param psOut optional print-stream
+	 */
+	public static void dumpStacktrace(final JvmUncaughtException e, final PrintStream psOut) {
+		final List<StackTraceElement> simStacktrace = e.getSimStacktrace();
+		for (int i = 0; i < simStacktrace.size(); i++) {
+			final StackTraceElement ste = simStacktrace.get(i);
+			final String traceLine = String.format(" at %s.%s(%d)", ste.getClassName(),
+					ste.getMethodName(), Integer.valueOf(ste.getLineNumber()));
+			if (psOut != null) {
+				psOut.println(traceLine);
+			}
+			else {
+				LOG.info(traceLine);
+			}
+		}
 	}
 
 	/**

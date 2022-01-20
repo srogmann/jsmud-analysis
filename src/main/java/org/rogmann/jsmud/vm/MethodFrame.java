@@ -958,14 +958,34 @@ whileInstr:
 				{
 					final int b = ((Integer) stack.pop()).intValue();
 					final int a = ((Integer) stack.pop()).intValue();
-					stack.push(Integer.valueOf(a / b));
+					try {
+						stack.push(Integer.valueOf(a / b));
+					} catch (ArithmeticException e) {
+						final boolean doContinueWhileE = handleCatchException(e);
+						if (doContinueWhileE) {
+							continue whileInstr;
+						}
+						throw new JvmUncaughtException(String.format("Error in division %d / %d in %s of %s",
+								Integer.valueOf(a), Integer.valueOf(b),
+								methodName, clazz), e);
+					}
 					break;
 				}
 				case Opcodes.LDIV: // 0x6d
 				{
 					final long b = ((Long) stack.pop()).longValue();
 					final long a = ((Long) stack.pop()).longValue();
-					stack.push(Long.valueOf(a / b));
+					try {
+						stack.push(Long.valueOf(a / b));
+					} catch (Exception e) {
+						final boolean doContinueWhileE = handleCatchException(e);
+						if (doContinueWhileE) {
+							continue whileInstr;
+						}
+						throw new JvmUncaughtException(String.format("Error in division %d / %d in %s of %s",
+								Long.valueOf(a), Long.valueOf(b),
+								methodName, clazz), e);
+					}
 					break;
 				}
 				case Opcodes.FDIV: // 0x6e

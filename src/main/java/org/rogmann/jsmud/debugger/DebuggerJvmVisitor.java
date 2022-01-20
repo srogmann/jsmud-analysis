@@ -44,6 +44,8 @@ import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
+import org.rogmann.jsmud.vm.JvmHelper;
+import org.rogmann.jsmud.vm.JvmUncaughtException;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.OperandStack;
 import org.rogmann.jsmud.vm.SimpleClassExecutor;
@@ -183,8 +185,13 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 				final Method methodCall = supplierClass.getDeclaredMethod("get");
 				final String methodDesc = "()" + Type.getType(methodCall.getReturnType()).getDescriptor();
 				objReturn = executor.executeMethod(Opcodes.INVOKEVIRTUAL, methodCall, methodDesc, stackArgs);
-			} catch (Throwable e) {
-				throw new RuntimeException("Exception while simulating supplier " + supplierClass.getName(), e);
+			}
+			catch (JvmUncaughtException e) {
+				JvmHelper.dumpStacktrace(e, null);
+				throw new RuntimeException("Uncaught exception while simulating supplier " + supplierClass.getName(), e);
+			}
+			catch (Throwable e) {
+				throw new RuntimeException("Throwable while simulating supplier " + supplierClass.getName(), e);
 			}
 		}
 		finally {
