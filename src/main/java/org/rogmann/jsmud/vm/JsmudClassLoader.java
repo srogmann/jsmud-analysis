@@ -232,11 +232,11 @@ public class JsmudClassLoader extends ClassLoader {
 		if (clazz == null) {
 			final boolean classMayBePatched = patchFilter.test(name) && (patchClinit || patchInit);
 			boolean classIsAlreadyDefined = false;
-			if (classMayBePatched && classLoader != null) {
+			if (classLoader != null) {
 				classIsAlreadyDefined = (vm != null) && (vm.getBytecodeOfDefinedClass(classLoader, name) != null);
 			}
 			byte[] bytecodePatched = null;
-			if (classMayBePatched && !classIsAlreadyDefined) {
+			if (classMayBePatched && !classIsAlreadyDefined && classLoader != null) {
 				final String nameClass = name.replace('.', '/') + ".class";
 				try (InputStream isBytecode = classLoader.getResourceAsStream(nameClass)) {
 					if (isBytecode == null) {
