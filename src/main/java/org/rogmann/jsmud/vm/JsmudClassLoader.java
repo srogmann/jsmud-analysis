@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ConcurrentHashMap;
@@ -408,6 +409,12 @@ public class JsmudClassLoader extends ClassLoader {
 
 		/** access-bits of this class */
 		private int classAccess;
+		
+		/** <code>true</code> if the class is an interface */
+		private boolean isInterface;
+		
+		/** <code>true</code> if removable final-modifiers should be removed */
+		private final boolean isRemoveFinalModifiers;
 
 		/** type of the parent-class */
 		Type typeSuper;
@@ -423,6 +430,7 @@ public class JsmudClassLoader extends ClassLoader {
 		 */
 		public InitializerAdapter(final ClassWriter classWriter) {
 			super(Opcodes.ASM9, classWriter);
+			isRemoveFinalModifiers = true;
 		}
 
 		/** {@inheritDoc} */
@@ -431,6 +439,7 @@ public class JsmudClassLoader extends ClassLoader {
 				final String superName, final String[] interfaces) {
 			tClassName = name;
 			classAccess = access;
+			isInterface = ((access & Opcodes.ACC_INTERFACE) != 0);
 			if (LOG.isDebugEnabled()) {
 				LOG.debug(String.format("init: name=%s, superName=%s, access=%d", name, superName, Integer.valueOf(access)));
 			}
@@ -466,6 +475,18 @@ public class JsmudClassLoader extends ClassLoader {
 					patchInitForbidden = true;
 				}
 			}
+		}
+
+		/** {@inheritDoc} */
+		@Override
+		public FieldVisitor visitField(final int access, final String name,
+			      final String descriptor, final String signature, final Object value) {
+			int pAccess = access;
+			if (isRemoveFinalModifiers && value == null && !isInterface) {
+				// No initial constant value, remove final-modifier.
+				pAccess = pAccess & ~Modifier.FINAL;
+			}
+			return super.visitField(pAccess, name, descriptor, signature, value);
 		}
 
 		/**
