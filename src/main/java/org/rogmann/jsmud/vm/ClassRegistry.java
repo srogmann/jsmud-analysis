@@ -81,6 +81,7 @@ import org.rogmann.jsmud.replydata.RefMethodBean;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.TypeTag;
 import org.rogmann.jsmud.replydata.VariableSlot;
+import org.rogmann.jsmud.source.SourceBlockList;
 import org.rogmann.jsmud.source.SourceFileWriter;
 import org.rogmann.jsmud.source.SourceLine;
 
@@ -162,8 +163,10 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** map of loaded classes */
 	private final ConcurrentMap<String, Class<?>> mapLoadedClasses = new ConcurrentHashMap<>();
 
-	/** set of patched classes whose CLINIT-method has been called */
-	private final ConcurrentMap<Class<?>, Boolean> mapClassesClinitExecuted = new ConcurrentHashMap<>();
+	/** map from (patched) classes to is-initialized flag */
+	private final ConcurrentMap<Class<?>, Boolean> mapClassesClinitIsInitialized = new ConcurrentHashMap<>();
+	/** map from (patched) classes to CLINIT-executor */
+	private final ConcurrentMap<Class<?>, Runnable> mapClassesClinitExecutor = new ConcurrentHashMap<>();
 
 	/** map containing ref-type-beans of class-signatures */
 	private final ConcurrentMap<String, RefTypeBean> mapClassSignatures = new ConcurrentHashMap<>(100);
@@ -328,7 +331,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 					final SimpleClassExecutor executor = getClassExecutor(classLoaded);
 					if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
 						final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
-						checkAndExecutePatchedClinit(classLoaded, executor, jsmudCl);
+						mapClassesClinitExecutor.put(classLoaded, () ->
+							checkAndExecutePatchedClinit(classLoaded, executor, jsmudCl));
 					}
 				}
 				return classLoaded;
@@ -407,7 +411,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				final SimpleClassExecutor executor = getClassExecutor(clazz);
 				if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
 					final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
-					checkAndExecutePatchedClinit(clazz, executor, jsmudCl);
+					final Class<?> classLoaded = clazz;
+					mapClassesClinitExecutor.put(classLoaded, () ->
+						checkAndExecutePatchedClinit(classLoaded, executor, jsmudCl));
 				}
 			}
 		}
@@ -419,11 +425,12 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	 * @param clazz class
 	 * @param executor executor to be used
 	 * @param jsmudCl class-loader of jsmud-analysis
+	 * @param isInitialized <code>true</code> if the static initializer has been called
 	 */
 	private void checkAndExecutePatchedClinit(Class<?> clazz, final SimpleClassExecutor executor,
 			final JsmudClassLoader jsmudCl) {
-		if (jsmudCl.isStaticInitializerPatched(clazz) &&
-				!Boolean.TRUE.equals(mapClassesClinitExecuted.putIfAbsent(clazz, Boolean.TRUE))) {
+		final Boolean isInit = mapClassesClinitIsInitialized.putIfAbsent(clazz, Boolean.TRUE);
+		if (jsmudCl.isStaticInitializerPatched(clazz) && (isInit == null)) {
 			// We have to initialize the parent-class before its child-class.
 			final Class<?> classSuper = clazz.getSuperclass();
 			if (!Object.class.equals(classSuper) && classSuper != null) {
@@ -454,6 +461,19 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				throw new JvmException(String.format("Error while executing static initializer (%s) in (%s)",
 						methodName, className), e);
 			}
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void checkClassInitialization(Class<?> clazz) {
+		if (mapClassesClinitIsInitialized.containsKey(clazz)) {
+			return;
+		}
+		final Runnable runnable = mapClassesClinitExecutor.get(clazz);
+		if (runnable != null) {
+			// Execute the static initializer if necessary.
+			runnable.run();
 		}
 	}
 
@@ -2138,7 +2158,8 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				
 				sourceFileWriter = new SourceFileWriter(extension, node, innerClassProvider);
 				final List<SourceLine> sourceLines = new ArrayList<>(100);
-				sourceFileWriter.getSourceBlockList().collectLines(sourceLines, 0);
+				final SourceBlockList sourceBlockList = sourceFileWriter.getSourceBlockList();
+				sourceBlockList.collectLines(sourceLines, 0);
 				sourceFileWriter.writeLines(bw, sourceLines, indentation, lineBreak);
 				mapSourceSourceFiles.put(sourceFileGuessed, sourceFileWriter);
 			}

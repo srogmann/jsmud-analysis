@@ -104,6 +104,14 @@ public interface VM {
 	void redefineClass(final VMReferenceTypeID refType, final Class<?> classUntilNow, final byte[] aClassbytes);
 
 	/**
+	 * Initializes the class if necessary.
+	 * This method has to be called before the first execution of GETSTATIC-,
+	 * PUTSTATIC-, INVOKESTATIC- or NEW-instruction. 
+	 * @param clazz class to be checked
+	 */
+	void checkClassInitialization(final Class<?> clazz);
+
+	/**
 	 * Gets the loaded classes by signature
 	 * @param signature signature
 	 * @return list of classes

@@ -243,6 +243,7 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				&& configuration.isSimulateReflection) {
 			final Constructor<?> constr = (Constructor<?>) stack.peek(1);
 			final Class<?> classInit = constr.getDeclaringClass();
+			frame.registry.checkClassInitialization(classInit);
 			final SimpleClassExecutor executor = frame.registry.getClassExecutor(classInit);
 			final ReflectionHelper reflectionHelper = frame.getReflectionHelper();
 			if (executor != null

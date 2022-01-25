@@ -1603,6 +1603,7 @@ whileInstr:
 					else {
 						try {
 							final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
+							registry.checkClassInitialization(classFieldOwner);
 							final Field field = findDeclaredField(classFieldOwner, fi);
 							field.setAccessible(true);
 							objField = field.get(classFieldOwner);
@@ -1627,6 +1628,7 @@ whileInstr:
 					final String nameFiOwner = fi.owner.replace('/', '.');
 					try {
 						final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
+						registry.checkClassInitialization(classFieldOwner);
 						final Field field = findDeclaredField(classFieldOwner, fi);
 						field.setAccessible(true);
 						if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(pMethod.getModifiers())) {
@@ -1812,6 +1814,7 @@ whileInstr:
 						throw new JvmUncaughtException(String.format("Error while loading class (%s) in method (%s)",
 								nameNew, methodName), e);
 					}
+					registry.checkClassInitialization(classNew);
 					stack.push(new UninitializedInstance(classNew));
 	
 					break;
@@ -2130,6 +2133,7 @@ whileInstr:
 				}
 				objRef = classOwner;
 			}
+			registry.checkClassInitialization(classOwner);
 		}
 		else {
 			final Object objRefStack = stack.peek(numArgs);
