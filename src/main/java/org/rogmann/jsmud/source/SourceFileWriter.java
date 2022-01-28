@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -315,6 +316,7 @@ public class SourceFileWriter {
 				final LineNumberNode lnn = (LineNumberNode) instr;
 				//mapLineClassToPseudo.put(Integer.valueOf(lnn.line), Integer.valueOf(lineNum));
 				lineNumClass = lnn.line;
+				writeLine(block, "/** " + lnn.line + " / " + lineNum + " */");
 			}
 			else if (opcode >= 0) {
 				final Integer iLineNum = Integer.valueOf(lineNum);
@@ -447,31 +449,31 @@ public class SourceFileWriter {
 		return mapMethodInstr.get(methodKey);
 	}
 
+	/**
+	 * Compute the method-lines of a method.
+	 * @param classNode class-node
+	 * @param methodNode method-node
+	 * @return line-table
+	 */
 	public LineTable computeMethodLines(ClassNode classNode, MethodNode methodNode) {
 		final List<LineCodeIndex> lines = new ArrayList<>();
 		final String methodKey = buildMethodKey(classNode, methodNode);
 		final Integer firstLine = mapMethodFirstLine.get(methodKey);
 		if (firstLine == null) {
-			throw new JvmException(String.format("No first line of method (%s)", methodKey));
+			throw new JvmException(String.format("No first line of method (%s) of (%s)",
+					methodKey, classNode.name));
 		}
 
-		int lineNo = firstLine.intValue();
-		
-		final InsnList instructions = methodNode.instructions;
-		for (int i = 0; i < instructions.size(); i++) {
-			final AbstractInsnNode instr = instructions.get(i);
-			final int opcode = instr.getOpcode();
-			final int type = instr.getType();
-			if (type == AbstractInsnNode.LABEL) {
-				lineNo++;
-			}
-			else if (opcode >= 0) {
-				lineNo++;
-				lines.add(new LineCodeIndex(i, lineNo));
+		final Map<Integer, Integer> mapInstr = mapMethodInstr.get(methodKey);
+		if (mapInstr != null) {
+			for (Entry<Integer, Integer> entry : mapInstr.entrySet()) {
+				final Integer instr = entry.getKey();
+				final Integer lineNo = entry.getValue();
+				lines.add(new LineCodeIndex(instr.longValue(), lineNo.intValue()));
 			}
 		}
 		long start = 0;
-		long end = instructions.size() - 1;
+		long end = methodNode.instructions.size() - 1;
 
 		return new LineTable(start, end, lines);
 	}
