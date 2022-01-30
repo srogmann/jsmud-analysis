@@ -920,9 +920,23 @@ public class JvmTestsJUnit {
 		execute(runnable);
 	}
 
-	/** JUnit-Test of method {@link JvmTests#testsReflectionAnnotation()} */
+	/** JUnit-Test of method {@link JvmTests#testReflectionClassNewInstance()} */
 	@Test
 	@Order(62)
+	public void testTestReflectionClassNewInstance() {
+		final JvmTests jvmTests = new JvmTests();
+		final Runnable runnable = new Runnable() {
+			@Override
+			public void run() {
+				jvmTests.testReflectionClassNewInstance();
+			}
+		};
+		execute(runnable);
+	}
+
+	/** JUnit-Test of method {@link JvmTests#testsReflectionAnnotation()} */
+	@Test
+	@Order(63)
 	public void testTestsReflectionAnnotation() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -936,7 +950,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsClassForName()} */
 	@Test
-	@Order(63)
+	@Order(64)
 	public void testTestsClassForName() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {
@@ -950,7 +964,7 @@ public class JvmTestsJUnit {
 
 	/** JUnit-Test of method {@link JvmTests#testsAccessController()} */
 	@Test
-	@Order(64)
+	@Order(65)
 	public void testTestsAccessController() {
 		final JvmTests jvmTests = new JvmTests();
 		final Runnable runnable = new Runnable() {

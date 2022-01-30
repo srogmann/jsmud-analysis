@@ -285,6 +285,45 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				doContinueWhile = InvokeFlow.EXEC_OK;
 			}
 		}
+		else if ("java/lang/Class".equals(mi.owner) && "newInstance".equals(mi.name)
+				&& configuration.isSimulateReflection) {
+			final Class<?> classInit = (Class<?>) stack.peek();
+			frame.registry.checkClassInitialization(classInit);
+			final SimpleClassExecutor executor = frame.registry.getClassExecutor(classInit);
+			final ReflectionHelper reflectionHelper = frame.getReflectionHelper();
+			if (executor != null
+					&& (reflectionHelper.canConstructViaReflectionFactory()
+							|| frame.registry.isClassConstructorJsmudPatched(classInit))) {
+				// We try to instantiate the instance.
+				final Constructor<?> constr = classInit.getDeclaredConstructor();
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Class#newInstance: Emulate constructor (%s) in class (%s), stack %s",
+							constr, classInit.getName(), stack));
+				}
+				final Object oObjRef = reflectionHelper.instantiateClass(classInit);
+				// Remove the Constructor-instance and replace it with the new instance.
+				stack.pop();
+				stack.push(oObjRef);
+				final String descr = Type.getConstructorDescriptor(constr);
+				if (LOG.isDebugEnabled()) {
+					LOG.debug(String.format("Execute constructor (%s) in class (%s), stack %s",
+							constr, classInit.getName(), stack));
+				}
+				try {
+					executor.executeMethod(Opcodes.INVOKEVIRTUAL, constr, descr, stack);
+				}
+				catch (JvmUncaughtException e) {
+					final boolean doContinueWhileE = frame.handleCatchException(e.getCause());
+					if (doContinueWhileE) {
+						return InvokeFlow.EXEC_CATCH;
+					}
+					// This exception isn't handled here.
+					throw e;
+				}
+				stack.push(oObjRef);
+				doContinueWhile = InvokeFlow.EXEC_OK;
+			}
+		}
 		else if ("java/lang/reflect/Method".equals(mi.owner) && "invoke".equals(mi.name)
 				&& configuration.isSimulateReflection
 				&& Proxy.class.isAssignableFrom(((Method) stack.peek(2)).getDeclaringClass())

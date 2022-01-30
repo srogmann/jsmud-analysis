@@ -38,6 +38,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.rogmann.jsmud.gen.JsmudGeneratedClasses;
+import org.rogmann.jsmud.test2.BuilderInTest2;
+import org.rogmann.jsmud.test2.ClassInTest2;
 
 /**
  * Some simple JVM-tests.
@@ -83,7 +85,7 @@ public class JvmTests {
 //		testsRegexp();
 //		testsSwitch();
 //		testsLambda();
-		testsLambdaArrays();
+//		testsLambdaArrays();
 //		testsLambdaCallSiteConstructor();
 //		testsLambdaOnArray();
 //		testsLambdaBiConsumer();
@@ -129,6 +131,7 @@ public class JvmTests {
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
 //		testReflectionConstructorNewInstance();
+		testReflectionClassNewInstance();
 //		testsClassForName();
 //		testsReflectionAnnotation();
 //		testsAccessController();
@@ -1406,6 +1409,13 @@ public class JvmTests {
 			throw new RuntimeException("Exception while invoking constructor(II)", e);
 		}
 		assertEquals("testReflectionConstructorNewInstance", Integer.valueOf(300), Integer.valueOf(testObj.getSum()));
+	}
+
+	/** Execution of a {@link Class#newInstance()} */
+	@JsmudTest
+	public void testReflectionClassNewInstance() {
+		final ClassInTest2 obj = BuilderInTest2.build();
+		assertEquals("testReflectionClassNewInstance", Integer.valueOf(2), Integer.valueOf(obj.getA()));
 	}
 
 	@JsmudTest(description = "reflection on annotation-method")
