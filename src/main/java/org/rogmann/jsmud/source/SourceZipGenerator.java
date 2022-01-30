@@ -36,10 +36,10 @@ public class SourceZipGenerator {
 
 	/**
 	 * Entry point
-	 * @param args src-jar-file dest-zip-file
+	 * @param args source-jar-file destination-zip-file
 	 */
 	public static void main(String[] args) {
-		if (args.length != 2) {
+		if (args.length < 2) {
 			throw new IllegalArgumentException("Usage: jar-file zip-file");
 		}
 		final File fileJar = new File(args[0]);
