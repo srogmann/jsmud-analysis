@@ -460,8 +460,8 @@ public class SourceFileWriter {
 		final String methodKey = buildMethodKey(classNode, methodNode);
 		final Integer firstLine = mapMethodFirstLine.get(methodKey);
 		if (firstLine == null) {
-			throw new JvmException(String.format("No first line of method (%s) of (%s)",
-					methodKey, classNode.name));
+			throw new JvmException(String.format("No first line of method (%s) of (%s), known first lines: %s",
+					methodKey, classNode.name, mapMethodFirstLine));
 		}
 
 		final Map<Integer, Integer> mapInstr = mapMethodInstr.get(methodKey);
