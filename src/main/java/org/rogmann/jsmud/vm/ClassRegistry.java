@@ -2115,9 +2115,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			final Class<?> clazzOuter;
 			final String className = clazz.getName();
 			if (className.contains("$")) {
-				final String classNameOuter = className.replaceFirst("[$].*", "");
+				final String classNameOuter = Utils.getOuterClassName(className);
 				if (LOG.isDebugEnabled()) {
-					LOG.debug(String.format("Start with outer-class %s of %s", className, classNameOuter));
+					LOG.debug(String.format("Start with outer-class %s of %s", classNameOuter, className));
 				}
 				try {
 					clazzOuter = loadClass(classNameOuter, clazz);

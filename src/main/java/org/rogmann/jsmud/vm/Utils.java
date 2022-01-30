@@ -131,6 +131,20 @@ public class Utils {
 	}
 
 	/**
+	 * Gets the outer-name of a class or inner-class.
+	 * <ul>
+	 * <li>"Enhancer$Key" -&gt; "Enhancer"</li>
+	 * <li>"Enhancer$Key$$Outer1$Inner2" -&gt; "Enhancer$Key$$Outer1"</li>
+	 * </ul>
+	 * @param className class-name
+	 * @return outer-name
+	 */
+	public static String getOuterClassName(final String className) {
+		final String classNameOuter = className.replaceFirst("(?<![$])[$][^$](?!.*[$][$]).*", "");
+		return classNameOuter;
+	}
+
+	/**
 	 * Gets the package of a fully qualified class-name.
 	 * @param className class-name, e.g. "java.util.List"
 	 * @return package, e.g. "java.util"
@@ -148,7 +162,7 @@ public class Utils {
 	 */
 	public static String guessSourceFile(final Class<?> classRef, final String extension) {
 		final String className = classRef.getName().replaceFirst(".*[.]", "");
-		final String classNameOuter = className.replaceFirst("[$].*", "");
+		final String classNameOuter = getOuterClassName(className);
 		final String sourceFileGuessed = String.format("%s.%s", classNameOuter, extension);
 		return sourceFileGuessed;
 	}
