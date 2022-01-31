@@ -68,7 +68,7 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 
 	/** map from request-id to event-request */
 	private final ConcurrentMap<Integer, JdwpEventRequest> eventRequests;
-	
+
 	/** interface of the debugger */
 	private DebuggerInterface debugger;
 
@@ -296,9 +296,18 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 					final JdwpModifierStep modStep = (JdwpModifierStep) mod;
 					if (vm.getCurrentThreadId().equals(modStep.getThreadID())) {
 						// A step starts.
-						if (currFrame != null) {
-							currFrame.eventRequestStep = null;
-							currFrame.modStep = null;
+						Deque<MethodFrameDebugContext> stack2 = stack;
+						for (MethodFrameDebugContext loopFrame : stack2) {
+							final JdwpEventRequest evRS = loopFrame.eventRequestStep;
+							if (evRS != null && evRS.getRequestId() == requestId) {
+								loopFrame.eventRequestStep = null;
+								loopFrame.modStep = null;
+							}
+							final JdwpEventRequest evRSU = loopFrame.eventRequestStepUp;
+							if (evRSU != null && evRSU.getRequestId() == requestId) {
+								loopFrame.eventRequestStep = null;
+								loopFrame.modStep = null;
+							}
 						}
 						LOG.debug(String.format("STEP (req-id %d) removed",
 								Integer.valueOf(evReq.getRequestId())));
@@ -885,9 +894,9 @@ stepSearch:
 	 * Cancels all events.
 	 */
 	public void cancelAllEvents() {
-		final MethodFrameDebugContext frame = currFrame;
-		if (frame != null) {
-			frame.eventRequestStep = null;
+		for (final MethodFrameDebugContext loopFrame : stack) {
+			loopFrame.eventRequestStep = null;
+			loopFrame.eventRequestStepUp = null;
 		}
 		eventRequests.clear();
 	}
