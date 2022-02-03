@@ -128,7 +128,7 @@ public class MethodFrame {
 		this.reflectionHelper = configuration.getReflectionHelper();
 		if (sourceFileWriter != null) {
 			sourceFileMapInstrLine = sourceFileWriter.getMethodMapInstrLine(clazz, method);
-			LOG.debug("line-map: " + sourceFileMapInstrLine);
+			// LOG.debug("line-map: " + sourceFileMapInstrLine);
 		}
 		else {
 			sourceFileMapInstrLine = null;
