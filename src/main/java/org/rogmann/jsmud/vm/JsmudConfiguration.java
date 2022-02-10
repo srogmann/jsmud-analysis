@@ -15,6 +15,12 @@ public class JsmudConfiguration {
 	/** <code>true</code> if System.exit() should be replaced by an exception */
 	protected final boolean isCatchSystemExit = getProperty("CatchSystemExit", true);
 
+	/** <code>true</code> if getVariableValues should execute toString() (default is <code>false</code>) */
+	protected final boolean isDebuggerDumpVariableValues = getProperty("DebuggerDumpVariableValues", false);
+
+	/** <code>true</code> if a clinit-method may executed while processing jdwp-commands (default is <code>true</code>) */
+	protected final boolean isDebuggerAllowedToExecuteClinit = getProperty("DebuggerAllowedToExecuteClinit", true);
+
 	/** optional folder used to dump generated class-site-classes */
 	protected final String folderDumpCallSites = getProperty("FolderDumpCallSites");
 

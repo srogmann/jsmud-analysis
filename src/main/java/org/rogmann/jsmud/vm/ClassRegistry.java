@@ -68,6 +68,8 @@ import org.rogmann.jsmud.datatypes.VMThreadID;
 import org.rogmann.jsmud.datatypes.VMValue;
 import org.rogmann.jsmud.datatypes.VMVoid;
 import org.rogmann.jsmud.debugger.DebuggerException;
+import org.rogmann.jsmud.debugger.DebuggerJvmVisitor;
+import org.rogmann.jsmud.debugger.JvmClinitWhileDebuggingException;
 import org.rogmann.jsmud.debugger.SlotRequest;
 import org.rogmann.jsmud.debugger.SlotValue;
 import org.rogmann.jsmud.debugger.SourceFileRequester;
@@ -207,7 +209,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	private final Map<String, VMStringID> mapStrings = Collections.synchronizedMap(new WeakHashMap<>(50));
 	
 	/** weak map from object to object-id of a variable-value */
-	private final Map<Object, VMObjectID> mapVariableValues = Collections.synchronizedMap(new WeakHashMap<>(100));
+	private final Map<Object, VMObjectID> mapVariableValues = Collections.synchronizedMap(new IdentityHashMap<>(100));
 	
 	/** map from thread to current method-stack */
 	private final ConcurrentMap<Thread, Stack<MethodFrame>> mapStacks = new ConcurrentHashMap<>();
@@ -430,36 +432,70 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	private void checkAndExecutePatchedClinit(Class<?> clazz, final SimpleClassExecutor executor,
 			final JsmudClassLoader jsmudCl) {
 		final Boolean isInit = mapClassesClinitIsInitialized.putIfAbsent(clazz, Boolean.TRUE);
-		if (jsmudCl.isStaticInitializerPatched(clazz) && (isInit == null)) {
-			// We have to initialize the parent-class before its child-class.
-			final Class<?> classSuper = clazz.getSuperclass();
-			if (!Object.class.equals(classSuper) && classSuper != null) {
-				final SimpleClassExecutor executorSuper = getClassExecutor(classSuper);
-				if (executorSuper != null) {
-					checkAndExecutePatchedClinit(classSuper, executorSuper, jsmudCl);
+		boolean initializeClass = jsmudCl.isStaticInitializerPatched(clazz) && (isInit == null);
+		boolean isJdwpRunning = false;
+		DebuggerJvmVisitor dgbVisitor = null;
+		if (initializeClass) {
+			final JvmExecutionVisitor visitor = getCurrentVisitor();
+			if (visitor instanceof DebuggerJvmVisitor) {
+				dgbVisitor = (DebuggerJvmVisitor) visitor;
+				if (dgbVisitor.isProcessingPackets()) {
+					if (!configuration.isDebuggerAllowedToExecuteClinit) {
+						mapClassesClinitIsInitialized.remove(clazz);
+						throw new JvmClinitWhileDebuggingException(String.format("checkAndExecutePatchedClinit: no clinit of %s because of working debugger",
+									clazz));
+					}
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("checkAndExecutePatchedClinit: We temporarily stop processing jdwp to execute clinit.");
+					}
+					isJdwpRunning = true;
 				}
 			}
-			
-			String className = clazz.getName();
-			final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
-			final Executable pMethod;
-			try {
-				pMethod = clazz.getDeclaredMethod(methodName);
-			} catch (NoSuchMethodException | SecurityException e) {
-				throw new JvmException(String.format("Can't execute patched static initializer (%s) in (%s)",
-						methodName, className), e);
+		}
+		if (initializeClass) {
+			if (isJdwpRunning && dgbVisitor != null) {
+				// Stop executing JDWP for a moment.
+				dgbVisitor.setIsProcessingPackets(false);
 			}
-			String methodDesc = "()V";
-			OperandStack args = new OperandStack(0);
 			try {
-				if (LOG.isDebugEnabled()) {
-					LOG.debug(String.format("Execute patched static initializer of (%s) of (%s)",
-							className, clazz.getClassLoader()));
+				// We have to initialize the parent-class before its child-class.
+				final Class<?> classSuper = clazz.getSuperclass();
+				if (!Object.class.equals(classSuper) && classSuper != null) {
+					final SimpleClassExecutor executorSuper = getClassExecutor(classSuper);
+					if (executorSuper != null) {
+						checkAndExecutePatchedClinit(classSuper, executorSuper, jsmudCl);
+					}
 				}
-				executor.executeMethod(Opcodes.INVOKESTATIC, pMethod, methodDesc, args);
-			} catch (final Throwable e) {
-				throw new JvmException(String.format("Error while executing static initializer (%s) in (%s)",
-						methodName, className), e);
+				
+				String className = clazz.getName();
+				final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
+				final Executable pMethod;
+				try {
+					pMethod = clazz.getDeclaredMethod(methodName);
+				} catch (NoSuchMethodException | SecurityException e) {
+					throw new JvmException(String.format("Can't execute patched static initializer (%s) in (%s)",
+							methodName, className), e);
+				}
+				String methodDesc = "()V";
+				OperandStack args = new OperandStack(0);
+				try {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug(String.format("Execute patched static initializer of (%s) of (%s)",
+								className, clazz.getClassLoader()));
+					}
+					executor.executeMethod(Opcodes.INVOKESTATIC, pMethod, methodDesc, args);
+				} catch (final Throwable e) {
+					throw new JvmException(String.format("Error while executing static initializer (%s) in (%s)",
+							methodName, className), e);
+				}
+			}
+			finally {
+				if (isJdwpRunning && dgbVisitor != null) {
+					if (LOG.isDebugEnabled()) {
+						LOG.debug("checkAndExecutePatchedClinit: Continue processing jdwp-packets.");
+					}
+					dgbVisitor.setIsProcessingPackets(true);
+				}
 			}
 		}
 	}
@@ -1416,11 +1452,16 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			Object valueJvm = aLocals[slot];
 			final Object value = MethodFrame.convertJvmTypeIntoFieldType(eTag.getClassTag(), valueJvm);
 			final Tag tagReply;
-			if (LOG.isDebugEnabled()) {
+			if (LOG.isDebugEnabled() && configuration.isDebuggerDumpVariableValues) {
+				// Default of isDebuggerDumpVariableValues is false because
+				// this method may trigger static initializers while processing packets.
 				String sValue = null;
 				if (value != null) {
 					try {
 						sValue = value.toString();
+					} catch (JvmClinitWhileDebuggingException e) {
+						sValue = String.format("no clinit while debugging of class %s: %s",
+								value.getClass(), e.getMessage());
 					} catch (Exception e) {
 						// e.g. proxy which doesn't implement toString().
 						sValue = String.format("instance of (%s) without toString: %s",

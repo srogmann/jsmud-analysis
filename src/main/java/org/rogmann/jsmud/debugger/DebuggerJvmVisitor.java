@@ -129,6 +129,14 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 	}
 
 	/**
+	 * Gets <code>true</code> if the debugger is processing JDWP-packets.
+	 * @return processing-packets-flag
+	 */
+	public boolean isProcessingPackets() {
+		return isProcessingPackets.get();
+	}
+
+	/**
 	 * Sets the JVM-simulator.
 	 * @param vm simulator
 	 */
