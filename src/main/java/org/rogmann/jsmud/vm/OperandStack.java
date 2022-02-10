@@ -67,7 +67,7 @@ public class OperandStack {
 		try {
 			stack[++idx] = o;
 		} catch (ArrayIndexOutOfBoundsException e) {
-			throw new RuntimeException("push-error, " + toString(), e);
+			throw new JvmException("push-error, " + toString(), e);
 		}
 	}
 

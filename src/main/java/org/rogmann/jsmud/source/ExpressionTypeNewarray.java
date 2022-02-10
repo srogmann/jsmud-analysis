@@ -4,7 +4,6 @@ import java.util.Arrays;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.TypeInsnNode;
-import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * Type-instruction ANEWARRAY.
@@ -56,7 +55,7 @@ public class ExpressionTypeNewarray extends ExpressionBase<TypeInsnNode>{
 	public void render(StringBuilder sb) {
 		final int opcode = insn.getOpcode();
 		if (opcode != Opcodes.ANEWARRAY) {
-			throw new JvmException("Unexpected opcode " + opcode);
+			throw new SourceRuntimeException("Unexpected opcode " + opcode);
 		}
 		sb.append("new").append(' ');
 		final String className = insn.desc.replace('/', '.');

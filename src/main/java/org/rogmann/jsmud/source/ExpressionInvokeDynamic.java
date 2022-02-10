@@ -4,7 +4,6 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.InvokeDynamicInsnNode;
-import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * Method-instruction which executes a method returning a result.
@@ -47,7 +46,7 @@ public class ExpressionInvokeDynamic extends ExpressionBase<InvokeDynamicInsnNod
 			handle = (Handle) insn.bsmArgs[1];
 		}
 		else {
-			throw new JvmException(String.format("Unexpected invokedynamic-bootstrap-handle: %s.%s%s",
+			throw new SourceRuntimeException(String.format("Unexpected invokedynamic-bootstrap-handle: %s.%s%s",
 					bsmHandle.getOwner(), bsmHandle.getName(), bsmHandle.getDesc()));
 		}
 		sb.append('(');
@@ -81,7 +80,7 @@ public class ExpressionInvokeDynamic extends ExpressionBase<InvokeDynamicInsnNod
 			sb.append(tempVars[0]);
 		}
 		else {
-			throw new JvmException(String.format("Missing expr-arg/temp-name at %s/%s",
+			throw new SourceRuntimeException(String.format("Missing expr-arg/temp-name at %s/%s",
 					insn, insn.name));		
 		}
 		sb.append('.');

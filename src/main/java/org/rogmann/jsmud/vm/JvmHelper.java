@@ -56,7 +56,7 @@ public class JvmHelper {
 			try {
 				vm.loadClass(classPreload.getName(), classPreload);
 			} catch (ClassNotFoundException e) {
-				throw new RuntimeException("Couldn't preload class " + classPreload, e);
+				throw new JvmException("Couldn't preload class " + classPreload, e);
 			}
 		}
 		// We register the current thread.
@@ -93,7 +93,7 @@ public class JvmHelper {
 				}
 			}
 		} catch (IOException e) {
-			throw new RuntimeException("IO-Exception while speaking to " + host + ':' + port, e);
+			throw new JvmException("IO-Exception while speaking to " + host + ':' + port, e);
 		}
 		return t;
 	}
@@ -189,7 +189,7 @@ public class JvmHelper {
 			try {
 				executor.executeMethod(Opcodes.INVOKEVIRTUAL, lookup(runnable.getClass(), "run"), "()V", stackArgs);
 			} catch (Throwable e) {
-				throw new RuntimeException("Exception while simulating runnable", e);
+				throw new JvmException("Exception while simulating runnable", e);
 			}
 		}
 		finally {
@@ -292,7 +292,7 @@ public class JvmHelper {
 				return method;
 			}
 		}
-		throw new RuntimeException(String.format("Unknown method (%s) in (%s)", methodName, clazz));
+		throw new JvmException(String.format("Unknown method (%s) in (%s)", methodName, clazz));
 	}
 
 }

@@ -4,7 +4,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.TypeInsnNode;
-import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.OpcodeDisplay;
 import org.rogmann.jsmud.vm.Utils;
 
@@ -38,7 +37,7 @@ public class ExpressionTypeInstr extends ExpressionBase<TypeInsnNode>{
 		final int opcode = insn.getOpcode();
 		if (opcode == Opcodes.NEW) {
 			if (!isNewRenderingAllowed) {
-				throw new JvmException("The NEW-instruction should be rendered at INVOKESPECIAL <init>");
+				throw new SourceRuntimeException("The NEW-instruction should be rendered at INVOKESPECIAL <init>");
 			}
 			sb.append("NEW").append('(');
 			final Type type = Type.getObjectType(insn.desc);
@@ -47,7 +46,7 @@ public class ExpressionTypeInstr extends ExpressionBase<TypeInsnNode>{
 			sb.append(className).append(')');
 		}
 		else {
-			throw new JvmException("Unexpected opcode " + opcode);
+			throw new SourceRuntimeException("Unexpected opcode " + opcode);
 		}
 	}
 

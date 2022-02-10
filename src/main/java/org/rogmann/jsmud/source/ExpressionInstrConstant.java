@@ -59,7 +59,7 @@ public class ExpressionInstrConstant extends ExpressionBase<LdcInsnNode> {
 			type = Type.SHORT_TYPE;
 		}
 		else {
-			throw new RuntimeException(String.format("Unexpected type (%s): %s",
+			throw new SourceRuntimeException(String.format("Unexpected type (%s): %s",
 					cst.getClass(), cst));
 		}
 		return type;

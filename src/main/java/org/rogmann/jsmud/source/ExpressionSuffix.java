@@ -4,7 +4,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.IincInsnNode;
-import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * Suffix-expression, e.g. ".length".
@@ -36,7 +35,7 @@ public class ExpressionSuffix<A extends AbstractInsnNode> extends ExpressionBase
 			type = Type.INT_TYPE;
 		}
 		else {
-			throw new JvmException("Unexpected opcode " + opcode);
+			throw new SourceRuntimeException("Unexpected opcode " + opcode);
 		}
 		return type;
 	}
@@ -65,12 +64,12 @@ public class ExpressionSuffix<A extends AbstractInsnNode> extends ExpressionBase
 				sb.append("--");
 			}
 			else {
-				throw new JvmException(String.format("Unexpected incrment %d for local %d",
+				throw new SourceRuntimeException(String.format("Unexpected incrment %d for local %d",
 						Integer.valueOf(ii.incr), Integer.valueOf(ii.var)));
 			}
 		}
 		else {
-			throw new JvmException("Unexpected opcode " + opcode);
+			throw new SourceRuntimeException("Unexpected opcode " + opcode);
 		}
 	}
 
@@ -94,7 +93,7 @@ public class ExpressionSuffix<A extends AbstractInsnNode> extends ExpressionBase
 			suffix = (incr == +1) ? "++" : ((incr == -1) ? "--" : "+" + incr); 
 		}
 		else {
-			throw new JvmException("Unexpected opcode " + opcode);
+			throw new SourceRuntimeException("Unexpected opcode " + opcode);
 		}
 		return String.format("%s(%s%s);",
 				getClass().getSimpleName(), expr, suffix);

@@ -83,21 +83,21 @@ public class SourceZipGenerator {
 										respectSourceLineNumbers, dumpLineNumbers);
 								bw.flush();
 							} catch (IOException e) {
-								throw new RuntimeException(String.format("IO-error while writing entry (%s) in (%s)",
+								throw new SourceRuntimeException(String.format("IO-error while writing entry (%s) in (%s)",
 										destName, fileZip), e);
 							}
 						}
 					} catch (IOException e) {
-						throw new RuntimeException(String.format("IO-error while reading entries in (%s)", fileJar), e);
+						throw new SourceRuntimeException(String.format("IO-error while reading entries in (%s)", fileJar), e);
 					}
 				}
 			}
 			catch (IOException e) {
-				throw new RuntimeException(String.format("IO-error while writing (%s)", fileZip), e);
+				throw new SourceRuntimeException(String.format("IO-error while writing (%s)", fileZip), e);
 			}
 		}
 		catch (IOException e) {
-			throw new RuntimeException(String.format("IO-error while reading (%s)", fileJar), e);
+			throw new SourceRuntimeException(String.format("IO-error while reading (%s)", fileJar), e);
 		}
 	}
 
@@ -134,7 +134,7 @@ public class SourceZipGenerator {
 			}
 		}
 		catch (IOException e) {
-			throw new RuntimeException(String.format("IO-error while reading (%s)", fileJar), e);
+			throw new SourceRuntimeException(String.format("IO-error while reading (%s)", fileJar), e);
 		}
 		return mapInnerClasses;
 	}
@@ -154,7 +154,7 @@ public class SourceZipGenerator {
 			try {
 				classReader = new ClassReader(new ByteArrayInputStream(buf));
 			} catch (IOException e) {
-				throw new RuntimeException(String.format("IO-Exception while in-memory-reading %s", resName), e);
+				throw new SourceRuntimeException(String.format("IO-Exception while in-memory-reading %s", resName), e);
 			}
 			final ClassNode classNode = new ClassNode();
 			classReader.accept(classNode, 0);

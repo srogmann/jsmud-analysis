@@ -3,7 +3,6 @@ package org.rogmann.jsmud.source;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.InsnNode;
-import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * Compare two expressions (e.g. LCMP, FCMPL).
@@ -58,7 +57,7 @@ public class ExpressionCompare extends ExpressionBase<InsnNode> {
 			renderCompare(sb, "Double");
 			sb.append(')');
 			break;
-		default: throw new JvmException("Unexpected opcode " + insn.getOpcode());
+		default: throw new SourceRuntimeException("Unexpected opcode " + insn.getOpcode());
 		}
 	}
 

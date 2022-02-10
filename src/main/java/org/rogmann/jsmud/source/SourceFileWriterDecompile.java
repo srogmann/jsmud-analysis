@@ -132,7 +132,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			statements = parseMethodBody(classNode, methodNode, mapPcLine);
 		} catch (RuntimeException e) {
 			if (isDisplayInstructionsOnly || isFailFast) {
-				throw new JvmException(String.format("Couldn't parse method %s%s of %s in instructions-only-mode",
+				throw new SourceRuntimeException(String.format("Couldn't parse method %s%s of %s in instructions-only-mode",
 						methodNode.name, methodNode.desc, classNode.name), e);
 			}
 			System.err.println(String.format("%s: Couldn't display method %s%s. Switching to instructions-only-mode.",
@@ -162,7 +162,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					final String errorMsg = String.format("Error while rendering line %d, method %s, class %s",
 							Integer.valueOf(lineExpected), methodNode.name, classNode.name);
 					if (isFailFast) {
-						throw new JvmException(errorMsg, e);
+						throw new SourceRuntimeException(errorMsg, e);
 					}
 					System.err.println(errorMsg);
 					e.printStackTrace();
@@ -195,7 +195,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		if (argTypes.length > 0 && methodNode.instructions.size() > 0) {
 			final int offsetArg = ((Opcodes.ACC_STATIC & methodNode.access) != 0) ? 0 : 1;
 			if (offsetArg + argTypes.length > typeLocals.length) {
-				throw new JvmException(String.format("More arguments than local variables: offsetArg=%d, argTypes.len=%d, typeLocals.len=%d",
+				throw new SourceRuntimeException(String.format("More arguments than local variables: offsetArg=%d, argTypes.len=%d, typeLocals.len=%d",
 						Integer.valueOf(offsetArg), Integer.valueOf(argTypes.length), Integer.valueOf(typeLocals.length)));
 			}
 			System.arraycopy(argTypes, 0, typeLocals, offsetArg, argTypes.length);
@@ -250,7 +250,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				processInstruction(classNode, methodNode, instr, statements, stack,
 						typeLocals, dupCounter, mapUsedLabels);
 			} catch (EmptyStackException e) {
-				throw new JvmException(String.format("Unexpected empty expression-stack at instruction %d (%s) of method %s%s",
+				throw new SourceRuntimeException(String.format("Unexpected empty expression-stack at instruction %d (%s) of method %s%s",
 						Integer.valueOf(methodNode.instructions.indexOf(instr)),
 						InstructionVisitor.displayInstruction(instr, methodNode),
 						methodNode.name, methodNode.desc), e);
@@ -317,7 +317,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				stack.push(new ExpressionInstanceOf(ti, exprRef)); 
 			}
 			else {
-				throw new JvmException(String.format("Unexpected type instruction (%s) in %s",
+				throw new SourceRuntimeException(String.format("Unexpected type instruction (%s) in %s",
 						InstructionVisitor.displayInstruction(ti, methodNode), methodNode.name));
 			}
 		}
@@ -374,7 +374,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					case Opcodes.LSTORE: typeExpr = Type.LONG_TYPE; break;
 					case Opcodes.FSTORE: typeExpr = Type.FLOAT_TYPE; break;
 					case Opcodes.DSTORE: typeExpr = Type.DOUBLE_TYPE; break;
-					default: throw new JvmException("Unexpected opcode " + opcode);
+					default: throw new SourceRuntimeException("Unexpected opcode " + opcode);
 					}
 				}
 				final StatementVariableStore stmtStore = new StatementVariableStore(vi,
@@ -383,7 +383,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				statements.add(stmtStore);
 			}
 			else {
-				throw new JvmException(String.format("Unexpected variable-instruction (%s) in (%s)",
+				throw new SourceRuntimeException(String.format("Unexpected variable-instruction (%s) in (%s)",
 						InstructionVisitor.displayInstruction(vi, methodNode), methodNode.name));
 			}
 		}
@@ -441,7 +441,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				stack.push(new ExpressionGetStatic(fi, classNode));
 			}
 			else {
-				throw new JvmException(String.format("Unexpected field-instruction (%s) in (%s)",
+				throw new SourceRuntimeException(String.format("Unexpected field-instruction (%s) in (%s)",
 						InstructionVisitor.displayInstruction(fi, methodNode), methodNode.name));
 			}
 		}
@@ -455,7 +455,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				stack.push(new ExpressionInstrIntNewarray(iin, exprCount));
 			}
 			else {
-				throw new JvmException(String.format("Unexpected int-instruction (%s) in (%s)",
+				throw new SourceRuntimeException(String.format("Unexpected int-instruction (%s) in (%s)",
 						InstructionVisitor.displayInstruction(iin, methodNode), methodNode.name));
 			}
 		}
@@ -490,7 +490,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			final ExpressionBase<?>[] exprArgs = new ExpressionBase[args.length];
 			for (int j = args.length - 1; j >= 0; j--) {
 				if (stack.size() == 0 || stack.peek() == null) {
-					throw new JvmException(String.format("Stack underfow while reading targs of %s", idi));
+					throw new SourceRuntimeException(String.format("Stack underfow while reading targs of %s", idi));
 				}
 				exprArgs[j] = stack.pop();
 			}
@@ -536,7 +536,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			statements.add(new StatementTableSwitch(tsi, exprIndex, nameDefault, aLabelName));
 		}
 		else {
-			throw new JvmException(String.format("Unexpected instruction %s in %s",
+			throw new SourceRuntimeException(String.format("Unexpected instruction %s in %s",
 					InstructionVisitor.displayInstruction(instr, methodNode), methodNode));
 		}
 	}
@@ -687,7 +687,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else if (opcode == Opcodes.POP) {
 			if (stack.size() == 0) {
 				if (isFailFast) {
-					throw new JvmException("Empty stack at pop");
+					throw new SourceRuntimeException("Empty stack at pop");
 				}
 				// TODO TABLESWITCH (POP after IF...) ...
 				statements.add(new StatementComment("empty stack at pop"));
@@ -699,7 +699,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		else if (opcode == Opcodes.POP2) {
 			if (stack.size() == 0) {
-				throw new JvmException("Empty stack at POP2");
+				throw new SourceRuntimeException("Empty stack at POP2");
 			}
 			final ExpressionBase<?> expr1 = stack.pop();
 			final ValueCategory catExpr1 = ValueCategory.lookup(expr1);
@@ -761,7 +761,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			case Opcodes.D2I: primitiveType = Type.INT_TYPE; break;
 			case Opcodes.D2F: primitiveType = Type.FLOAT_TYPE; break;
 			case Opcodes.D2L: primitiveType = Type.DOUBLE_TYPE; break;
-			default: throw new JvmException("Unexpected opcode " + opcode);
+			default: throw new SourceRuntimeException("Unexpected opcode " + opcode);
 			}
 			stack.add(new ExpressionCastPrimitive(iz, primitiveType, exprObj));
 		}
@@ -833,7 +833,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			case Opcodes.LSHR: operator = ">>"; break;
 			case Opcodes.IUSHR: operator = ">>>"; break;
 			case Opcodes.LUSHR: operator = ">>>"; break;
-			default: throw new JvmException("Unexpected opcode " + opcode);
+			default: throw new SourceRuntimeException("Unexpected opcode " + opcode);
 			}
 			stack.push(new ExpressionInfixBinary<>(iz, operator, arg1, arg2));
 		}
@@ -856,7 +856,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			statements.add(new StatementThrow(iz, exprException));
 		}
 		else {
-			throw new JvmException(String.format("Unexpected zero-arg instruction (%s) in %s",
+			throw new SourceRuntimeException(String.format("Unexpected zero-arg instruction (%s) in %s",
 					InstructionVisitor.displayInstruction(iz, methodNode), methodNode.name));
 		}
 	}
@@ -887,7 +887,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			case Opcodes.IFLT: operator = "<"; break;
 			case Opcodes.IFGE: operator = ">="; break;
 			case Opcodes.IFGT: operator = ">"; break;
-			default: throw new JvmException("Unexpected opcode " + opcode);
+			default: throw new SourceRuntimeException("Unexpected opcode " + opcode);
 			}
 			final ExpressionInfixBinary<?> exprCond = new ExpressionInfixBinary<>(ji, operator, exprValue, exprZero);
 			statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
@@ -922,7 +922,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				operator = ">";
 			}
 			else {
-				throw new JvmException("Unexpected opcode " + opcode);
+				throw new SourceRuntimeException("Unexpected opcode " + opcode);
 			}
 			final ExpressionInfixBinary<JumpInsnNode> exprCond = new ExpressionInfixBinary<>(ji, operator, expr1, expr2);
 			statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
@@ -936,7 +936,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			statements.add(new StatementIf(ji, exprCond, labelDest, labelName));
 		}
 		else {
-			throw new JvmException(String.format("Unexpected jump-instruction (%s) in (%s)",
+			throw new SourceRuntimeException(String.format("Unexpected jump-instruction (%s) in (%s)",
 					InstructionVisitor.displayInstruction(ji, methodNode), methodNode.name));
 		}
 	}
@@ -949,7 +949,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final ExpressionBase<?>[] exprArgs = new ExpressionBase[args.length];
 		for (int j = args.length - 1; j >= 0; j--) {
 			if (stack.size() == 0 || stack.peek() == null) {
-				throw new JvmException(String.format("Stack underfow while reading constructor-args of %s", mi));
+				throw new SourceRuntimeException(String.format("Stack underfow while reading constructor-args of %s", mi));
 			}
 			exprArgs[j] = popExpressionAndMergeDuplicate(statements, stack);
 		}
@@ -964,7 +964,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					stack.pop();
 					final StatementExpressionDuplicated<?> stmtExprDuplicated = (StatementExpressionDuplicated<?>) popLastAddedStatement(statements);
 					if (stmtExprDuplicated.getInsn().getOpcode() != Opcodes.NEW) {
-						throw new JvmException(String.format("Unexpected stmt-dup-expression %s in %s before constructor %s. Expr-args: %s",
+						throw new SourceRuntimeException(String.format("Unexpected stmt-dup-expression %s in %s before constructor %s. Expr-args: %s",
 								stmtExprDuplicated, methodNode.name, mi.name, Arrays.toString(exprArgs)));
 					}
 					// We have NEW DUP INVOKESPECIAL.
@@ -974,7 +974,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				}
 				else {
 					if (isFailFast) {
-						throw new JvmException(String.format("Unexpected duplicated expression %s in %s before constructor %s. Expr-args: %s",
+						throw new SourceRuntimeException(String.format("Unexpected duplicated expression %s in %s before constructor %s. Expr-args: %s",
 								exprObject, methodNode.name, mi.name, Arrays.toString(exprArgs)));
 					}
 					statements.add(new StatementInvoke(mi, classNode, exprDuplicate, exprArgs));
@@ -985,7 +985,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				statements.add(stmtConstr);
 			}
 			else {
-				throw new JvmException(String.format("Unexpected expression %s in %s before constructor %s. Expr-args: %s",
+				throw new SourceRuntimeException(String.format("Unexpected expression %s in %s before constructor %s. Expr-args: %s",
 						exprObject, methodNode.name, mi.name, Arrays.toString(exprArgs)));
 			}
 		}
@@ -1021,7 +1021,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
 		}
 		else {
-			throw new JvmException(String.format("Unexpected method-instruction (%s) in (%s)",
+			throw new SourceRuntimeException(String.format("Unexpected method-instruction (%s) in (%s)",
 					InstructionVisitor.displayInstruction(mi, methodNode), methodNode.name));
 		}
 	}
@@ -1325,7 +1325,7 @@ loopLines:
 			try {
 				classInner = classLoader.loadClass(internalName.replace('/', '.'));
 			} catch (ClassNotFoundException e) {
-				throw new JvmException(String.format("Can't load inner-class (%s)", internalName), e);
+				throw new SourceRuntimeException(String.format("Can't load inner-class (%s)", internalName), e);
 			}
 			final ClassReader innerReader = createClassReader(classInner, classLoader);
 			final ClassNode innerClassNode = new ClassNode();
@@ -1412,7 +1412,7 @@ loopLines:
 	private static StatementBase popLastAddedStatement(List<StatementBase> statements) {
 		final int numStmts = statements.size();
 		if (numStmts == 0) {
-			throw new JvmException("The list of statements is empty, can't pop a statement.");
+			throw new SourceRuntimeException("The list of statements is empty, can't pop a statement.");
 		}
 		int index = numStmts - 1;
 		while (index >= 0) {
@@ -1423,7 +1423,7 @@ loopLines:
 			}
 			index--;
 		}
-		throw new JvmException("The list of statements is contains labels only, can't pop a statement.");
+		throw new SourceRuntimeException("The list of statements is contains labels only, can't pop a statement.");
 	}
 
 }

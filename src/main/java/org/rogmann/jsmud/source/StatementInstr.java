@@ -2,7 +2,6 @@ package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * One instruction.
@@ -36,7 +35,7 @@ public abstract class StatementInstr<A extends AbstractInsnNode> extends Stateme
 	 */
 	protected void render(StringBuilder sb, MethodNode methodNode) {
 		// You may use StatementInstrPlain to display raw bytecodes.
-		throw new JvmException(String.format("Missing render-implementation for opcode %d",
+		throw new SourceRuntimeException(String.format("Missing render-implementation for opcode %d",
 				Integer.valueOf(insn.getOpcode())));
 	}
 

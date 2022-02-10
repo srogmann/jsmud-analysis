@@ -3,7 +3,6 @@ package org.rogmann.jsmud.source;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.InsnNode;
-import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.OpcodeDisplay;
 
 /**
@@ -39,7 +38,7 @@ public class ExpressionInstrZeroConstant extends ExpressionBase<InsnNode>{
 		case Opcodes.DCONST_0: sb.append("0d"); break;
 		case Opcodes.DCONST_1: sb.append("1d"); break;
 		default:
-			throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
+			throw new SourceRuntimeException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
 		}
 	}
 
@@ -68,7 +67,7 @@ public class ExpressionInstrZeroConstant extends ExpressionBase<InsnNode>{
 			case Opcodes.DCONST_0:
 			case Opcodes.DCONST_1: type = Type.DOUBLE_TYPE; break;
 			default:
-				throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
+				throw new SourceRuntimeException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
 			}
 		}
 		return type;
@@ -111,7 +110,7 @@ public class ExpressionInstrZeroConstant extends ExpressionBase<InsnNode>{
 		case Opcodes.DCONST_0: val = Double.valueOf(0); break;
 		case Opcodes.DCONST_1: val = Double.valueOf(1); break;
 		default:
-			throw new JvmException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
+			throw new SourceRuntimeException(String.format("Unexpected opcode %d", Integer.valueOf(opcode)));
 		}
 		return val;
 	}

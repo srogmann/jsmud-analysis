@@ -454,7 +454,7 @@ public class JsmudClassLoader extends ClassLoader {
 				try {
 					classSuper = findClass(superClassName);
 				} catch (ClassNotFoundException e) {
-					throw new RuntimeException(String.format("Can't load super-type (%s) of (%s)", superClassName, name), e);
+					throw new JvmException(String.format("Can't load super-type (%s) of (%s)", superClassName, name), e);
 				}
 				final Integer flagsSuper = mapClassFlags.get(superClassName);
 				if (classSuper.isInterface()) {

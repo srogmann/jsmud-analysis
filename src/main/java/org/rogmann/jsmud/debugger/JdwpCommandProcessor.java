@@ -2000,7 +2000,7 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 					break;
 				}
 				default:
-					throw new RuntimeException("Unknown modifier kind: " + bModKind);
+					throw new DebuggerException("Unknown modifier kind: " + bModKind);
 				}
 			}
 			final DebuggerJvmVisitor currentVisitor = (DebuggerJvmVisitor) vm.getCurrentVisitor();

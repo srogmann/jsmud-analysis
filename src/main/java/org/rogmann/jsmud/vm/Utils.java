@@ -63,7 +63,7 @@ public class Utils {
 			sb.append(((Short) cst).shortValue());
 		}
 		else {
-			throw new RuntimeException(String.format("Unexpected type (%s): %s",
+			throw new JvmException(String.format("Unexpected type (%s): %s",
 					cst.getClass(), cst));
 		}
 	}

@@ -196,10 +196,10 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 			}
 			catch (JvmUncaughtException e) {
 				JvmHelper.dumpStacktrace(e, null);
-				throw new RuntimeException("Uncaught exception while simulating supplier " + supplierClass.getName(), e);
+				throw new DebuggerException("Uncaught exception while simulating supplier " + supplierClass.getName(), e);
 			}
 			catch (Throwable e) {
-				throw new RuntimeException("Throwable while simulating supplier " + supplierClass.getName(), e);
+				throw new DebuggerException("Throwable while simulating supplier " + supplierClass.getName(), e);
 			}
 		}
 		finally {
@@ -684,7 +684,7 @@ stepSearch:
 										new VMInt(evReq.getRequestId()), threadId,
 										typeTag, bp.getClassID(), bp.getMethodId(), vIndex);
 							} catch (IOException e) {
-								throw new RuntimeException("IO-error while talking with the debugger (breakopint)", e);
+								throw new DebuggerException("IO-error while talking with the debugger (breakopint)", e);
 							}
 							giveDebuggerControl(threadId, suspendPolicy);
 						}
@@ -749,7 +749,7 @@ stepSearch:
 									new VMInt(evReq.getRequestId()), threadId,
 									typeTag, fieldOnly.getClassId(), methodId, vIndex);
 						} catch (IOException e) {
-							throw new RuntimeException("IO-error while talking with the debugger (breakopint)", e);
+							throw new DebuggerException("IO-error while talking with the debugger (breakopint)", e);
 						}
 						giveDebuggerControl(threadId, suspendPolicy);
 					}
@@ -868,7 +868,7 @@ stepSearch:
 		try {
 			debugger.processPackets();
 		} catch (IOException e) {
-			throw new RuntimeException("IO-error while talking with the debugger (processPackets)", e);
+			throw new DebuggerException("IO-error while talking with the debugger (processPackets)", e);
 		}
 	}
 

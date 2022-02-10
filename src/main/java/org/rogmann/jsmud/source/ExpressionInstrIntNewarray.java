@@ -5,7 +5,6 @@ import java.util.Arrays;
 import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.rogmann.jsmud.vm.AtypeEnum;
-import org.rogmann.jsmud.vm.JvmException;
 
 /**
  * int-operand newarray-instruction.
@@ -107,7 +106,7 @@ public class ExpressionInstrIntNewarray extends ExpressionBase<IntInsnNode>{
 				exprDefault = new ExpressionInstrConstant(new LdcInsnNode(Short.valueOf((short) 0)));
 			}
 			else {
-				throw new JvmException(String.format("Unexpected primitive type %s", classPrimitive));
+				throw new SourceRuntimeException(String.format("Unexpected primitive type %s", classPrimitive));
 			}
 			Arrays.fill(aExprInitial, exprDefault);
 		}

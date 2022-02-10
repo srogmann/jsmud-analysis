@@ -26,7 +26,6 @@ import org.rogmann.jsmud.replydata.LineCodeIndex;
 import org.rogmann.jsmud.replydata.LineTable;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.ClassRegistry;
-import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.Utils;
 
 /**
@@ -227,7 +226,7 @@ public class SourceFileWriter {
 			}
 			final ClassNode innerClass = innerClassesProvider.apply(innerClassNode.name);
 			if (innerClass == null) {
-				throw new JvmException(String.format("No class-node of inner-class (%s) of (%s)",
+				throw new SourceRuntimeException(String.format("No class-node of inner-class (%s) of (%s)",
 						innerClassNode.name, node.name));
 			}
 			if (setInnerClassesProcessed.add(innerClass.name)) {
@@ -460,7 +459,7 @@ public class SourceFileWriter {
 		final String methodKey = buildMethodKey(classNode, methodNode);
 		final Integer firstLine = mapMethodFirstLine.get(methodKey);
 		if (firstLine == null) {
-			throw new JvmException(String.format("No first line of method (%s) of (%s), known first lines: %s",
+			throw new SourceRuntimeException(String.format("No first line of method (%s) of (%s), known first lines: %s",
 					methodKey, classNode.name, mapMethodFirstLine));
 		}
 
