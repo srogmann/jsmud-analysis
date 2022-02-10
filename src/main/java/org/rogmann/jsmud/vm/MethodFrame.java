@@ -2692,13 +2692,6 @@ loopDeclMeth:
 						continue loopDeclMeth;
 					}
 				}
-				if (!Type.getDescriptor(methodLoop.getReturnType()).equals(returnType.getDescriptor())) {
-					LOG.info(String.format("%s: Unexpected return-type %s (%s) instead of %s (%s)",
-							invName, 
-							methodLoop.getReturnType().getCanonicalName(), methodLoop.getReturnType().getTypeName(),
-							returnType.getClassName(), returnType.getDescriptor()));
-					continue;
-				}
 				invMethod = methodLoop;
 				break whileSuperClass;
 			}
