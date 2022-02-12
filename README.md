@@ -276,6 +276,7 @@ I wrote this project in my free time and I like my free time so support is given
  * [ASM, the all purpose Java bytecode manipulation and analysis framework](https://asm.ow2.io/)
 
 ## Changelog
+ * V 0.5.2, 2022-02-12: Register bytecode of patched classes, bugfix INVOKEDYNAMIC (array-args), added stacktrace-elements, execute static initializer at (NEW, GETSTATIC, PUTSTATIC or INVOKESTATIC), simulation of Class#newInstance, bugfix STEP-events, bugfix invalid return-type, debugging of static initializer of dynamic generated class.
  * V 0.5.1, 2022-01-16: Use sun.reflect.ReflectionFactory to load a class without constructor-execution, support FutureTask, bugfixes (GETFIELD, LDC, INVOKEDYNAMIC, ...), analyze classes defined at runtime.
  * V 0.5.0, 2021-12-25: Added a (pseudo-code)-decompiler to support source-line-aligned debugging of classes without source-code (the decompiler isn't full-fledged, it still displays to GOTO-instructions). Handling of exceptions. Support of super-static.
  * V 0.4.1, 2021-10-28: Simulation of SwitchBootstraps (used in pattern-matching for switch), bugfixes (class-loading, AIOOBE-handling, I2S-instruction, ...), implementation of jdwp-command ObjectReference/SetValues.
