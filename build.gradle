@@ -1,0 +1,84 @@
+/*
+ * build.gradle of jsmud-analysis.
+ */
+
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'signing'
+}
+
+repositories {
+    mavenLocal()
+    maven {
+        url = uri('https://repo.maven.apache.org/maven2/')
+    }
+}
+
+dependencies {
+    implementation 'org.ow2.asm:asm:9.2'
+    implementation 'org.ow2.asm:asm-tree:9.2'
+    implementation 'org.ow2.asm:asm-analysis:9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+}
+
+group = 'org.rogmann.jsmud'
+def snapshotSuffix = rootProject.hasProperty('release') ? '' : '-SNAPSHOT'
+version = '0.6.0' + snapshotSuffix
+description = 'Java simulator and multi-user debugger in order to analyze execution of bytecode'
+java.sourceCompatibility = JavaVersion.VERSION_1_8
+java.targetCompatibility = JavaVersion.VERSION_1_8
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from(components.java)
+            pom {
+              name = jar.archiveBaseName
+              description = project.description
+              inceptionYear = '2021'
+              licenses {
+                license {
+                  name = 'Apache License, Version 2.0'
+                  url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                }
+              }
+              url = 'https://github.com/srogmann/jsmud-analysis/'
+              issueManagement {
+                url = 'https://github.com/srogmann/jsmud-analysis/issues'
+              }
+              scm {
+                connection = 'scm:git:git://github.com/srogmann/jsmud-analysis.git'
+                developerConnection = 'scm:git:ssh://github.com:srogmann/jsmud-analysis.git'
+                url = 'https://github.com/srogmann/jsmud-analysis/tree/master'
+              }
+              developers {
+                developer {
+                  name = 'Sascha Rogmann'
+                  id = 'srogmann'
+                  roles = ['Creator', 'Java Developer']
+                }
+              }
+            }
+        }
+    }
+}
+
+signing {
+    required rootProject.hasProperty('release')
+    sign publishing.publications.mavenJava
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
