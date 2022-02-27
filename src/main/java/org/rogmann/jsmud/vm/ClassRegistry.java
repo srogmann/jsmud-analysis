@@ -97,7 +97,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	private static final Logger LOG = LoggerFactory.getLogger(ClassRegistry.class);
 
 	/** version */
-	public static String VERSION = "jsmud 0.5.2 (2022-02-12)";
+	public static String VERSION = "jsmud 0.6.0 (2022-02-27)";
 
 	/** maximal wait-time in a monitor (this would be infinity in a read JVM) */
 	private static final AtomicInteger MONITOR_MAX_MILLIS = new AtomicInteger(60000);
