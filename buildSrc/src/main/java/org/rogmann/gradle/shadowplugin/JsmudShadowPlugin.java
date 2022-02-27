@@ -187,7 +187,7 @@ public class JsmudShadowPlugin implements Plugin<Project> {
 	private List<File> determineDepsSources(Project p) {
 		final List<File> listDepSources = new ArrayList<>();
 		ConfigurationContainer configs = p.getConfigurations();
-		Configuration configRuntime = configs.getByName("runtimeClasspath");
+		Configuration configRuntime = configs.getByName("compileClasspath");
 		final Set<? extends DependencyResult> setDeps = configRuntime.getIncoming().getResolutionResult().getAllDependencies();
 		final List<ComponentIdentifier> listIds = new ArrayList<>();
 		for (DependencyResult depResult : setDeps) {
