@@ -96,6 +96,12 @@ publishing {
                   name = 'Apache License, Version 2.0'
                   url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
                 }
+                if (isApplyJsmudShadow) {
+	                license {
+	                  name = 'BSD License 2.0'
+	                  url = 'https://asm.ow2.io/license.html'
+	                }
+                }
               }
               url = 'https://github.com/srogmann/jsmud-analysis/'
               issueManagement {
@@ -112,6 +118,13 @@ publishing {
                   id = 'srogmann'
                   roles = ['Creator', 'Java Developer']
                 }
+                if (isApplyJsmudShadow) {
+                  developer {
+                    name = 'OW2'
+                    id = 'ASM'
+                    roles = ['Dependency', 'Java Developer of org.objectweb.asm shadowed to org.rogmann.jsmud.shadow.asm']
+                  }
+                }
               }
             }
         }
@@ -119,7 +132,7 @@ publishing {
 }
 
 signing {
-    required rootProject.hasProperty('release')
+    required rootProject.hasProperty('releaseMaven')
     sign publishing.publications.mavenJava
 }
 
