@@ -1,6 +1,14 @@
 /*
  * build.gradle of jsmud-analysis.
+ *
+ * -PapplyJsmudShadow=true: Build with asm included (.class and source!) as shadow-dependency.
  */
+
+buildscript {
+    repositories {
+        mavenLocal()
+    }
+}
 
 plugins {
     id 'java'
@@ -8,30 +16,54 @@ plugins {
     id 'signing'
 }
 
+def isApplyJsmudShadow = (hasProperty('applyJsmudShadow') && applyJsmudShadow == 'true');
+if (isApplyJsmudShadow) {
+	apply plugin: 'JsmudShadowPlugin'
+	JsmudShadowPlugin {
+	    depPackage = 'org.objectweb.asm'
+	    depPackageShadow = 'org.rogmann.jsmud.shadow.asm'
+	}
+}
+else {
+	println "JsmudShadowPlugin is not applied."
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 repositories {
     mavenLocal()
-    maven {
-        url = uri('https://repo.maven.apache.org/maven2/')
-    }
+    mavenCentral()
 }
 
 dependencies {
     implementation 'org.ow2.asm:asm:9.2'
     implementation 'org.ow2.asm:asm-tree:9.2'
     implementation 'org.ow2.asm:asm-analysis:9.2'
+
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
 }
 
 group = 'org.rogmann.jsmud'
 def snapshotSuffix = rootProject.hasProperty('release') ? '' : '-SNAPSHOT'
 version = '0.6.0' + snapshotSuffix
-description = 'Java simulator and multi-user debugger in order to analyze execution of bytecode'
+def descriptionSuffix = isApplyJsmudShadow ? ' (asm included)' : ''
+description = "Java simulator and multi-user debugger in order to analyze execution of bytecode${descriptionSuffix}"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 java.targetCompatibility = JavaVersion.VERSION_1_8
 
 java {
     withJavadocJar()
     withSourcesJar()
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
 }
 
 apply plugin: 'maven-publish'
@@ -76,9 +108,4 @@ signing {
     sign publishing.publications.mavenJava
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-}
-tasks.withType(GenerateModuleMetadata) {
-    enabled = false
-}
+

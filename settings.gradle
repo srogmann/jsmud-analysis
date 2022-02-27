@@ -2,4 +2,11 @@
  * settings.gradle of jsmud-analysis.
  */
 
-rootProject.name = 'jsmud-analysis'
+if (hasProperty('applyJsmudShadow') && applyJsmudShadow == 'true') {
+    println("jsmud-analysis-all-build")
+	rootProject.name = 'jsmud-analysis-all'
+}
+else {
+    println("jsmud-analysis-build without asm included")
+	rootProject.name = 'jsmud-analysis'
+}
