@@ -60,6 +60,15 @@ description = "Java simulator and multi-user debugger in order to analyze execut
 java.sourceCompatibility = JavaVersion.VERSION_1_8
 java.targetCompatibility = JavaVersion.VERSION_1_8
 
+def resLicense = isApplyJsmudShadow ? "res_license_all" : "res_license"
+sourceSets {
+    main {
+        resources {
+            srcDirs = ["src/main/resources", "src/main/${resLicense}"]
+        }
+    }
+}
+
 java {
     withJavadocJar()
     withSourcesJar()
