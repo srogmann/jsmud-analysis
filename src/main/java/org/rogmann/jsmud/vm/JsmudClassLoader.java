@@ -53,7 +53,7 @@ public class JsmudClassLoader extends ClassLoader {
 	private static final String SUFFIX_CLASS = ".class";
 
 	/** configuration */
-	private final JsmudConfiguration configuration;
+	protected final JsmudConfiguration configuration;
 
 	/** parent-class-loader (default class-loader) */
 	private final ClassLoader parentClassLoader;
@@ -441,9 +441,12 @@ public class JsmudClassLoader extends ClassLoader {
 			classAccess = access;
 			isInterface = ((access & Opcodes.ACC_INTERFACE) != 0);
 			if (LOG.isDebugEnabled()) {
-				LOG.debug(String.format("init: name=%s, superName=%s, access=%d", name, superName, Integer.valueOf(access)));
+				LOG.debug(String.format("init: name=%s, version=%d, superName=%s, access=%d",
+						name, Integer.valueOf(version), superName, Integer.valueOf(access)));
 			}
-			super.visit(version, access, name, signature, superName, interfaces);
+			String sVersion = configuration.patchedClassesVersion;
+			final int versionDest = (sVersion == null) ? version : Integer.parseInt(sVersion);
+			super.visit(versionDest, access, name, signature, superName, interfaces);
 			typeSuper = Type.getObjectType(superName);
 			if (!"java/lang/Object".equals(superName)) {
 				patchSuperClass(typeSuper, "needed for " + name);

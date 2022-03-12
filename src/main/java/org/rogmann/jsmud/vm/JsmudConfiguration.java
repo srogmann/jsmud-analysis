@@ -54,6 +54,9 @@ public class JsmudConfiguration {
 	/** <code>true</code>, if reflection-calls should be emulated (default is <code>true</code>) */
 	protected final boolean isSimulateReflection = getProperty("SimulateReflection", true);
 
+	/** Java-version of patched classes (default is null) */
+	protected final String patchedClassesVersion = getProperty("PatchedClassesVersion");
+
 	/** helper class for reflection */
 	private final ReflectionHelper reflectionHelper;
 
