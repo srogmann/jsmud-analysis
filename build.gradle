@@ -54,7 +54,7 @@ dependencies {
 
 group = 'org.rogmann.jsmud'
 def snapshotSuffix = rootProject.hasProperty('release') ? '' : '-SNAPSHOT'
-version = '0.6.0' + snapshotSuffix
+version = '0.6.1' + snapshotSuffix
 def descriptionSuffix = isApplyJsmudShadow ? ' (asm included)' : ''
 description = "Java simulator and multi-user debugger in order to analyze execution of bytecode${descriptionSuffix}"
 java.sourceCompatibility = JavaVersion.VERSION_1_8
