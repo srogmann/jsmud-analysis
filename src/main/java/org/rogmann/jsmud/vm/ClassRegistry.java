@@ -208,7 +208,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	/** weak map from string to string-id */
 	private final Map<String, VMStringID> mapStrings = Collections.synchronizedMap(new WeakHashMap<>(50));
 	
-	/** weak map from object to object-id of a variable-value */
+	/**
+	 * weak map from object to object-id of a variable-value
+	 * using identity instead of hashCode to avoid too-early class-initializations */
 	private final SimpleWeakIdentityHashMap<Object, VMObjectID> mapVariableValues = new SimpleWeakIdentityHashMap<>();
 	
 	/** map from thread to current method-stack */
