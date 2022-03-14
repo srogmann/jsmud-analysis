@@ -76,7 +76,7 @@ public class SimpleWeakIdentityHashMap<K,V> {
      */
     public V get(K key) {
         int h = hash(key);
-        lock.tryLock();
+        lock.lock();
         try {
 	        final Entry<K,V>[] tab = getTable();
 	        final int index = indexFor(h, tab.length);
@@ -108,7 +108,7 @@ public class SimpleWeakIdentityHashMap<K,V> {
      */
     public V put(K key, V value) {
         int h = hash(key);
-        lock.tryLock();
+        lock.lock();
         try {
 	        Entry<K,V>[] tab = getTable();
 	        int i = indexFor(h, tab.length);
