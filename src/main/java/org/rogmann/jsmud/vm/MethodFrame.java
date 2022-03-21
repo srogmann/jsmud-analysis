@@ -1594,7 +1594,7 @@ whileInstr:
 					final String nameFiOwner = fi.owner.replace('/', '.');
 					Object objField;
 					if ("java.lang.System".equals(nameFiOwner) && "security".equals(fi.name)) {
-						@SuppressWarnings("removal")
+						//@SuppressWarnings("removal") starting with Java 9.
 						final SecurityManager securityManager = System.getSecurityManager();
 						objField = securityManager;
 					}
