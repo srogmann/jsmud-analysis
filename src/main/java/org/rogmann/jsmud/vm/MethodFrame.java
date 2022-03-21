@@ -2559,6 +2559,11 @@ whileSuperClass:
 			}
 		}
 		else {
+			if (oInstance != null && uninstType == null && !Object.class.equals(constructor.getDeclaringClass())) {
+				// The object is instanciated already.
+				throw new JvmException(String.format("The object (%s) of type (%s) is instanciated already, can't execute constructor (%s), an executor for (%s) is missing",
+						oInstance, oInstance.getClass(), constructor, classConstr));
+			}
 			final Object[] initargs = new Object[anzArgs];
 			for (int i = 0; i < anzArgs; i++) {
 				final int idxArg = anzArgs - 1 - i;
