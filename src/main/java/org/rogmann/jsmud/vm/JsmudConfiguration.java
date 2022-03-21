@@ -1,7 +1,5 @@
 package org.rogmann.jsmud.vm;
 
-import java.security.AccessController;
-
 /**
  * Configuration-properties of jsmud-analysis.
  */
@@ -42,7 +40,7 @@ public class JsmudConfiguration {
 	/** <code>true</code> if public interfaces shouldn't be duplicated into JsmudClassLoader when patching classes, default is <code>false</code> */
 	protected final boolean isDontPatchPublicInterfaces = getProperty("DontPatchPublicInterfaces", false);
 
-	/** <code>true</code>, if {@link AccessController} should be executed by the JVM (default is <code>true</code>) */
+	/** <code>true</code>, if {@link java.security.AccessController} should be executed by the JVM (default is <code>true</code>) */
 	protected final boolean isEmulateAccessController = getProperty("EmulateAccessController", true); 
 
 	/** <code>true</code>, if the InvocationHandler of a proxy should be field Proxy#h (default is false) */
@@ -74,7 +72,6 @@ public class JsmudConfiguration {
 	 * @param flagDefault default-flag
 	 * @return flag
 	 */
-	@SuppressWarnings("static-method")
 	protected boolean getProperty(final String name, final boolean flagDefault) {
 		boolean flag = flagDefault;
 		final String property = System.getProperty(KEY_PREFIX + name);
