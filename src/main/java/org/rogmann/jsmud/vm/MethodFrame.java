@@ -1594,7 +1594,9 @@ whileInstr:
 					final String nameFiOwner = fi.owner.replace('/', '.');
 					Object objField;
 					if ("java.lang.System".equals(nameFiOwner) && "security".equals(fi.name)) {
-						objField = System.getSecurityManager();
+						@SuppressWarnings("removal")
+						final SecurityManager securityManager = System.getSecurityManager();
+						objField = securityManager;
 					}
 					else if (CallSiteGenerator.FIELD_IS_EXECUTED_BY_JSMUD.equals(fi.name) && "Z".equals(fi.desc)) {
 						// JSMUD-internal field: class is executed by JSMUD.
