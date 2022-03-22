@@ -1,5 +1,10 @@
 package org.rogmann.jsmud.test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -81,6 +86,7 @@ public class JvmTests {
 //		testsExceptionHandling();
 //		testsExceptionHandlingFinally();
 //		testsInvokespecial();
+		testsInvokespecialSuper();
 //		testsInterfaceDefaultSuper();
 //		testsRegexp();
 //		testsSwitch();
@@ -131,7 +137,7 @@ public class JvmTests {
 //		testsReflectionOnInterface();
 //		testReflectionDeclaredConstructors();
 //		testReflectionConstructorNewInstance();
-		testReflectionClassNewInstance();
+//		testReflectionClassNewInstance();
 //		testsClassForName();
 //		testsReflectionAnnotation();
 //		testsAccessController();
@@ -432,6 +438,38 @@ public class JvmTests {
 		@SuppressWarnings("static-method")
 		String getName() {
 			return "Impl";
+		}
+	}
+
+	@JsmudTest
+	public void testsInvokespecialSuper() {
+		final byte[] buf;
+		try (ByteArrayOutputStream baos = new ByteArrayOutputStream(500)) {
+			try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+				oos.writeObject("TestObjectInputStream");
+			}
+			buf = baos.toByteArray();
+		}
+		catch (IOException e) {
+			throw new RuntimeException("IO-error while serializing object", e);
+		}
+		final String result;
+		try (ObjectInputStream ois = new ObjectInputStreamBuf(buf)) {
+			final Object o = ois.readObject();
+			result = (String) o;
+		}
+		catch (ClassNotFoundException e) {
+			throw new RuntimeException("Missing class while deserializing object", e);
+		}
+		catch (IOException e) {
+			throw new RuntimeException("IO-error while deserializing object", e);
+		}
+		assertEquals("InvokespecialSuper", "TestObjectInputStream", result);
+	}
+
+	static class ObjectInputStreamBuf extends ObjectInputStream {
+		public ObjectInputStreamBuf(final byte[] buf) throws IOException {
+			super(new ByteArrayInputStream(buf));
 		}
 	}
 

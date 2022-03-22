@@ -2528,6 +2528,7 @@ whileSuperClass:
 		if (constructor == null) {
 			throw new JvmException("invokespecial: Couldn't found " + mi.name + " with " + mi.desc + " for " + stack.peek(anzArgs));	
 		}
+		final boolean isInstanciatedAlready = oInstance != null && uninstType == null && !Object.class.equals(constructor.getDeclaringClass());
 
 		final Object instanceInit;
 		SimpleClassExecutor executor = null;
@@ -2535,6 +2536,10 @@ whileSuperClass:
 				|| registry.isClassConstructorJsmudPatched(classConstr)
 				|| "()V".equals(mi.desc)) {
 			executor = registry.getClassExecutor(classConstr);
+		}
+		if (isInstanciatedAlready && executor == null && configuration.isAllowSuperInitInFilteredClasses) {
+			final boolean forceSimulation = true;
+			executor = registry.getClassExecutor(classConstr, forceSimulation);
 		}
 		if (executor != null) {
 			if (uninstType == null) {
@@ -2559,9 +2564,9 @@ whileSuperClass:
 			}
 		}
 		else {
-			if (oInstance != null && uninstType == null && !Object.class.equals(constructor.getDeclaringClass())) {
+			if (isInstanciatedAlready) {
 				// The object is instanciated already.
-				throw new JvmException(String.format("The object (%s) of type (%s) is instanciated already, can't execute constructor (%s), an executor for (%s) is missing",
+				throw new JvmException(String.format("The object (%s) of type (%s) is instanciated already, can't execute constructor (%s), an executor for (%s) is missing, see configuration AllowSuperInitInFilteredClasses",
 						oInstance, oInstance.getClass(), constructor, classConstr));
 			}
 			final Object[] initargs = new Object[anzArgs];

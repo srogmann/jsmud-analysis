@@ -7,6 +7,9 @@ public class JsmudConfiguration {
 	/** prefix of configuration-keys */
 	public static final String KEY_PREFIX = "jsmud.";
 
+	/** <code>true</code> if a super-constructor should be interpreted in contrast to the filter (<code>true</code> is default) */
+	protected final boolean isAllowSuperInitInFilteredClasses = getProperty("AllowSuperInitInFilteredClasses", true);
+
 	/** <code>true</code> if a call-site should be simulated via proxy, <code>false</code> if a call-site should get a generated class (<code>false</code> is default) */
 	protected final boolean isCallsiteViaProxy = getProperty("CallsiteViaProxy", false);
 
