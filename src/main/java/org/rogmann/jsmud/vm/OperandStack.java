@@ -1,6 +1,7 @@
 package org.rogmann.jsmud.vm;
 
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.rogmann.jsmud.log.Logger;
 import org.rogmann.jsmud.log.LoggerFactory;
@@ -18,6 +19,9 @@ public class OperandStack {
 
 	/** <code>true</code> if the whole stack (including unused values) should be displayed (useful in case of debugging the simulator itself) */
 	private static final boolean SHOW_FULL_STACK = Boolean.getBoolean(OperandStack.class.getName() + ".showFullStack");
+
+	/** flag to display a bootstrap-error only once */
+	private final static AtomicBoolean IS_FIRST_BOOTSTRAP_ERROR = new AtomicBoolean(true);
 
 	private Object[] stack;
 	
@@ -225,7 +229,7 @@ public class OperandStack {
 				sb.append(", ");
 			}
 			try {
-				final String sObject;
+				String sObject;
 				if (object == null) {
 					sObject = "null";
 				}
@@ -235,7 +239,14 @@ public class OperandStack {
 					sObject = new StringBuilder(30).append("obj$$(").append(object.getClass()).append(')').toString();
 				}
 				else {
-					sObject = object.toString();
+					try {
+						sObject = object.toString();
+					} catch (BootstrapMethodError e) {
+						sObject = String.format("%s@%s", object.getClass().getName(), Long.valueOf(System.identityHashCode(object)));
+						if (IS_FIRST_BOOTSTRAP_ERROR.getAndSet(false)) {
+							LOG.error(String.format("Can't display %s", sObject), e);
+						}
+					}
 				}
 				final int maxLen = (i <= lastIdx) ? MAX_LEN_VALUE : maxLenUnusedValue;
 				for (int j = 0; j < Math.min(sObject.length(), maxLen); j++) {
