@@ -1,5 +1,7 @@
 package org.rogmann.jsmud.vm;
 
+import java.util.Optional;
+
 /**
  * Configuration-properties of jsmud-analysis.
  */
@@ -61,11 +63,24 @@ public class JsmudConfiguration {
 	/** helper class for reflection */
 	private final ReflectionHelper reflectionHelper;
 
+	/** class-remapper */
+	private final Optional<ClassRemapper> classRemapper;
+
 	/**
-	 * Constructor.
+	 * Constructor, remaps "java.lang.Record".
 	 */
 	public JsmudConfiguration() {
 		reflectionHelper = new ReflectionHelper();
+		classRemapper = Optional.empty();
+	}
+
+	/**
+	 * Constructor.
+	 * @param remapper optional class-remapper
+	 */
+	public JsmudConfiguration(ClassRemapper remapper) {
+		reflectionHelper = new ReflectionHelper();
+		classRemapper = Optional.of(remapper);
 	}
 
 	/**
@@ -101,6 +116,14 @@ public class JsmudConfiguration {
 	 */
 	public ReflectionHelper getReflectionHelper() {
 		return reflectionHelper;
+	}
+
+	/**
+	 * Gets an optional class-remapper.
+	 * @return optional remapper
+	 */
+	public Optional<ClassRemapper> getClassRemapper() {
+		return classRemapper;
 	}
 
 }

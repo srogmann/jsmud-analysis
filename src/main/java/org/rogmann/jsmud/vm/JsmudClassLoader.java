@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
@@ -63,6 +63,8 @@ public class JsmudClassLoader extends ClassLoader {
 
 	/** map from class-name to patched class */
 	protected final ConcurrentMap<String, Class<?>> mapPatchedClasses = new ConcurrentHashMap<>(100);
+	/** map from class-name to remapped class (e.g. java.lang.Record to jdksim.java.lang.Record.clss) */
+	protected final ConcurrentMap<String, Class<?>> mapRemappedClasses = new ConcurrentHashMap<>(100);
 
 	/** map from class to bytecode of a class defined in {@link JsmudClassLoader#defineJsmudClass(String, byte[])} */
 	protected final ConcurrentMap<Class<?>, byte[]> mapJsmudClassBytecode = new ConcurrentHashMap<>();
@@ -164,7 +166,7 @@ public class JsmudClassLoader extends ClassLoader {
 			final String nameClass = name.replace('.', '/') + ".class";
 			try {
 				Files.write(new File(folderJsmudBytecode,
-						nameClass.replace('/', '.')).toPath(), bytecodePatched, StandardOpenOption.CREATE);
+						nameClass.replace('/', '.')).toPath(), bytecodePatched);
 			} catch (IOException e) {
 				System.err.println("Fehler beim Schreiben: " + e);
 			}
@@ -231,12 +233,16 @@ public class JsmudClassLoader extends ClassLoader {
 			}
 		}
 		if (clazz == null) {
+			clazz = mapRemappedClasses.get(name);
+		}
+		if (clazz == null) {
 			final boolean classMayBePatched = patchFilter.test(name) && (patchClinit || patchInit);
 			boolean classIsAlreadyDefined = false;
 			if (classLoader != null) {
 				classIsAlreadyDefined = (vm != null) && (vm.getBytecodeOfDefinedClass(classLoader, name) != null);
 			}
 			byte[] bytecodePatched = null;
+			String namePatched = name;
 			if (classMayBePatched && !classIsAlreadyDefined && classLoader != null) {
 				final String nameClass = name.replace('.', '/') + ".class";
 				try (InputStream isBytecode = classLoader.getResourceAsStream(nameClass)) {
@@ -247,7 +253,9 @@ public class JsmudClassLoader extends ClassLoader {
 					if (LOG.isDebugEnabled()) {
 						LOG.debug(String.format("findClass: patching %s of %s", nameClass, classLoader));
 					}
-					bytecodePatched = patchClass(name, isBytecode);
+					ClassWithName patchedClass = patchClass(name, isBytecode);
+					bytecodePatched = patchedClass.getBytecode();
+					namePatched = patchedClass.getName();
 				}
 				catch (IOException e) {
 					throw new ClassNotFoundException(String.format("IO-error while reading class (%s) via class-loader (%s)",
@@ -260,7 +268,10 @@ public class JsmudClassLoader extends ClassLoader {
 				}
 			}
 			if (bytecodePatched != null) {
-				clazz = definePatchedClass(name, classLoader, bytecodePatched);
+				clazz = definePatchedClass(namePatched, classLoader, bytecodePatched);
+				if (!namePatched.equals(name)) {
+					mapRemappedClasses.put(name, clazz);
+				}
 			}
 			else if (classIsAlreadyDefined && classLoader instanceof JsmudClassLoader) {
 				final JsmudClassLoader jsmudClassLoader = (JsmudClassLoader) classLoader;
@@ -376,7 +387,7 @@ public class JsmudClassLoader extends ClassLoader {
 	 * @return patched bytecode, <code>null</code> in case of an interface
 	 * @throws IOException in case of an IO-error while reading the class 
 	 */
-	public byte[] patchClass(String name, InputStream isBytecode) throws IOException {
+	public ClassWithName patchClass(String name, InputStream isBytecode) throws IOException {
 		final ClassReader classReader = new ClassReader(isBytecode);
 		if ((configuration.isDontPatchPublicInterfaces
 			&& (classReader.getAccess() & (Opcodes.ACC_INTERFACE | Opcodes.ACC_PUBLIC))
@@ -389,10 +400,17 @@ public class JsmudClassLoader extends ClassLoader {
 		}
 		final int flags = ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS;
 		final ClassWriter classWriter = new ClassWriter(classReader, flags);
-		final ClassVisitor classVisitor = new InitializerAdapter(classWriter);
+		final Optional<ClassRemapper> remapper = configuration.getClassRemapper();
+		String patchedClassName = remapper.map(r -> r.remapName(name)).orElse(name);
+		final ClassVisitor classVisitor = new InitializerAdapter(classWriter, name);
 		final int parsingOptions = 0;
 		classReader.accept(classVisitor, parsingOptions);
-		return classWriter.toByteArray();
+		ClassWriter classWriter2 = classWriter;
+		if (remapper.isPresent()) {
+			ClassRemapper oRemapper = remapper.get();
+			classWriter2 = oRemapper.remapClassWriter(classWriter, name);
+		}
+		return new ClassWithName(patchedClassName, classWriter2.toByteArray());
 	}
 
 	class InitializerAdapter extends ClassVisitor {
@@ -401,6 +419,9 @@ public class JsmudClassLoader extends ClassLoader {
 		static final String METHOD_JSMUD_CLINIT = "__JSMUD_clinit";
 		/** name of the default-constructor-flag */
 		static final String FIELD_CONSTR_FLAG = "__JSMUD_constr_flag";
+
+		/** name of the patched class */
+		private final String patchedClassName;
 
 		private boolean patchedDefaultInit = false;
 		
@@ -427,16 +448,19 @@ public class JsmudClassLoader extends ClassLoader {
 		/**
 		 * Constructor
 		 * @param classWriter class-writer
+		 * @param patchedClassName name of the patched class
 		 */
-		public InitializerAdapter(final ClassWriter classWriter) {
+		public InitializerAdapter(final ClassWriter classWriter, String patchedClassName) {
 			super(Opcodes.ASM9, classWriter);
 			isRemoveFinalModifiers = true;
+			this.patchedClassName = patchedClassName;
 		}
 
 		/** {@inheritDoc} */
 		@Override
-		public void visit(final int version, final int access, final String name, final String signature,
+		public void visit(final int version, final int access, final String pName, final String signature,
 				final String superName, final String[] interfaces) {
+			final String name = patchedClassName.replace('.', '/');;
 			tClassName = name;
 			classAccess = access;
 			isInterface = ((access & Opcodes.ACC_INTERFACE) != 0);
@@ -478,6 +502,9 @@ public class JsmudClassLoader extends ClassLoader {
 					patchInitForbidden = true;
 				}
 			}
+			
+			//cv.visitField(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC, CallSiteGenerator.FIELD_IS_EXECUTED_BY_JSMUD,
+			//		Type.BOOLEAN_TYPE.getDescriptor(), null, null);
 		}
 
 		/** {@inheritDoc} */
@@ -529,6 +556,15 @@ public class JsmudClassLoader extends ClassLoader {
 				final MethodVisitor mv = cv.visitMethod(access, name, descriptor, signature, exceptions);
 				return new DefaultConstructorAdapter(access, name, descriptor, signature, exceptions, mv, tClassName);
 			}
+			//else if ("toString".equals(name) && "()Ljava/lang/String;".equals(descriptor) {
+			//	final MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+			//	final Label labelJsmudExec = new Label();
+			//	final Label labelReturn = new Label();
+			//	mv.visitFieldInsn(Opcodes.GETSTATIC, tClassName, CallSiteGenerator.FIELD_IS_EXECUTED_BY_JSMUD,
+			//			Type.BOOLEAN_TYPE.getDescriptor());
+			//	mv.visitJumpInsn(Opcodes.IFEQ, labelJsmudExec);
+			//	return mv;
+			//}
 			return super.visitMethod(access, name, descriptor, signature, exceptions);
 		}
 

@@ -473,12 +473,14 @@ public class JvmInvocationHandlerReflection implements JvmInvocationHandler {
 				if (patchClassLoader != null) {
 					// We patch the bytecode before loading.
 					final ByteArrayInputStream bais = new ByteArrayInputStream(buf, offset, len);
-					final byte[] bufBytecodePatched = patchClassLoader.patchClass(className, bais);
+					final ClassWithName patchedClass = patchClassLoader.patchClass(className, bais);
+					final byte[] bufBytecodePatched = patchedClass.getBytecode();
+					final String namePatched = patchedClass.getName();
 					if (bufBytecodePatched != null) {
-						LOG.info(String.format("defineClass (%s) of (%s) in buffer (%s/%d/%d), patch bytecode",
+						LOG.info(String.format("defineClass (%s) of (%s) in buffer (%s/%d/%d), patch bytecode (%s)",
 								className, classLoader, buf,
-								Integer.valueOf(offset), Integer.valueOf(len)));
-						final Class<?> classPatched = patchClassLoader.definePatchedClass(className,
+								Integer.valueOf(offset), Integer.valueOf(len), namePatched));
+						final Class<?> classPatched = patchClassLoader.definePatchedClass(namePatched,
 								patchClassLoader, bufBytecodePatched);
 						stack.pop();
 						stack.pop();
