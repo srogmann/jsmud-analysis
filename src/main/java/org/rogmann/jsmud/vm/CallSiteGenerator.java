@@ -146,6 +146,10 @@ public class CallSiteGenerator {
 				&& "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;".equals(bsm.getDesc())) {
 			return createCallSiteClassTypeSwitch(classOwner, idin, stack);
 		}
+		// bootstrap-method of java.lang.Record#toString():
+		//   bwm.owner = "java/lang/runtime/ObjectMethods"
+		//   bsm.name = "bootstrap"
+		//   bsm.desc = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/TypeDescriptor;Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/invoke/MethodHandle;)Ljava/lang/Object;"
 		final InvokeDynamicInstructionKey key = new InvokeDynamicInstructionKey(classOwner, idin);
 		Class<?> classCallSite = mapCallSiteClasses.get(key);
 		if (classCallSite == null) {
