@@ -110,6 +110,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		
 		final List<SourceLine> sourceLines = new ArrayList<>(100);
 		blockList.collectLines(sourceLines, 0);
+		blockList.lowerExpectedLines(0);
+		blockList.lowerHeaderLines();
 		final boolean respectSourceLineNumbers = true;
 		final boolean showLineNumbers = false;
 		sourceFile.writeLines(w, sourceLines, "    ", System.lineSeparator(),
@@ -1229,6 +1231,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 loopLines:
 		for (int i = 0; i < numLines; i++) {
 			final SourceLine sourceLine = sourceLines.get(i);
+			final int lineExpected = sourceLine.getLineCurrent();
 			int nextLineExpected = 0;
 			if (i + 1 < numLines) {
 				final SourceLine nextLine = sourceLines.get(i + 1);
@@ -1239,13 +1242,13 @@ loopLines:
 				final SourceLine nextNextLine = sourceLines.get(i + 2);
 				nextNextLineExp = nextNextLine.getLineExpected();
 			}
-			final int lineExpected = sourceLine.getLineExpected();
+			//final int lineExpected = sourceLine.getLineExpected();
 			while (lineExpected > 0 && currentLine < lineExpected) {
 				bw.write(lineBreak);
 				currentLine++;
 			}
-			if (showLineNumbers && lineExpected > 0 && lastPrintedLine != lineExpected) {
-				sb.append("/* ").append(lineExpected).append(" */");
+			if (showLineNumbers && sourceLine.getLineExpected() > 0 && lastPrintedLine != sourceLine.getLineExpected()) {
+				sb.append("/* ").append(sourceLine.getLineExpected()).append(" */");
 				lastPrintedLine = lineExpected;
 			}
 			if (sb.length() == 0 && indentation != null) {

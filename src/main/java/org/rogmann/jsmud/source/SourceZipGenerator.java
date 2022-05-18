@@ -76,6 +76,8 @@ public class SourceZipGenerator {
 								final SourceBlockList blockList = sfw.getSourceBlockList();
 								final List<SourceLine> sourceLines = new ArrayList<>(100);
 								blockList.collectLines(sourceLines, 0);
+								blockList.lowerExpectedLines(0);
+								blockList.lowerHeaderLines();
 								final boolean respectSourceLineNumbers = true;
 								final BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(zos, StandardCharsets.UTF_8));
 								final boolean dumpLineNumbers = false;

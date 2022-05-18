@@ -108,6 +108,72 @@ public class SourceBlockList extends SourceBlock {
 
 	/** {@inheritDoc} */
 	@Override
+	public int getFirstLineComputed() {
+		int lineNumber = 0;
+		if (header != null) {
+			lineNumber = header.getFirstLineComputed();
+		}
+		for (SourceBlock sourceBlock : list) {
+			if (lineNumber == 0) {
+				lineNumber = sourceBlock.getFirstLineComputed();
+			}
+		}
+		if (lineNumber == 0 && tail != null) {
+			lineNumber = tail.getFirstLineComputed();
+		}
+		return lineNumber;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public int lowerExpectedLines(int lineNoNextBlock) {
+		int nextLineNo = lineNoNextBlock;
+		if (tail != null) {
+			int lineNo = tail.lowerExpectedLines(nextLineNo);
+			if (lineNo > 0) {
+				nextLineNo = lineNo;
+			}
+		}
+		for (int i = list.size() - 1; i >= 0; i--) {
+			final SourceBlock sourceBlock = list.get(i);
+			final int lineNo = sourceBlock.lowerExpectedLines(nextLineNo);
+			if (lineNo > 0) {
+				nextLineNo = lineNo;
+			}
+		}
+		if (header != null) {
+			final int lineNo = header.lowerExpectedLines(nextLineNo);
+			if (lineNo > 0) {
+				nextLineNo = lineNo;
+			}
+		}
+		return nextLineNo;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void lowerHeaderLines() {
+		if (tail != null) {
+			tail.lowerHeaderLines();
+		}
+		for (int i = list.size() - 1; i >= 0; i--) {
+			final SourceBlock sourceBlock = list.get(i);
+			sourceBlock.lowerHeaderLines();
+		}
+		if (header != null) {
+			header.lowerHeaderLines();
+		}
+		if (header != null && list.size() > 0 && level > 0) {
+			final SourceBlock firstBodyBlock = list.get(0);
+			final int firstBodyLine = firstBodyBlock.getFirstLineComputed();
+			if (firstBodyLine > 0) {
+				header.lowerLines(firstBodyLine);
+			}
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public void dumpStructure(final StringBuilder sb, final int level) {
 		for (int i = 0; i < level; i++) {
 			sb.append(' ');

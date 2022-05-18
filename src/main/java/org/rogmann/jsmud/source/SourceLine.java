@@ -76,4 +76,17 @@ public class SourceLine {
 	public void setIndentationLevel(int level) {
 		this.level = level;
 	}
+
+	/** {@inheritDoc} */
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder(20);
+		sb.append("SL{");
+		sb.append("lC:").append(lineCurrent);
+		if (lineExpected > 0) {
+			sb.append(", lE:").append(lineExpected);
+		}
+		sb.append('}');
+		return sb.toString();
+	}
 }

@@ -26,6 +26,13 @@ public abstract class SourceBlock {
 		this.level = level;
 	}
 
+	
+	/**
+	 * Gets the first computed line-number of this block.
+	 * @return line-number, 0 in case of zero lines
+	 */
+	public abstract int getFirstLineComputed();
+
 	/**
 	 * Gets the indentation-level.
 	 * @return level
@@ -42,6 +49,19 @@ public abstract class SourceBlock {
 	 * @throws IOException in case of an IO-error
 	 */
 	public abstract int collectLines(List<SourceLine> sourceLines, int lastLine) throws IOException;
+
+	/**
+	 * Sink each line until the expected line is reached if possible.
+	 * 
+	 * @param lineNoNextBlock top line-number of next block (0 if there are no known line-numbers)
+	 * @return line number of topmost line of this block, 0 if unknown
+	 */
+	public abstract int lowerExpectedLines(int lineNoNextBlock);
+
+	/**
+	 * Sink each line until the expected line is reached if possible.
+	 */
+	public abstract void lowerHeaderLines();
 
 	/**
 	 * Computes the expected minimum and maximum line-numbers of the blocks.

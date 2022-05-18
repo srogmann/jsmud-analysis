@@ -63,6 +63,61 @@ public class SourceLines extends SourceBlock {
 
 	/** {@inheritDoc} */
 	@Override
+	public int getFirstLineComputed() {
+		int lineNumber = 0;
+		for (SourceLine line : lines) {
+			if (lineNumber == 0) {
+				lineNumber = line.getLineCurrent();
+			}
+		}
+		return lineNumber;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public int lowerExpectedLines(final int topLineNoNextBlock) {
+		int topLineNo = 0;
+		int prevLine = 0;
+		for (int i = 0; i < lines.size(); i++) {
+			final SourceLine sourceLine = lines.get(i);
+			if (sourceLine.getLineExpected() != 0
+					&& sourceLine.getLineCurrent() < sourceLine.getLineExpected()) {
+				sourceLine.setLineCurrent(sourceLine.getLineExpected());
+			}
+			if (prevLine > 0 && sourceLine.getLineCurrent() < prevLine) {
+				sourceLine.setLineCurrent(prevLine)	;
+			}
+			if (sourceLine.getLineCurrent() > 0) {
+				topLineNo = sourceLine.getLineCurrent();
+			}
+			prevLine = sourceLine.getLineCurrent();
+		}
+		return topLineNo;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void lowerHeaderLines() {
+		// Nothing to do.
+	}
+
+	/**
+	 * Sinks the lines, if possible.
+	 * @param firstBodyLine first line of the next block to sink onto
+	 */
+	public void lowerLines(int firstBodyLine) {
+		int maximumLine = firstBodyLine - 1;
+		for (int i = lines.size() - 1; i >= 0; i--) {
+			final SourceLine sourceLine = lines.get(i);
+			if (sourceLine.getLineCurrent() < maximumLine) {
+				sourceLine.setLineCurrent(maximumLine);
+				maximumLine--;
+			}
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
 	public void dumpStructure(final StringBuilder sb, final int level) {
 		for (int i = 0; i < level; i++) {
 			sb.append(' ');
@@ -94,6 +149,9 @@ public class SourceLines extends SourceBlock {
 		}
 		else {
 			sb.append(", ").append(lines.size()).append(" lines");
+			if (lines.size() <= 5) {
+				sb.append(", ").append(lines);
+			}
 		}
 		sb.append(System.lineSeparator());
 	}
