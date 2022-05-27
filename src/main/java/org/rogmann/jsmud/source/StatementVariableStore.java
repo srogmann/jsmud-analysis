@@ -47,6 +47,9 @@ public class StatementVariableStore extends StatementInstr<VarInsnNode>{
 			sb.append(SourceFileWriter.simplifyClassName(typeExpr, packageThis));
 			sb.append(' ');
 		}
+		else {
+			sb.append("__unknown_type").append(' ');
+		}
 		String varName = null;
 		if (method != null && method.localVariables != null) {
 			LocalVariableNode varNode = null;

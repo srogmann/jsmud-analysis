@@ -188,8 +188,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final List<StatementBase> statements = new ArrayList<>();
 		Integer currLine = Integer.valueOf(0);
 		final Stack<ExpressionBase<?>> stack = new Stack<>();
+		final InsnList instructions = methodNode.instructions;
 		/** map from label to label-name */
 		final Map<Label, String> mapUsedLabels = new IdentityHashMap<>();
+		/** map from instruction to instruction-index (labels are inclusive) */
+		final Map<AbstractInsnNode, Integer> mapInsnIndex = new IdentityHashMap<>();
+		for (int i = 0; i < instructions.size(); i++) {
+			mapInsnIndex.put(instructions.get(i), Integer.valueOf(i));
+		}
 		final AtomicInteger dupCounter = new AtomicInteger();
 		LabelNode currentLabel = null;
 		final Type[] typeLocals = new Type[methodNode.maxLocals];
@@ -204,7 +210,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 
 		//System.out.println(String.format("Class %s, Method %s%s", classNode.name, methodNode.name, methodNode.desc));
-		final InsnList instructions = methodNode.instructions;
 		for (int i = 0; i < instructions.size(); i++) {
 			final AbstractInsnNode instr = instructions.get(i);
 			//System.out.println(String.format("%4d: %s", Integer.valueOf(i), InstructionVisitor.displayInstruction(instr, methodNode)));
@@ -235,7 +240,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					if (tcb.handler.equals(currentLabel)) {
 						// begin of a catch-block
 						final Type typeException = Type.getObjectType(tcb.type);
-						stack.add(new ExpressionException(typeException ));
+						stack.add(new ExpressionException(typeException));
 						break;
 					}
 				}
@@ -250,7 +255,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 
 			try {
 				processInstruction(classNode, methodNode, instr, statements, stack,
-						typeLocals, dupCounter, mapUsedLabels);
+						typeLocals, dupCounter, mapUsedLabels, mapInsnIndex);
 			} catch (EmptyStackException e) {
 				throw new SourceRuntimeException(String.format("Unexpected empty expression-stack at instruction %d (%s) of method %s%s",
 						Integer.valueOf(methodNode.instructions.indexOf(instr)),
@@ -271,11 +276,13 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param typeLocals types of local variables
 	 * @param dupCounter counter of dup-statements (dummy dup-variables)
 	 * @param mapUsedLabels map of used labels
+	 * @param mapInsnIndex map from instruction-node to instruction-index (labels are instructions, too) 
 	 */
 	public void processInstruction(final ClassNode classNode, final MethodNode methodNode,
 			final AbstractInsnNode instr, final List<StatementBase> statements,
 			final Stack<ExpressionBase<?>> stack, final Type[] typeLocals,
-			final AtomicInteger dupCounter, final Map<Label, String> mapUsedLabels) {
+			final AtomicInteger dupCounter,
+			final Map<Label, String> mapUsedLabels, final Map<AbstractInsnNode, Integer> mapInsnIndex) {
 		final int opcode = instr.getOpcode();
 		final int type = instr.getType();
 		if (type == AbstractInsnNode.LABEL) {
@@ -365,8 +372,9 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final ExpressionBase<?> exprValue = popExpressionAndMergeDuplicate(statements, stack);
 				final List<LocalVariableNode> locVars = methodNode.localVariables;
 				final Type typeExpr;
-				if (locVars != null && vi.var < locVars.size()) {
-					typeExpr = Type.getType(locVars.get(vi.var).desc);
+				if (locVars != null) {
+					final LocalVariableNode locVar = findLocalVariable(vi.var, locVars, instr, mapInsnIndex);
+					typeExpr = (locVar != null) ? Type.getType(locVar.desc) : null;
 				}
 				else {
 					switch (opcode) {
@@ -1148,6 +1156,46 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	}
 
 	/**
+	 * Lookup a local variable of
+	 * @param index of local variable (slot)
+	 * @param locVars list of local variables
+	 * @param instr instruction in the variable's frame or just before the frame
+	 * @param mapInsnIndex map from instruction to instruction-index
+	 * @return local variable, <code>null</code> if unknown (e.g. internal iterator in for-each-loop)
+	 */
+	static LocalVariableNode findLocalVariable(final int varIndex,
+			final List<LocalVariableNode> locVars, final AbstractInsnNode instr,
+			final Map<AbstractInsnNode, Integer> mapInsnIndex) {
+		Integer idxInsn = mapInsnIndex.get(instr);
+		Integer idxInsnNext = (instr.getNext() != null) ? mapInsnIndex.get(instr.getNext()) : null;
+		if (idxInsn == null) {
+			throw new SourceRuntimeException(String.format("Instruction (%s) is unknown in instruction-index-map", instr));
+		}
+		for (LocalVariableNode locVar : locVars) {
+			if (varIndex != locVar.index) {
+				continue;
+			}
+			final Integer idxStart = mapInsnIndex.get(locVar.start);
+			final Integer idxEnd = mapInsnIndex.get(locVar.end);
+			if (idxStart == null) {
+				throw new SourceRuntimeException(String.format("Start-label-node (%s) of local-variable (%d / %s) is unknown",
+						locVar.start, Integer.valueOf(locVar.index), locVar.name));
+			}
+			if (idxEnd == null) {
+				throw new SourceRuntimeException(String.format("End-label-node (%s) of local-variable (%d / %s) is unknown",
+						locVar.end, Integer.valueOf(locVar.index), locVar.name));
+			}
+			if (idxStart.intValue() <= idxInsn.intValue() && idxInsn.intValue() <= idxEnd.intValue()) {
+				return locVar;
+			}
+			if (idxInsnNext != null && idxStart.intValue() <= idxInsnNext.intValue() && idxInsnNext.intValue() <= idxEnd.intValue()) {
+				return locVar;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Pops an expression from stack. In case of a duplicated expressions it may be merged
 	 * with its statement-expression.
 	 * This method is called before storing or using in a constructor.
@@ -1301,6 +1349,12 @@ loopLines:
 		return mapUsedLabels.computeIfAbsent(labelDest, l -> "L" + (mapUsedLabels.size() + 1));
 	}
 
+	/**
+	 * Creates a class-reader.
+	 * @param clazz class to be read
+	 * @param cl class-loader to load the bytecode
+	 * @return class-reader
+	 */
 	public static ClassReader createClassReader(final Class<?> clazz, final ClassLoader cl) {
 		final String resName = '/' + clazz.getName().replace('.', '/') + ".class";
 		final ClassReader classReader;
