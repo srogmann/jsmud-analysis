@@ -118,20 +118,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				respectSourceLineNumbers, showLineNumbers);
 	}
 
-	/**
-	 * Writes a method-body.
-	 * @param block current source-block
-	 * @param sb string-builder
-	 * @param classNode class-node
-	 * @param methodNode method-node
-	 * @throws IOException in case of an IO-error
-	 */
+	/** {@inheritDoc} */
 	@Override
-	protected void writeMethodBody(final SourceLines block, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
+	protected void writeMethodBody(final SourceLines block, final StringBuilder sb, final ClassNode classNode,
+			final MethodNode methodNode, final FieldRegistry fieldRegistry) throws IOException {
 		final LineManagement lineManagement = new LineManagement();
 		List<StatementBase> statements;
 		try {
-			statements = parseMethodBody(classNode, methodNode, lineManagement);
+			statements = parseMethodBody(classNode, methodNode, lineManagement, fieldRegistry);
 		} catch (RuntimeException e) {
 			if (isDisplayInstructionsOnly || isFailFast) {
 				throw new SourceRuntimeException(String.format("Couldn't parse method %s%s of %s in instructions-only-mode",
@@ -141,7 +135,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					classNode.name, methodNode.name, methodNode.desc));
 			e.printStackTrace();
 			isDisplayInstructionsOnly = true;
-			statements = parseMethodBody(classNode, methodNode, lineManagement);
+			statements = parseMethodBody(classNode, methodNode, lineManagement, fieldRegistry);
 		}
 		for (StatementBase stmt : statements) {
 			int lineExpected = 0;
@@ -150,7 +144,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final AbstractInsnNode insn = stmtInstr.getInsn();
 				if (insn != null) {
 					final int pc = methodNode.instructions.indexOf(insn);
-					final Integer line = lineManagement.mapPcLine.get(Integer.valueOf(pc));
+					final Integer line = lineManagement.getLineNumberOfInstruction(pc);
 					if (line != null) {
 						lineExpected = line.intValue();
 					}
@@ -179,12 +173,20 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	/** Management of the line-numbers of the source-lines of a method */
 	static class LineManagement {
 		/** map from index of instruction to line-number */
-		final Map<Integer, Integer> mapPcLine = new HashMap<>();
+		private final Map<Integer, Integer> mapPcLine = new HashMap<>();
 		/** current line */
 		Integer currLine = Integer.valueOf(0);
 		/** line-number of the first line in the current method */
 		int firstLine = 0;
 
+		/**
+		 * Gets the line-number of an instruction.
+		 * @param idx index of instruction
+		 * @return line-number or <code>null</code>
+		 */
+		public Integer getLineNumberOfInstruction(final int idx) {
+			return mapPcLine.get(Integer.valueOf(idx));
+		}
 		/**
 		 * Sets the number of the current line.
 		 * @param lineNo line-number
@@ -203,17 +205,19 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		public void addInstructionIndexInCurrentLine(int idx) {
 			mapPcLine.put(Integer.valueOf(idx), currLine);
 		}
+
 	}
 
 	/**
 	 * Parses the bytecode of a method and converts it into a list of statements.
 	 * @param classNode class-node
 	 * @param methodNode method-node
-	 * @param mapPcLine map from instruction-index to line
+	 * @param lineManagement management of line-numbers
+	 * @param fieldRegistry field-registry
 	 * @return list of statements
 	 */
 	public List<StatementBase> parseMethodBody(final ClassNode classNode, final MethodNode methodNode,
-			final LineManagement lineManagement) {
+			final LineManagement lineManagement, final FieldRegistry fieldRegistry) {
 		final List<StatementBase> statements = new ArrayList<>();
 		final Stack<ExpressionBase<?>> stack = new Stack<>();
 		final InsnList instructions = methodNode.instructions;
@@ -283,7 +287,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 
 			try {
 				processInstruction(classNode, methodNode, instr, statements, stack,
-						typeLocals, dupCounter, mapUsedLabels, mapInsnIndex, lineManagement);
+						typeLocals, dupCounter, mapUsedLabels, mapInsnIndex, lineManagement, fieldRegistry);
 			} catch (EmptyStackException e) {
 				throw new SourceRuntimeException(String.format("Unexpected empty expression-stack at instruction %d (%s) of method %s%s",
 						Integer.valueOf(methodNode.instructions.indexOf(instr)),
@@ -306,13 +310,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param mapUsedLabels map of used labels
 	 * @param mapInsnIndex map from instruction-node to instruction-index (labels are instructions, too)
 	 * @param lineManagement line-management 
+	 * @param fieldRegistry field-registry
 	 */
 	public void processInstruction(final ClassNode classNode, final MethodNode methodNode,
 			final AbstractInsnNode instr, final List<StatementBase> statements,
 			final Stack<ExpressionBase<?>> stack, final Type[] typeLocals,
 			final AtomicInteger dupCounter,
 			final Map<Label, String> mapUsedLabels, final Map<AbstractInsnNode, Integer> mapInsnIndex,
-			final LineManagement lineManagement) {
+			final LineManagement lineManagement, final FieldRegistry fieldRegistry) {
 		final int opcode = instr.getOpcode();
 		final int type = instr.getType();
 		if (type == AbstractInsnNode.LABEL) {
@@ -434,6 +439,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 						&& lineManagement.firstLine > lineManagement.currLine.intValue()
 						&& fi.owner.equals(classNode.name)) {
 					// field fi may be initialized at line lineManagement.currLine
+					final SourceLine sourceLine = fieldRegistry.getSourceLine(fi.name);
+					if (sourceLine.getLineExpected() == 0) {
+						sourceLine.setLineExpected(lineManagement.currLine.intValue());
+					}
 				}
 				
 				// Special case: new x(exprs2(y = exprs1(y))).
@@ -1272,11 +1281,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * The string-builder's length will be set to zero.
 	 * @param lines current source-block
 	 * @param sb content of the line (without line-break)
+	 * @return source-line added
 	 * @throws IOException in case of an IO-error
 	 */
 	@Override
-	protected void writeLine(final SourceLines lines, StringBuilder sb) throws IOException {
-		writeLine(lines, 0, sb);
+	protected SourceLine writeLine(final SourceLines lines, StringBuilder sb) throws IOException {
+		return writeLine(lines, 0, sb);
 	}
 
 	/**
@@ -1284,11 +1294,13 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * The string-builder's length will be set to zero.
 	 * @param lines current source-block
 	 * @param sb content of the line (without line-break)
+	 * @return source-line added
 	 * @throws IOException in case of an IO-error
 	 */
-	private static void writeLine(final SourceLines lines, final int lineExpected, StringBuilder sb) throws IOException {
-		lines.addLine(0, lineExpected, sb.toString());
+	private static SourceLine writeLine(final SourceLines lines, final int lineExpected, StringBuilder sb) throws IOException {
+		final SourceLine sourceLine = lines.addLine(0, lineExpected, sb.toString());
 		sb.setLength(0);
+		return sourceLine;
 	}
 
 	/**

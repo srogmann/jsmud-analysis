@@ -144,6 +144,7 @@ public class SourceFileWriter {
 		final String packageThis = Utils.getPackage(node.name.replace('/', '.'));
 
 		// Append fields.
+		final FieldRegistry fieldRegistry = new FieldRegistry();
 		{
 			final SourceLines blockFields = blocks.createSourceLines();
 			for (final FieldNode fieldNode : node.fields) {
@@ -157,7 +158,9 @@ public class SourceFileWriter {
 					sb.append(' ').append('=').append(' ');
 					Utils.appendConstant(sb, initVal);
 				}
-				sb.append(';'); writeLine(blockFields, sb);
+				sb.append(';');
+				final SourceLine sourceLine = writeLine(blockFields, sb);
+				fieldRegistry.put(fieldNode.name, sourceLine);
 			}
 		}
 
@@ -212,7 +215,7 @@ public class SourceFileWriter {
 			}
 			sb.append(" {"); writeLine(methodHeader, sb);
 			level++;
-			writeMethodBody(methodBody, sb, node, methodNode);
+			writeMethodBody(methodBody, sb, node, methodNode, fieldRegistry);
 			level--;
 			writeLine(methodTail, "}");
 		}
@@ -244,6 +247,30 @@ public class SourceFileWriter {
 		SourceLines tail = new SourceLines(blocks.getLevel());
 		blocks.setTail(tail);
 		writeLine(tail, "}");
+	}
+
+	/** Class containing the fields and its source-lines */
+	static class FieldRegistry {
+		/** map from field-name to source-line */
+		private final Map<String, SourceLine> mapFieldLines = new HashMap<>();
+
+		/**
+		 * Returns the source-line of a field.
+		 * @param fieldName field-name
+		 * @return source-line of field-declaration or <code>null</code>
+		 */
+		public SourceLine getSourceLine(final String fieldName) {
+			return mapFieldLines.get(fieldName);
+		}
+
+		/**
+		 * Register a field.
+		 * @param fieldName field-name
+		 * @param sourceLine source-line of field-declaration
+		 */
+		public void put(final String fieldName, final SourceLine sourceLine) {
+			mapFieldLines.put(fieldName, sourceLine);
+		}
 	}
 
 	/**
@@ -294,7 +321,17 @@ public class SourceFileWriter {
 		return name;
 	}
 
-	protected void writeMethodBody(final SourceLines block, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
+	/**
+	 * Writes a method-body.
+	 * @param block block of source-lines to be written
+	 * @param sb current string-builder
+	 * @param classNode class-node
+	 * @param methodNode method-node
+	 * @param fieldRegistry field-registry
+	 * @throws IOException in case of an IO-error
+	 */
+	protected void writeMethodBody(final SourceLines block, final StringBuilder sb, final ClassNode classNode,
+			final MethodNode methodNode, final FieldRegistry fieldRegistry) throws IOException {
 		final String methodKey = buildMethodKey(classNode, methodNode);
 		mapMethodFirstLine.put(methodKey, Integer.valueOf(lineNum));
 		final Map<Integer, Integer> mapInstrLine = new HashMap<>();
@@ -499,18 +536,20 @@ public class SourceFileWriter {
 	 * The string-builder's length will be set to zero.
 	 * @param lines current source-block
 	 * @param sb content of the line (without line-break)
+	 * @return source-line added
 	 * @throws IOException in case of an IO-error
 	 */
-	protected void writeLine(final SourceLines lines, StringBuilder sb) throws IOException {
+	protected SourceLine writeLine(final SourceLines lines, StringBuilder sb) throws IOException {
 		final StringBuilder sbLine = new StringBuilder(sb.length() + 10);
 		sbLine.append("//");
 		for (int i = 0; i < level; i++) {
 			sbLine.append("    ");
 		}
 		sbLine.append(sb);
-		lines.addLine(lineNum, sbLine.toString());
+		final SourceLine sourceLine = lines.addLine(lineNum, sbLine.toString());
 		sb.setLength(0);
 		lineNum++;
+		return sourceLine;
 	}
 
 	/**

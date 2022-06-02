@@ -31,20 +31,26 @@ public class SourceLines extends SourceBlock {
 	/**
 	 * Appends a line without known expected line.
 	 * @param line line-number
-	 * @param sourceLine source-line
+	 * @param lineContent content of source-line
+	 * @return source-line added
 	 */
-	public void addLine(final int line, final String sourceLine) {
-		lines.add(new SourceLine(line, 0, sourceLine));
+	public SourceLine addLine(final int line, final String lineContent) {
+		SourceLine sourceLine = new SourceLine(line, 0, lineContent);
+		lines.add(sourceLine);
+		return sourceLine;
 	}
 
 	/**
 	 * Appends a line without known expected line.
 	 * @param line line-number
 	 * @param lineExpected line-number as given in debug-info
-	 * @param sourceLine source-line
+	 * @param lineContent source-line
+	 * @return source-line added
 	 */
-	public void addLine(final int line, final int lineExpected, final String sourceLine) {
-		lines.add(new SourceLine(line, lineExpected, sourceLine));
+	public SourceLine addLine(final int line, final int lineExpected, final String lineContent) {
+		final SourceLine sourceLine = new SourceLine(line, lineExpected, lineContent);
+		lines.add(sourceLine);
+		return sourceLine;
 	}
 
 	/** {@inheritDoc} */

@@ -8,7 +8,7 @@ public class SourceLine {
 	private int lineCurrent;
 
 	/** line-number in class-file (0 if unknown) */
-	private final int lineExpected;
+	private int lineExpected;
 
 	/** indentation-level */
 	private int level;
@@ -88,5 +88,14 @@ public class SourceLine {
 		}
 		sb.append('}');
 		return sb.toString();
+	}
+
+	/**
+	 * Sets the line-number.
+	 * This method is used to set the line-number of a field-declaration which is determined in a constructor-body.
+	 * @param lineNo line-number
+	 */
+	public void setLineExpected(int lineNo) {
+		lineExpected = lineNo;
 	}
 }
