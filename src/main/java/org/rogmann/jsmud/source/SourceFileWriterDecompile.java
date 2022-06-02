@@ -128,10 +128,10 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 */
 	@Override
 	protected void writeMethodBody(final SourceLines block, final StringBuilder sb, ClassNode classNode, MethodNode methodNode) throws IOException {
-		final Map<Integer, Integer> mapPcLine = new HashMap<>();
+		final LineManagement lineManagement = new LineManagement();
 		List<StatementBase> statements;
 		try {
-			statements = parseMethodBody(classNode, methodNode, mapPcLine);
+			statements = parseMethodBody(classNode, methodNode, lineManagement);
 		} catch (RuntimeException e) {
 			if (isDisplayInstructionsOnly || isFailFast) {
 				throw new SourceRuntimeException(String.format("Couldn't parse method %s%s of %s in instructions-only-mode",
@@ -141,7 +141,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					classNode.name, methodNode.name, methodNode.desc));
 			e.printStackTrace();
 			isDisplayInstructionsOnly = true;
-			statements = parseMethodBody(classNode, methodNode, mapPcLine);
+			statements = parseMethodBody(classNode, methodNode, lineManagement);
 		}
 		for (StatementBase stmt : statements) {
 			int lineExpected = 0;
@@ -150,7 +150,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				final AbstractInsnNode insn = stmtInstr.getInsn();
 				if (insn != null) {
 					final int pc = methodNode.instructions.indexOf(insn);
-					final Integer line = mapPcLine.get(Integer.valueOf(pc));
+					final Integer line = lineManagement.mapPcLine.get(Integer.valueOf(pc));
 					if (line != null) {
 						lineExpected = line.intValue();
 					}
@@ -176,6 +176,35 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 	}
 
+	/** Management of the line-numbers of the source-lines of a method */
+	static class LineManagement {
+		/** map from index of instruction to line-number */
+		final Map<Integer, Integer> mapPcLine = new HashMap<>();
+		/** current line */
+		Integer currLine = Integer.valueOf(0);
+		/** line-number of the first line in the current method */
+		int firstLine = 0;
+
+		/**
+		 * Sets the number of the current line.
+		 * @param lineNo line-number
+		 */
+		public void setCurrentLine(int lineNo) {
+			currLine = lineNo;
+			if (firstLine == 0 && lineNo > 0) {
+				firstLine = lineNo;
+			}
+		}
+
+		/**
+		 * Adds an instruction-index of the current line.
+		 * @param idx index of instruction
+		 */
+		public void addInstructionIndexInCurrentLine(int idx) {
+			mapPcLine.put(Integer.valueOf(idx), currLine);
+		}
+	}
+
 	/**
 	 * Parses the bytecode of a method and converts it into a list of statements.
 	 * @param classNode class-node
@@ -184,9 +213,8 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @return list of statements
 	 */
 	public List<StatementBase> parseMethodBody(final ClassNode classNode, final MethodNode methodNode,
-			final Map<Integer, Integer> mapPcLine) {
+			final LineManagement lineManagement) {
 		final List<StatementBase> statements = new ArrayList<>();
-		Integer currLine = Integer.valueOf(0);
 		final Stack<ExpressionBase<?>> stack = new Stack<>();
 		final InsnList instructions = methodNode.instructions;
 		/** map from label to label-name */
@@ -220,12 +248,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					continue;
 				}
 				final LineNumberNode lnn = (LineNumberNode) instr;
-				currLine = Integer.valueOf(lnn.line);
-				mapPcLine.put(Integer.valueOf(i), currLine);
+				lineManagement.setCurrentLine(lnn.line);
+				lineManagement.addInstructionIndexInCurrentLine(i);
 				// Is the previous line a label-node?
 				if (i > 0 && instructions.get(i - 1).getType() == AbstractInsnNode.LABEL) {
 					// The previous label should belong to the current line.
-					mapPcLine.put(Integer.valueOf(i - 1), currLine);	
+					lineManagement.addInstructionIndexInCurrentLine(i - 1);
 				}
 				continue;
 			}
@@ -251,11 +279,11 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				currentLabel = (LabelNode) instr;
 			}
 
-			mapPcLine.put(Integer.valueOf(i), currLine);
+			lineManagement.addInstructionIndexInCurrentLine(i);
 
 			try {
 				processInstruction(classNode, methodNode, instr, statements, stack,
-						typeLocals, dupCounter, mapUsedLabels, mapInsnIndex);
+						typeLocals, dupCounter, mapUsedLabels, mapInsnIndex, lineManagement);
 			} catch (EmptyStackException e) {
 				throw new SourceRuntimeException(String.format("Unexpected empty expression-stack at instruction %d (%s) of method %s%s",
 						Integer.valueOf(methodNode.instructions.indexOf(instr)),
@@ -276,13 +304,15 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @param typeLocals types of local variables
 	 * @param dupCounter counter of dup-statements (dummy dup-variables)
 	 * @param mapUsedLabels map of used labels
-	 * @param mapInsnIndex map from instruction-node to instruction-index (labels are instructions, too) 
+	 * @param mapInsnIndex map from instruction-node to instruction-index (labels are instructions, too)
+	 * @param lineManagement line-management 
 	 */
 	public void processInstruction(final ClassNode classNode, final MethodNode methodNode,
 			final AbstractInsnNode instr, final List<StatementBase> statements,
 			final Stack<ExpressionBase<?>> stack, final Type[] typeLocals,
 			final AtomicInteger dupCounter,
-			final Map<Label, String> mapUsedLabels, final Map<AbstractInsnNode, Integer> mapInsnIndex) {
+			final Map<Label, String> mapUsedLabels, final Map<AbstractInsnNode, Integer> mapInsnIndex,
+			final LineManagement lineManagement) {
 		final int opcode = instr.getOpcode();
 		final int type = instr.getType();
 		if (type == AbstractInsnNode.LABEL) {
@@ -400,6 +430,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		else if (type == AbstractInsnNode.FIELD_INSN) {
 			final FieldInsnNode fi = (FieldInsnNode) instr;
 			if (opcode == Opcodes.PUTFIELD) {
+				if ("<init>".equals(methodNode.name)
+						&& lineManagement.firstLine > lineManagement.currLine.intValue()
+						&& fi.owner.equals(classNode.name)) {
+					// field fi may be initialized at line lineManagement.currLine
+				}
+				
 				// Special case: new x(exprs2(y = exprs1(y))).
 				// NEW x; DUP; GETFIELD y; exprs 1; DUP_X1; PUTFIELD y; exprs 2; INVOKE <init>
 				// stack: ..., exprs 1, DUP NEW x, exprs 1
