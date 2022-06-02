@@ -1276,7 +1276,6 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		final StringBuilder sb = new StringBuilder(100);
 		final int numLines = sourceLines.size();
 		int lastPrintedLine = 0;
-loopLines:
 		for (int i = 0; i < numLines; i++) {
 			final SourceLine sourceLine = sourceLines.get(i);
 			final int lineExpected = sourceLine.getLineCurrent();
@@ -1285,12 +1284,6 @@ loopLines:
 				final SourceLine nextLine = sourceLines.get(i + 1);
 				nextLineExpected = nextLine.getLineExpected();
 			}
-			int nextNextLineExp = 0;
-			if (i + 2 < numLines) {
-				final SourceLine nextNextLine = sourceLines.get(i + 2);
-				nextNextLineExp = nextNextLine.getLineExpected();
-			}
-			//final int lineExpected = sourceLine.getLineExpected();
 			while (lineExpected > 0 && currentLine < lineExpected) {
 				bw.write(lineBreak);
 				currentLine++;
@@ -1308,29 +1301,12 @@ loopLines:
 				// We are appending the current line.
 				sb.append(' ');
 			}
-			//sb.append("/* ").append(currentLine).append(':').append(sourceLine.getLineExpected()).append("*/");
 			sb.append(sourceLine.getSourceLine());
-			if (nextLineExpected == 0 || currentLine < nextLineExpected
-					|| currentLine > nextLineExpected + 10) {
-				for (int j = i + 2; j < numLines && nextLineExpected == 0; j++) {
-					if (sourceLines.get(j).getLineExpected() > 0) {
-						nextLineExpected = sourceLines.get(j).getLineExpected();
-						if (currentLine + 1 >= nextLineExpected) {
-							continue loopLines;
-						}
-					}
-				}
-				if (nextLineExpected == 0 && nextNextLineExp == currentLine + 1) {
-					// The next next line should start without the next line in front.
-					continue;
-				}
+			if (nextLineExpected == 0 || currentLine < nextLineExpected || currentLine > lineExpected) {
 				sb.append(lineBreak);
-				bw.write(sb.toString());
+				bw.write(sb.toString()); bw.flush();
 				sb.setLength(0);
 				currentLine++;
-				//sb.append("/*real ").append(currentLine);
-				//sb.append('/').append(nextLineExpected).append('/').append(nextNextLineExp);
-				//sb.append("*/");
 			}
 		}
 		if (sb.length() > 0) {

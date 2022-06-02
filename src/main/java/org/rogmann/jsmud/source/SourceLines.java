@@ -52,6 +52,9 @@ public class SourceLines extends SourceBlock {
 	public int collectLines(List<SourceLine> sourceLines, final int lastLine) throws IOException {
 		int currentLine = lastLine + 1;
 		for (final SourceLine sourceLine : lines) {
+			if (sourceLine.getLineExpected() > 0 && currentLine > sourceLine.getLineExpected()) {
+				currentLine = sourceLine.getLineExpected();
+			}
 			sourceLine.setLineCurrent(currentLine);
 			sourceLine.setIndentationLevel(level);
 			sourceLines.add(sourceLine);
