@@ -11,14 +11,20 @@ public class ExpressionInstanceOf extends ExpressionBase<TypeInsnNode> {
 	/** argument */
 	private final ExpressionBase<?> exprRef;
 
+	/** source-name renderer */
+	private final SourceNameRenderer sourceNameRenderer;
+
 	/**
 	 * Constructor
 	 * @param insn INSTANCEOF-instruction
 	 * @param exprRef argument
+	 * @param sourceNameRenderer source-name renderer
 	 */
-	public ExpressionInstanceOf(final TypeInsnNode insn, final ExpressionBase<?> exprRef) {
+	public ExpressionInstanceOf(final TypeInsnNode insn, final ExpressionBase<?> exprRef,
+			final SourceNameRenderer sourceNameRenderer) {
 		super(insn);
 		this.exprRef = exprRef;
+		this.sourceNameRenderer = sourceNameRenderer;
 	}
 
 	/** {@inheritDoc} */
@@ -26,7 +32,7 @@ public class ExpressionInstanceOf extends ExpressionBase<TypeInsnNode> {
 	public void render(StringBuilder sb) {
 		exprRef.render(sb);
 		sb.append(' ').append("instanceof").append(' ');
-		sb.append(SourceFileWriter.simplifyClassName(Type.getObjectType(insn.desc)));
+		sb.append(sourceNameRenderer.renderType(Type.getObjectType(insn.desc)));
 	}
 
 }

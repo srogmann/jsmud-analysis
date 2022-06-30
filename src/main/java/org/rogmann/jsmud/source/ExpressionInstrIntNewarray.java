@@ -11,6 +11,9 @@ import org.rogmann.jsmud.vm.AtypeEnum;
  */
 public class ExpressionInstrIntNewarray extends ExpressionBase<IntInsnNode>{
 
+	/** source-name renderer */
+	private final SourceNameRenderer sourceNameRenderer;
+
 	/** length of new array */
 	private ExpressionBase<?> exprCount;
 
@@ -21,10 +24,13 @@ public class ExpressionInstrIntNewarray extends ExpressionBase<IntInsnNode>{
 	 * Constructor
 	 * @param insn type-instruction, NEWARRAY 
 	 * @param exprCount length of new array
+	 * @param sourceNameRenderer source-name renderer
 	 */
-	public ExpressionInstrIntNewarray(IntInsnNode insn, final ExpressionBase<?> exprCount) {
+	public ExpressionInstrIntNewarray(IntInsnNode insn, final ExpressionBase<?> exprCount,
+			SourceNameRenderer sourceNameRenderer) {
 		super(insn);
 		this.exprCount = exprCount;
+		this.sourceNameRenderer = sourceNameRenderer;
 	}
 
 	/** {@inheritDoc} */
@@ -32,7 +38,7 @@ public class ExpressionInstrIntNewarray extends ExpressionBase<IntInsnNode>{
 	public void render(StringBuilder sb) {
 		sb.append("new").append(' ');
 		final String displayName = computeDisplayName();
-		sb.append(displayName);
+		sb.append(sourceNameRenderer.renderClassName(displayName));
 		sb.append('[');
 		exprCount.render(sb);
 		sb.append(']');

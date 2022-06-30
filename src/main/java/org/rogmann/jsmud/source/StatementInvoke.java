@@ -1,7 +1,6 @@
 package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 
 /**
@@ -9,8 +8,8 @@ import org.objectweb.asm.tree.MethodInsnNode;
  */
 public class StatementInvoke extends StatementInstr<MethodInsnNode> {
 
-	/** current class */
-	protected final ClassNode classNode;
+	/** source-name renderer */
+	private final SourceNameRenderer sourceNameRenderer;
 
 	/** expression of object-instance */
 	private final ExpressionBase<?> exprObj;
@@ -20,14 +19,15 @@ public class StatementInvoke extends StatementInstr<MethodInsnNode> {
 	/**
 	 * Constructor
 	 * @param insn variable-instruction, e.g. ASTORE_1
-	 * @param classNode node of current class
+	 * @param sourceNameRenderer source-name renderer
 	 * @param exprObj expression of object-instance (<code>null</code> in case of INVOKESTATIC)
 	 * @param exprArgs arguments of method
 	 */
-	public StatementInvoke(MethodInsnNode insn, ClassNode classNode, final ExpressionBase<?> exprObj,
+	public StatementInvoke(final MethodInsnNode insn, final SourceNameRenderer sourceNameRenderer,
+			final ExpressionBase<?> exprObj,
 			final ExpressionBase<?>... exprArgs) {
 		super(insn);
-		this.classNode = classNode;
+		this.sourceNameRenderer = sourceNameRenderer;
 		this.exprObj = exprObj;
 		this.exprArgs = exprArgs;
 	}
@@ -37,7 +37,7 @@ public class StatementInvoke extends StatementInstr<MethodInsnNode> {
 	public void render(StringBuilder sb) {
 		if (insn.getOpcode() == Opcodes.INVOKESTATIC) {
 			final String className = insn.owner.replace('/', '.');
-			sb.append(SourceFileWriter.simplifyClassName(className));
+			sb.append(sourceNameRenderer.renderClassName(className));
 		}
 		else {
 			exprObj.render(sb);

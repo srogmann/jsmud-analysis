@@ -1,16 +1,17 @@
 package org.rogmann.jsmud.source;
 
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
-import org.rogmann.jsmud.vm.Utils;
 
 /**
  * Variable-instruction which stores into variable.
  */
 public class StatementVariableStore extends StatementInstr<VarInsnNode>{
+
+	/** source-name renderer */
+	private final SourceNameRenderer sourceNameRenderer;
 
 	/** method-node */
 	private final MethodNode method;
@@ -19,32 +20,28 @@ public class StatementVariableStore extends StatementInstr<VarInsnNode>{
 	/** value to be stored */
 	private final ExpressionBase<?> exprValue;
 
-	/** this-class */
-	private final ClassNode classNode;
-
 	/**
 	 * Constructor
 	 * @param insn variable-instruction, e.g. ALOAD_1
-	 * @param classNode class of this-class
 	 * @param method method-node
 	 * @param typeExpr type of expression or <code>null</code> 
 	 * @param exprValue value to be stored
+	 * @param sourceNameRenderer source-name renderer
 	 */
-	public StatementVariableStore(VarInsnNode insn, ClassNode classNode, MethodNode method,
-			Type typeExpr, final ExpressionBase<?> exprValue) {
+	public StatementVariableStore(VarInsnNode insn, MethodNode method,
+			Type typeExpr, final ExpressionBase<?> exprValue, SourceNameRenderer sourceNameRenderer) {
 		super(insn);
-		this.classNode = classNode;
 		this.method = method;
 		this.typeExpr = typeExpr;
 		this.exprValue = exprValue;
+		this.sourceNameRenderer = sourceNameRenderer;
 	}
 
 	/** {@inheritDoc} */
 	@Override
 	public void render(StringBuilder sb) {
 		if (typeExpr != null) {
-			String packageThis = Utils.getPackage(classNode.name.replace('/', '.'));
-			sb.append(SourceFileWriter.simplifyClassName(typeExpr, packageThis));
+			sb.append(sourceNameRenderer.renderType(typeExpr));
 			sb.append(' ');
 		}
 		else {

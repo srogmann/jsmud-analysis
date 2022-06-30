@@ -63,7 +63,12 @@ public class SourceFileWriter {
 	private final Map<String, Map<Integer, Integer>> mapMethodInstr = new HashMap<>();
 
 	/** outer list of source-blocks */
-	private final SourceBlockList sourceOuter;
+	protected final SourceBlockList sourceOuter;
+
+	/** class-node */
+	private final ClassNode classNode;
+	/** inner-classes provider */
+	private final Function<String, ClassNode> innerClassesProvider;
 
 	/**
 	 * Constructor, writes the source-file.
@@ -77,6 +82,9 @@ public class SourceFileWriter {
 		this.extension = extension;
 		sourceOuter = new SourceBlockList(0, "outer-class " + node.name.replace('/', '.'));
 		
+		this.classNode = node;
+		this.innerClassesProvider = innerClassesProvider;
+		
 		final SourceLines header = new SourceLines(0);
 		sourceOuter.setHeader(header);
 		final StringBuilder sb = new StringBuilder(100);
@@ -87,11 +95,32 @@ public class SourceFileWriter {
 			writeLine(header, sb);
 			writeLine(header, "");
 		}
-		
+	}
+
+	/**
+	 * Constructor, writes the source-file.
+	 * @param extension extension, e.g. "asm"
+	 * @param node class-node
+	 * @param innerClassesProvider function which returns a class-node corresponding to an internal-name
+	 * @throws IOException in case of an IO-error
+	 */
+	public SourceFileWriter(final String extension, final ClassNode node,
+			final Function<String, ClassNode> innerClassesProvider, final boolean writeClass) throws IOException {
+		this(extension, node, innerClassesProvider);
+		if (writeClass) {
+			createBlockListAndWriteClasss();
+		}
+	}
+
+	/**
+	 * Creates a block-list and write the class.
+	 * @throws IOException in case of an IO-error
+	 */
+	protected void createBlockListAndWriteClasss() throws IOException {
 		final SourceBlockList sourceBlockList = new SourceBlockList(0,
-				"class " + node.name.replaceFirst(".*[/]", ""));
+				"class " + classNode.name.replaceFirst(".*[/]", ""));
 		sourceOuter.getList().add(sourceBlockList);
-		writeClass(sourceBlockList, node, innerClassesProvider);
+		writeClass(sourceBlockList, classNode, innerClassesProvider);
 	}
 
 	/**
@@ -182,7 +211,7 @@ public class SourceFileWriter {
 				// static initializer
 			}
 			else {
-				sb.append(simplifyClassName(returnType.getClassName()));
+				sb.append(renderClassName(returnType.getClassName()));
 				sb.append(' ').append(methodNode.name);
 			}
 			sb.append('(');
@@ -194,8 +223,7 @@ public class SourceFileWriter {
 				if (i > 0) {
 					sb.append(", ");
 				}
-				String className = simplifyClassName(argTypes[i].getClassName());
-				sb.append(className);
+				sb.append(renderClassName(argTypes[i].getClassName()));
 				final String argName;
 				if (localVariables != null && indexFirstArg + i < anzLocVar) {
 					argName = localVariables.get(indexFirstArg + i).name;
@@ -207,11 +235,14 @@ public class SourceFileWriter {
 			}
 			sb.append(')');
 			final List<String> exceptions = methodNode.exceptions;
+			if (exceptions.size() > 0) {
+				sb.append(" throws ");
+			}
 			for (int i = 0; i < exceptions.size(); i++) {
 				if (i > 0) {
 					sb.append(", ");
 				}
-				sb.append(exceptions.get(i));
+				sb.append(renderClassName(exceptions.get(i).replace("/", ".")));
 			}
 			sb.append(" {"); writeLine(methodHeader, sb);
 			level++;
@@ -271,6 +302,16 @@ public class SourceFileWriter {
 		public void put(final String fieldName, final SourceLine sourceLine) {
 			mapFieldLines.put(fieldName, sourceLine);
 		}
+	}
+
+	/**
+	 * Renders a class-name.
+	 * A sub-class may use import-statements (via source-name renderer).
+	 * @param className class-name, e.g. "java.util.List"
+	 * @return class-name, e.g. "java.util.List" or "List"
+	 */
+	protected String renderClassName(final String className) {
+		return simplifyClassName(className);
 	}
 
 	/**

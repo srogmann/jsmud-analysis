@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -43,6 +44,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
 import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.OpcodeDisplay;
+import org.rogmann.jsmud.vm.Utils;
 
 /**
  * Source-file-writer which tries to decompile bytecode.
@@ -56,6 +58,9 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	/** <code>true</code> if the decompiler should stop in case of an error */
 	private boolean isFailFast = false;
 
+	/** source-name renderer */
+	private final SourceNameRenderer sourceNameRenderer;
+
 	/**
 	 * Constructor, writes the source-file.
 	 * @param extension extension, e.g. "asm"
@@ -64,7 +69,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	 * @throws IOException in case of an IO-error
 	 */
 	public SourceFileWriterDecompile(final String extension, final ClassNode node, final ClassLoader classLoader) throws IOException {
-		super(extension, node, createInnerClassesLoader(classLoader));
+		super(extension, node, createInnerClassesLoader(classLoader), false);
+		sourceNameRenderer = new SourceNameRenderer(Utils.getPackage(node.name.replace('/', '.')),
+				className -> !className.startsWith("com."));
+		createBlockListAndWriteClasss();
+		
+		addImportStatements();
 	}
 
 	/**
@@ -77,6 +87,26 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 	public SourceFileWriterDecompile(final String extension, final ClassNode node,
 			final Function<String, ClassNode> innerClassesProvider) throws IOException {
 		super(extension, node, innerClassesProvider);
+		sourceNameRenderer = new SourceNameRenderer(Utils.getPackage(node.name.replace('/', '.')),
+				className -> !className.startsWith("com."));
+		createBlockListAndWriteClasss();
+		
+		addImportStatements();
+	}
+
+	/**
+	 * Add import-statements.
+	 */
+	private void addImportStatements() {
+		final SourceLines header = sourceOuter.getHeader();
+		final Collection<String> importedClassNames = sourceNameRenderer.getImportedClassNames();
+		for (String className : importedClassNames) {
+			final String line = "import " + className + ";";
+			header.addLine(0, line);
+		}
+		if (importedClassNames.size() > 0) {
+			header.addLine(0, "");
+		}
 	}
 
 	/**
@@ -168,6 +198,12 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				writeLine(block, lineExpected, sb);
 			}
 		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	protected String renderClassName(final String className) {
+		return sourceNameRenderer.renderClassName(className);
 	}
 
 	/** Management of the line-numbers of the source-lines of a method */
@@ -266,13 +302,13 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				for (final TryCatchBlockNode tcb : methodNode.tryCatchBlocks) {
 					if (tcb.type == null) {
 						// e.g. finally-block
-						stack.add(new ExpressionException(null));
+						stack.add(new ExpressionException(null, sourceNameRenderer));
 						break;
 					}
 					if (tcb.handler.equals(currentLabel)) {
 						// begin of a catch-block
 						final Type typeException = Type.getObjectType(tcb.type);
-						stack.add(new ExpressionException(typeException));
+						stack.add(new ExpressionException(typeException, sourceNameRenderer));
 						break;
 					}
 				}
@@ -351,14 +387,14 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			else if (opcode == Opcodes.CHECKCAST) {
 				final ExpressionBase<?> expr = stack.pop();
-				final String typeDest = SourceFileWriter.simplifyClassName(ti.desc.replace('/', '.'));
+				final String typeDest = sourceNameRenderer.renderClassName(ti.desc.replace('/', '.'));
 				final String prefixCast = String.format("(%s) ", typeDest);
 				final ExpressionPrefix<?> exprTi = new ExpressionPrefix<>(ti, prefixCast, expr);
 				stack.push(exprTi);
 			}
 			else if (opcode == Opcodes.INSTANCEOF) {
 				final ExpressionBase<?> exprRef = stack.pop();
-				stack.push(new ExpressionInstanceOf(ti, exprRef)); 
+				stack.push(new ExpressionInstanceOf(ti, exprRef, sourceNameRenderer));
 			}
 			else {
 				throw new SourceRuntimeException(String.format("Unexpected type instruction (%s) in %s",
@@ -423,7 +459,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					}
 				}
 				final StatementVariableStore stmtStore = new StatementVariableStore(vi,
-						classNode, methodNode, typeExpr, exprValue);
+						methodNode, typeExpr, exprValue, sourceNameRenderer);
 				typeLocals[vi.var] = typeExpr;
 				statements.add(stmtStore);
 			}
@@ -493,7 +529,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 				stack.push(new ExpressionGetField(fi, classNode, exprObjInstance));
 			}
 			else if (opcode == Opcodes.GETSTATIC) {
-				stack.push(new ExpressionGetStatic(fi, classNode));
+				stack.push(new ExpressionGetStatic(fi, classNode, sourceNameRenderer));
 			}
 			else {
 				throw new SourceRuntimeException(String.format("Unexpected field-instruction (%s) in (%s)",
@@ -507,7 +543,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			}
 			else if (opcode == Opcodes.NEWARRAY) {
 				final ExpressionBase<?> exprCount = stack.pop();
-				stack.push(new ExpressionInstrIntNewarray(iin, exprCount));
+				stack.push(new ExpressionInstrIntNewarray(iin, exprCount, sourceNameRenderer));
 			}
 			else {
 				throw new SourceRuntimeException(String.format("Unexpected int-instruction (%s) in (%s)",
@@ -545,7 +581,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 			final ExpressionBase<?>[] exprArgs = new ExpressionBase[args.length];
 			for (int j = args.length - 1; j >= 0; j--) {
 				if (stack.size() == 0 || stack.peek() == null) {
-					throw new SourceRuntimeException(String.format("Stack underfow while reading targs of %s", idi));
+					throw new SourceRuntimeException(String.format("Stack underflow while reading targs of %s", idi));
 				}
 				exprArgs[j] = stack.pop();
 			}
@@ -1024,7 +1060,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 					}
 					// We have NEW DUP INVOKESPECIAL.
 					final ExpressionTypeInstr exprNew = (ExpressionTypeInstr) stmtExprDuplicated.getExpression();
-					final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, classNode, exprNew, exprArgs);
+					final ExpressionConstructor exprConstr = new ExpressionConstructor(mi, sourceNameRenderer, exprNew, exprArgs);
 					stack.push(exprConstr);
 				}
 				else {
@@ -1032,7 +1068,7 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 						throw new SourceRuntimeException(String.format("Unexpected duplicated expression %s in %s before constructor %s. Expr-args: %s",
 								exprObject, methodNode.name, mi.name, Arrays.toString(exprArgs)));
 					}
-					statements.add(new StatementInvoke(mi, classNode, exprDuplicate, exprArgs));
+					statements.add(new StatementInvoke(mi, sourceNameRenderer, exprDuplicate, exprArgs));
 				}
 			}
 			else if (exprObject instanceof ExpressionVariableLoad) {
@@ -1046,34 +1082,34 @@ public class SourceFileWriterDecompile extends SourceFileWriter {
 		}
 		else if (opcode == Opcodes.INVOKEVIRTUAL && Type.VOID_TYPE.equals(returnType)) {
 			final ExpressionBase<?> exprObject = stack.pop();
-			statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+			statements.add(new StatementInvoke(mi, sourceNameRenderer, exprObject, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKEVIRTUAL) {
 			final ExpressionBase<?> exprObject = stack.pop();
-			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+			stack.add(new ExpressionInvoke(mi, sourceNameRenderer, exprObject, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKEINTERFACE && Type.VOID_TYPE.equals(returnType)) {
 			final ExpressionBase<?> exprObject = stack.pop();
-			statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+			statements.add(new StatementInvoke(mi, sourceNameRenderer, exprObject, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKEINTERFACE) {
 			final ExpressionBase<?> exprObject = stack.pop();
-			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+			stack.add(new ExpressionInvoke(mi, sourceNameRenderer, exprObject, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKESTATIC && Type.VOID_TYPE.equals(returnType)) {
 
-			statements.add(new StatementInvoke(mi, classNode, null, exprArgs));
+			statements.add(new StatementInvoke(mi, sourceNameRenderer, null, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKESTATIC) {
-			stack.add(new ExpressionInvoke(mi, classNode, null, exprArgs));
+			stack.add(new ExpressionInvoke(mi, sourceNameRenderer, null, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKESPECIAL && Type.VOID_TYPE.equals(returnType)) {
 			final ExpressionBase<?> exprObject = stack.pop();
-			statements.add(new StatementInvoke(mi, classNode, exprObject, exprArgs));
+			statements.add(new StatementInvoke(mi, sourceNameRenderer, exprObject, exprArgs));
 		}
 		else if (opcode == Opcodes.INVOKESPECIAL) {
 			final ExpressionBase<?> exprObject = stack.pop();
-			stack.add(new ExpressionInvoke(mi, classNode, exprObject, exprArgs));
+			stack.add(new ExpressionInvoke(mi, sourceNameRenderer, exprObject, exprArgs));
 		}
 		else {
 			throw new SourceRuntimeException(String.format("Unexpected method-instruction (%s) in (%s)",
