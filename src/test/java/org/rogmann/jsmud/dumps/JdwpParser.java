@@ -27,17 +27,6 @@ public class JdwpParser {
 	/** JDWP-Handshake */
 	private static final String JDWP_HANDSHAKE = "JDWP-Handshake";
 
-	/** Booleans in reply of Capabilities Command */
-	private static final String[] CAPABILITIES = {
-			"canWatchFieldModification",
-			"canWatchFieldAccess",
-			"canGetBytecodes",
-			"canGetSyntheticAttribute",
-			"canGetOwnedMonitorInfo",
-			"canGetCurrentContendedMonitor",
-			"canGetMonitorInfo"
-	};
-
 	/** output-indentation */
 	private final String indent;
 	/** output-stream */
@@ -221,6 +210,15 @@ public class JdwpParser {
 					else if (cmdSet == JdwpCommandSet.VIRTUAL_MACHINE && cmd == JdwpCommand.CAPABILITIES) {
 						if (errorcode == 0) {
 							for (String capName : CAPABILITIES) {
+								final boolean bool = (cmdBuf.readByte() != 0x00);
+								psOut.println(String.format("%s%08x: -> capability %s=%s",
+										indent, Integer.valueOf(offsetStream), capName, Boolean.toString(bool)));
+							}
+						}
+					}
+					else if (cmdSet == JdwpCommandSet.VIRTUAL_MACHINE && cmd == JdwpCommand.CAPABILITIES_NEW) {
+						if (errorcode == 0) {
+							for (String capName : CAPABILITIES_NEW) {
 								final boolean bool = (cmdBuf.readByte() != 0x00);
 								psOut.println(String.format("%s%08x: -> capability %s=%s",
 										indent, Integer.valueOf(offsetStream), capName, Boolean.toString(bool)));
@@ -511,4 +509,52 @@ public class JdwpParser {
 		offsetStream += num;
 		offsetNext -= num;
 	}
+
+	/** Booleans in reply of Capabilities Command */
+	private static final String[] CAPABILITIES = {
+			"canWatchFieldModification",
+			"canWatchFieldAccess",
+			"canGetBytecodes",
+			"canGetSyntheticAttribute",
+			"canGetOwnedMonitorInfo",
+			"canGetCurrentContendedMonitor",
+			"canGetMonitorInfo"
+	};
+
+	/** Booleans in reply of CapabilitiesNew Command */
+	private static final String[] CAPABILITIES_NEW = {
+			"canWatchFieldModification",
+			"canWatchFieldAccess",
+			"canGetBytecodes",
+			"canGetSyntheticAttribute",
+			"canGetOwnedMonitorInfo",
+			"canGetCurrentContendedMonitor",
+			"canGetMonitorInfo",
+			"canRedefineClasses",
+			"canAddMethod",
+			"canUnrestrictedlyRedefineClasses",
+			"canPopFrames",
+			"canUseInstanceFilters",
+			"canGetSourceDebugExtension",
+			"canRequestVMDeathEvent",
+			"canSetDefaultStratum",
+			"canGetInstanceInfo",
+			"canRequestMonitorEvents",
+			"canGetMonitorFrameInfo",
+			"canUseSourceNameFilters",
+			"canGetConstantPool",
+			"canForceEarlyReturn",
+			"reserved22",
+			"reserved23",
+			"reserved24",
+			"reserved25",
+			"reserved26",
+			"reserved27",
+			"reserved28",
+			"reserved29",
+			"reserved30",
+			"reserved31",
+			"reserved32"
+	};
+
 }
