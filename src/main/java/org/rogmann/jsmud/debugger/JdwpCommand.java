@@ -23,6 +23,8 @@ public enum JdwpCommand {
 	RESUME(JdwpCommandSet.VIRTUAL_MACHINE, 9),
 	/** CreateString Command */
 	CREATE_STRING(JdwpCommandSet.VIRTUAL_MACHINE, 11),
+	/** Capabilities Command */
+	CAPABILITIES(JdwpCommandSet.VIRTUAL_MACHINE, 12),
 	/** ClassPaths Command */
 	CLASS_PATHS(JdwpCommandSet.VIRTUAL_MACHINE, 13),
 	/** CapabilitiesNew Command  */

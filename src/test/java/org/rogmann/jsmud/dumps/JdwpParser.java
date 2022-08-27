@@ -27,6 +27,17 @@ public class JdwpParser {
 	/** JDWP-Handshake */
 	private static final String JDWP_HANDSHAKE = "JDWP-Handshake";
 
+	/** Booleans in reply of Capabilities Command */
+	private static final String[] CAPABILITIES = {
+			"canWatchFieldModification",
+			"canWatchFieldAccess",
+			"canGetBytecodes",
+			"canGetSyntheticAttribute",
+			"canGetOwnedMonitorInfo",
+			"canGetCurrentContendedMonitor",
+			"canGetMonitorInfo"
+	};
+
 	/** output-indentation */
 	private final String indent;
 	/** output-stream */
@@ -205,6 +216,15 @@ public class JdwpParser {
 							psOut.println(String.format("%s%08x: -> tag=%s, refTypeID=%s, status=%d",
 									indent, Integer.valueOf(offsetStream),
 									TypeTag.lookupByKind(refTypeTag), refTypeID, Integer.valueOf(status)));
+						}
+					}
+					else if (cmdSet == JdwpCommandSet.VIRTUAL_MACHINE && cmd == JdwpCommand.CAPABILITIES) {
+						if (errorcode == 0) {
+							for (String capName : CAPABILITIES) {
+								final boolean bool = (cmdBuf.readByte() != 0x00);
+								psOut.println(String.format("%s%08x: -> capability %s=%s",
+										indent, Integer.valueOf(offsetStream), capName, Boolean.toString(bool)));
+							}
 						}
 					}
 					else if (cmdSet == JdwpCommandSet.REFERENCE_TYPE && cmd == JdwpCommand.SIGNATURE) {
