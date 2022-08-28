@@ -366,6 +366,9 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 			final VMStringID stringId = vm.createString(utf8);
 			sendReplyData(id, stringId);
 		}
+		else if (cmd == JdwpCommand.CAPABILITIES_NEW) {
+			sendCapabilities(id);
+		}
 		else if (cmd == JdwpCommand.CLASS_PATHS) {
 			// We send neither classpaths nor bootclasspaths.
 			final String baseDir = "/";
@@ -1043,6 +1046,29 @@ public class JdwpCommandProcessor implements DebuggerInterface {
 		else {
 			sendError(id, JdwpErrorCode.NOT_IMPLEMENTED);
 		}
+	}
+
+	/**
+	 * Send the debuggers capabilities (old method, see sendCapabilitiesNew).
+	 * @param id id
+	 * @throws IOException in case of an IO-error
+	 */
+	private void sendCapabilities(final int id) throws IOException {
+		boolean	canWatchFieldModification = true;
+		boolean	canWatchFieldAccess	= true;
+		boolean	canGetBytecodes	= true;
+		boolean	canGetSyntheticAttribute = true;
+		boolean	canGetOwnedMonitorInfo = true;
+		boolean	canGetCurrentContendedMonitor = true;
+		boolean	canGetMonitorInfo = true;
+		sendReplyData(id,
+			new VMBoolean(canWatchFieldModification),  
+			new VMBoolean(canWatchFieldAccess), 
+			new VMBoolean(canGetBytecodes),  
+			new VMBoolean(canGetSyntheticAttribute),   
+			new VMBoolean(canGetOwnedMonitorInfo),  
+			new VMBoolean(canGetCurrentContendedMonitor),  
+			new VMBoolean(canGetMonitorInfo));
 	}
 
 	/**
