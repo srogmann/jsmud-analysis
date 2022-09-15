@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
 import org.objectweb.asm.ClassReader;
@@ -86,6 +87,9 @@ public class JsmudClassLoader extends ClassLoader {
 	/** <code>true</code> if hot-code-replace-requests should be accepted */
 	final boolean redefineClasses;
 
+	/** optional class-provider used to provide user-defined classes (e.g. provided by a dex-file) */ 
+	private final AtomicReference<ClassProvider> refClassProvider = new AtomicReference<>();
+
 	/**
 	 * Constructor.
 	 * <p>Default is patchFilter = (name -&gt; false), patchClinit = patchInit = redefineClasses = false.</p>
@@ -113,6 +117,15 @@ public class JsmudClassLoader extends ClassLoader {
 		this.redefineClasses = redefineClasses;
 	}
 
+	/**
+	 * Sets an optional class-provider (e.g. to provide classes in a dex-file).
+	 * @param provider class-provider
+	 */
+	public void setClassProvider(ClassProvider provider) {
+		this.refClassProvider.set(provider);
+	}
+
+	
 	/** {@inheritDoc} */
 	@Override
 	public Class<?> loadClass(String name) throws ClassNotFoundException {
@@ -234,6 +247,14 @@ public class JsmudClassLoader extends ClassLoader {
 		}
 		if (clazz == null) {
 			clazz = mapRemappedClasses.get(name);
+		}
+		if (clazz == null) {
+			final ClassProvider classProvider = refClassProvider.get();
+			System.out.println("CP: " + classProvider);
+			if (classProvider != null) {
+				// There is a registered class-provider which might provide a class.
+				clazz = classProvider.checkForClass(name);
+			}
 		}
 		if (clazz == null) {
 			final boolean classMayBePatched = patchFilter.test(name) && (patchClinit || patchInit);
