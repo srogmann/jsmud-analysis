@@ -231,7 +231,7 @@ public class MethodFrame {
 	 * @param objField field-value
 	 * @return converted object
 	 */
-	static Object convertFieldTypeIntoJvmType(final Class<?> fieldType, final Object objField) {
+	public static Object convertFieldTypeIntoJvmType(final Class<?> fieldType, final Object objField) {
 		final Object objConv;
 		if (boolean.class.equals(fieldType) && objField instanceof Boolean) {
 			final Boolean b = (Boolean) objField;
@@ -1606,7 +1606,7 @@ whileInstr:
 						try {
 							final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
 							registry.checkClassInitialization(classFieldOwner);
-							final Field field = findDeclaredField(classFieldOwner, fi);
+							final Field field = findDeclaredField(classFieldOwner, fi.name);
 							field.setAccessible(true);
 							objField = field.get(classFieldOwner);
 							objField = visitor.visitFieldAccess(opcode, classFieldOwner, field, objField);
@@ -1631,7 +1631,7 @@ whileInstr:
 					try {
 						final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
 						registry.checkClassInitialization(classFieldOwner);
-						final Field field = findDeclaredField(classFieldOwner, fi);
+						final Field field = findDeclaredField(classFieldOwner, fi.name);
 						field.setAccessible(true);
 						if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(pMethod.getModifiers())) {
 							// We want to set a final field while executing a constructor.
@@ -1668,7 +1668,7 @@ whileInstr:
 						classFieldOwner = registry.loadClass(fiOwnerName, clazz);
 					}
 					try {
-						final Field field = findDeclaredField(classFieldOwner, fi);
+						final Field field = findDeclaredField(classFieldOwner, fi.name);
 						assert field != null;
 						field.setAccessible(true);
 						Object fieldValue = field.get(fieldInstance);
@@ -1700,7 +1700,7 @@ whileInstr:
 						classFieldOwner = registry.loadClass(fiOwnerName, clazz);
 					}
 					try {
-						final Field field = findDeclaredField(classFieldOwner, fi);
+						final Field field = findDeclaredField(classFieldOwner, fi.name);
 						field.setAccessible(true);
 						Object oValueField = convertJvmTypeIntoFieldType(field.getType(), oValue);
 						oValueField = visitor.visitFieldAccess(opcode, fieldInstance, field, oValueField);
@@ -2614,18 +2614,18 @@ whileSuperClass:
 	/**
 	 * Gets a field in the class or one of its super-classes.
 	 * @param classFieldOwner class
-	 * @param fi field wanted
+	 * @param fieldName name of the field
 	 * @return field
 	 * @throws NoSuchFieldException if the field couldn't be found
 	 */
-	private static Field findDeclaredField(final Class<?> classFieldOwner, final FieldInsnNode fi)
+	public static Field findDeclaredField(final Class<?> classFieldOwner, final String fieldName)
 			throws NoSuchFieldException {
 		Class<?> classField = classFieldOwner;
 		Field field = null;
 		NoSuchFieldException nsfe = null;
 		while (true) {
 			try {
-				field = classField.getDeclaredField(fi.name);
+				field = classField.getDeclaredField(fieldName);
 			}
 			catch (NoSuchFieldException e) {
 				if (nsfe == null) {
