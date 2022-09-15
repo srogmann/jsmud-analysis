@@ -102,6 +102,7 @@ public class SourceFileWriter {
 	 * @param extension extension, e.g. "asm"
 	 * @param node class-node
 	 * @param innerClassesProvider function which returns a class-node corresponding to an internal-name
+	 * @param writeClass <code>true</code> if block-list should be created and the class written
 	 * @throws IOException in case of an IO-error
 	 */
 	public SourceFileWriter(final String extension, final ClassNode node,
