@@ -79,7 +79,7 @@ public class JdwpParser {
 		}
 		System.arraycopy(pBuf, pOffset, buf, offsetNext, pLen);
 		offsetNext += pLen;
-		
+
 		if (!isJdwp) {
 			// looking for handshake
 			if (offsetNext >= JDWP_HANDSHAKE.length()
