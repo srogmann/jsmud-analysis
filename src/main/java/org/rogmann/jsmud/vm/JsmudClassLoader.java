@@ -250,7 +250,6 @@ public class JsmudClassLoader extends ClassLoader {
 		}
 		if (clazz == null) {
 			final ClassProvider classProvider = refClassProvider.get();
-			System.out.println("CP: " + classProvider);
 			if (classProvider != null) {
 				// There is a registered class-provider which might provide a class.
 				clazz = classProvider.checkForClass(name);
