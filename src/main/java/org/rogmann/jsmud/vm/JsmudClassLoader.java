@@ -143,7 +143,19 @@ public class JsmudClassLoader extends ClassLoader {
 			clazz = findClass(name);
 		}
 		else {
-			clazz = parentClassLoader.loadClass(name);
+			final ClassProvider classProvider = refClassProvider.get();
+			Class<?> clazzProvided = null;
+			if (classProvider != null) {
+				// There is a registered class-provider which might provide a class.
+				clazzProvided = classProvider.checkForClass(name);
+			}
+			if (clazzProvided != null) {
+				// We use the external provided class (e.g. dex).
+				clazz = clazzProvided;
+			}
+			else {
+				clazz = parentClassLoader.loadClass(name);
+			}
 		}
 		//if (LOG.isDebugEnabled()) {
 		//	LOG.debug(String.format("loadClass: return %s of %s", clazz, clazz.getClassLoader()));
