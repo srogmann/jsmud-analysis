@@ -189,11 +189,11 @@ public class JsmudClassLoader extends ClassLoader {
 		final String folderJsmudBytecode = configuration.folderDumpJsmudPatchedBytecode;
 		if (folderJsmudBytecode != null) {
 			final String nameClass = name.replace('.', '/') + ".class";
+			File fileOut = new File(folderJsmudBytecode, nameClass.replace('/', '.'));
 			try {
-				Files.write(new File(folderJsmudBytecode,
-						nameClass.replace('/', '.')).toPath(), bytecodePatched);
+				Files.write(fileOut.toPath(), bytecodePatched);
 			} catch (IOException e) {
-				System.err.println("Fehler beim Schreiben: " + e);
+				LOG.error("IO-error when writing bytecode into " + fileOut, e);
 			}
 		}
 		clazz = defineClass(name, bytecodePatched, 0, bytecodePatched.length);
