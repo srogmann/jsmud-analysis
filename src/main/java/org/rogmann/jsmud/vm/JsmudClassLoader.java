@@ -170,7 +170,14 @@ public class JsmudClassLoader extends ClassLoader {
 	 * @return defined class
 	 */
 	public Class<?> defineJsmudClass(final String name, final byte[] bufBytecode) {
-		final Class<?> clazz = defineClass(name, bufBytecode, 0, bufBytecode.length);
+		Class<?> clazz;
+		try {
+			clazz = defineClass(name, bufBytecode, 0, bufBytecode.length);
+		} catch (NoClassDefFoundError e) {
+			throw new JvmException(String.format("Missing class to define class %s: %s", name, e.getMessage()), e);
+		} catch (JvmException e) {
+			throw new JvmException(String.format("Exception when defining class %s", name), e);
+		}
 		registerJsmudClass(clazz, name, bufBytecode);
 		return clazz;
 	}
