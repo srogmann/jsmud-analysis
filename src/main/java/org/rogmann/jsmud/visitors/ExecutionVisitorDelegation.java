@@ -2,6 +2,7 @@ package org.rogmann.jsmud.visitors;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.util.function.Consumer;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
@@ -11,7 +12,7 @@ import org.rogmann.jsmud.vm.OperandStack;
 /**
  * Delegates visitor-calls to an internal visitor.
  * 
- * <p>One can this class to override some methods.</p>
+ * <p>One can use this class to override some methods.</p>
  */
 public class ExecutionVisitorDelegation implements JvmExecutionVisitor {
 
@@ -97,4 +98,35 @@ public class ExecutionVisitorDelegation implements JvmExecutionVisitor {
 	public void close() {
 		visitor.close();
 	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpJreInstructions() {
+		return visitor.isDumpJreInstructions();
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpClassStatistic() {
+		return visitor.isDumpClassStatistic();
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpInstructionStatistic() {
+		return visitor.isDumpInstructionStatistic();
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpMethodCallTrace() {
+		return visitor.isDumpMethodCallTrace();
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setStatisticsAddon(Consumer<MessagePrinter> statisticsAddon) {
+		visitor.setStatisticsAddon(statisticsAddon);
+	}
+
 }

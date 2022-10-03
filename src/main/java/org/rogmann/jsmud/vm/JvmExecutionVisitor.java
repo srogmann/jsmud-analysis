@@ -2,8 +2,10 @@ package org.rogmann.jsmud.vm;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
+import java.util.function.Consumer;
 
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.rogmann.jsmud.visitors.MessagePrinter;
 
 /**
  * Visitor of bytecode-execution.
@@ -100,4 +102,30 @@ public interface JvmExecutionVisitor {
 	 */
 	void close();
 
+	/**
+	 * Gets the show-instructions flag.
+	 * @return show-instructions flag
+	 */
+	boolean isDumpJreInstructions();
+	/**
+	 * Gets the dump class-usage statistics flag.
+	 * @return dump class-usage statistics flag
+	 */
+	boolean isDumpClassStatistic();
+	/**
+	 * Gets the dump class-usage statistics flag.
+	 * @return dump class-usage statistics flag
+	 */
+	boolean isDumpInstructionStatistic();
+	/**
+	 * Gets the dump method-call-trace flag.
+	 * @return dump method-call-trace flag
+	 */
+	boolean isDumpMethodCallTrace();
+
+	/**
+	 * Sets an optional statistics-addon to be called at visitor-close.
+	 * @param statisticsAddon addon
+	 */
+	void setStatisticsAddon(Consumer<MessagePrinter> statisticsAddon);
 }

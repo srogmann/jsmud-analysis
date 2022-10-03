@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -28,12 +30,16 @@ import org.objectweb.asm.tree.MultiANewArrayInsnNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 import org.rogmann.jsmud.vm.FrameDisplay;
+import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
 import org.rogmann.jsmud.vm.MethodFrame;
 import org.rogmann.jsmud.vm.OpcodeDisplay;
 import org.rogmann.jsmud.vm.OperandStack;
 import org.rogmann.jsmud.vm.Utils;
 
+/**
+ * Visitor which creates an instruction-dump and may collect call-tree and statistics.
+ */
 public class InstructionVisitor implements JvmExecutionVisitor {
 
 	/** message-printer */
@@ -53,7 +59,11 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 
 	/** statistics-flag */
 	private boolean showStatisticsAfterExecution = true;
+	/** optional additional statistics-producer (called at visitor-close) */
+	private AtomicReference<Consumer<MessagePrinter>> statisticsAddonRef = new AtomicReference<>();
 
+	/** current executable-stack */
+	Stack<Executable> stackExecutables = new Stack<>();
 	/** current frame-stack */
 	Stack<VisitorFrame> stackFrames = new Stack<>();
 	/** details of frame */
@@ -116,7 +126,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	/** {@inheritDoc} */
 	@Override
 	public void visitMethodEnter(Class<?> currClass, Executable method, MethodFrame pFrame) {
-		final VisitorFrame parentFrame = (vFrame != null) ? vFrame : null;
+		//final VisitorFrame parentFrame = (vFrame != null) ? vFrame : null;
 		if (vFrame != null) {
 			stackFrames.add(vFrame);
 		}
@@ -135,15 +145,16 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			mapMethodCount.compute(nameMethod, (key, cnt) -> (cnt == null) ? Long.valueOf(1) : Long.valueOf(cnt.longValue() + 1));
 			mapMethodTrace.putIfAbsent(nameMethod, Integer.valueOf(level));
 			final String keyCallerAndCalled;
-			if (parentFrame != null) {
-				keyCallerAndCalled = parentFrame.frame.getMethod().toString() + "_#_" + nameMethod;
+			if (stackExecutables.size() > 0) {
+				keyCallerAndCalled = stackExecutables.peek().toString() + "_#_" + method;
 			}
 			else {
-				keyCallerAndCalled = nameMethod;
+				keyCallerAndCalled = method.toString();
 			}
 			mapMethodCallTrace.putIfAbsent(keyCallerAndCalled, Integer.valueOf(level));
 			mapMethodCallCount.compute(keyCallerAndCalled, (key, cnt) -> (cnt == null) ? Long.valueOf(1) : Long.valueOf(cnt.longValue() + 1));
 		}
+		stackExecutables.add(method);
 	}
 
 	/** {@inheritDoc} */
@@ -160,6 +171,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		}
 		level--;
 		prevOpcode = -1;
+		stackExecutables.pop();
 	}
 
 	/** {@inheritDoc} */
@@ -183,7 +195,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	@Override
 	public void visitInstruction(AbstractInsnNode instr, OperandStack stack, Object[] aLocals) {
 		if (instr == null) {
-			throw new NullPointerException(String.format("instr == null, stack=%s", stack));
+			throw new JvmException(String.format("instr == null, stack=%s", stack));
 		}
 		final int opcode = instr.getOpcode();
 		if (opcode == -1) {
@@ -411,6 +423,10 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	 * Dumps a class-statistic and an instruction-statistic.
 	 */
 	public void showStatistics() {
+		final Consumer<MessagePrinter> statisticsAddon = statisticsAddonRef.get();
+		if (statisticsAddon != null) {
+			statisticsAddon.accept(printer);
+		}
 		if (dumpClassStatistic) {
 			for (final Entry<Class<?>, AtomicLong> entry : sortMap(mapClassInstrCount)) {
 				printer.println(String.format("Class %s: %s instruction-calls", entry.getKey(), entry.getValue()));
@@ -452,7 +468,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	 * @param <K> type of keys
 	 * @return sorted list of entries
 	 */
-	static <K> List<Entry<K, AtomicLong>> sortMap(final Map<K, AtomicLong> map) {
+	public static <K> List<Entry<K, AtomicLong>> sortMap(final Map<K, AtomicLong> map) {
 		final List<Entry<K, AtomicLong>> list = new ArrayList<>(map.entrySet());
 		list.sort((e1, e2) -> (int) (e2.getValue().get() - e1.getValue().get()));
 		return list;
@@ -481,4 +497,35 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 			showStatistics();
 		}
 	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpJreInstructions() {
+		return dumpJreInstructions;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpClassStatistic() {
+		return dumpClassStatistic;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpInstructionStatistic() {
+		return dumpInstructionStatistic;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpMethodCallTrace() {
+		return dumpMethodCallTrace;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setStatisticsAddon(Consumer<MessagePrinter> statisticsAddon) {
+		statisticsAddonRef.set(statisticsAddon);
+	}
+
 }

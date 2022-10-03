@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 
@@ -41,6 +43,7 @@ import org.rogmann.jsmud.log.LoggerFactory;
 import org.rogmann.jsmud.replydata.RefTypeBean;
 import org.rogmann.jsmud.replydata.TypeTag;
 import org.rogmann.jsmud.visitors.InstructionVisitor;
+import org.rogmann.jsmud.visitors.MessagePrinter;
 import org.rogmann.jsmud.vm.ClassRegistry;
 import org.rogmann.jsmud.vm.JvmException;
 import org.rogmann.jsmud.vm.JvmExecutionVisitor;
@@ -65,6 +68,9 @@ public class DebuggerJvmVisitor implements JvmExecutionVisitor {
 
 	/** VM-simulator */
 	private ClassRegistry vm;
+
+	/** optional statistics-addon to be called in the visitor-close */
+	private final AtomicReference<Consumer<MessagePrinter>> statisticsAddonRef = new AtomicReference<>();
 
 	/** map from request-id to event-request */
 	private final ConcurrentMap<Integer, JdwpEventRequest> eventRequests;
@@ -912,7 +918,50 @@ stepSearch:
 	/** {@inheritDoc} */
 	@Override
 	public void close() {
-		// nothing to do here.
+		Consumer<MessagePrinter> addon = statisticsAddonRef.get();
+		if (addon != null) {
+			final MessagePrinter printer = new MessagePrinter() {
+				@Override
+				public void println(String msg) {
+					LOG.info(msg);
+				}
+				@Override
+				public void dump(Throwable e) {
+					LOG.error("Statistics-addon: Throwable", e);
+				}
+			};
+			addon.accept(printer);
+		}
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpJreInstructions() {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpClassStatistic() {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpInstructionStatistic() {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public boolean isDumpMethodCallTrace() {
+		return false;
+	}
+
+	/** {@inheritDoc} */
+	@Override
+	public void setStatisticsAddon(Consumer<MessagePrinter> statisticsAddon) {
+		statisticsAddonRef.set(statisticsAddon);
 	}
 
 }
