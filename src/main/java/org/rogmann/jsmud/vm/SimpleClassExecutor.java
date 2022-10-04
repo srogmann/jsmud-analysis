@@ -125,7 +125,7 @@ public class SimpleClassExecutor {
 		try {
 			method = loopkupMethod(methodName, methodDesc);
 		} catch (NoSuchMethodError e) {
-			if (JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT.equals(methodName)) {
+			if (JsmudClassLoader.METHOD_JSMUD_CLINIT.equals(methodName)) {
 				methodName = "<clinit>";
 				method = loopkupMethod(methodName, methodDesc);
 			}

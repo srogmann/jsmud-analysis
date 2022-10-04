@@ -470,7 +470,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				}
 				
 				String className = clazz.getName();
-				final String methodName = JsmudClassLoader.InitializerAdapter.METHOD_JSMUD_CLINIT;
+				final String methodName = JsmudClassLoader.METHOD_JSMUD_CLINIT;
 				final Executable pMethod;
 				try {
 					pMethod = clazz.getDeclaredMethod(methodName);
