@@ -152,7 +152,7 @@ public class JsmudClassLoader extends ClassLoader {
 			Class<?> clazzProvided = null;
 			if (classProvider != null) {
 				// There is a registered class-provider which might provide a class.
-				clazzProvided = classProvider.checkForClass(name);
+				clazzProvided = classProvider.checkForClass(this, name);
 			}
 			if (clazzProvided != null) {
 				// We use the external provided class (e.g. dex).
@@ -276,7 +276,7 @@ public class JsmudClassLoader extends ClassLoader {
 			final ClassProvider classProvider = refClassProvider.get();
 			if (classProvider != null) {
 				// There is a registered class-provider which might provide a class.
-				clazz = classProvider.checkForClass(name);
+				clazz = classProvider.checkForClass(this, name);
 			}
 		}
 		if (clazz == null) {

@@ -8,9 +8,10 @@ public interface ClassProvider {
 
 	/**
 	 * Checks for a class.
+	 * @param classLoader class-loader of the class
 	 * @param name class-name, e.g. "example.android.Activity"
 	 * @return provided class or <code>null</code>
 	 */
-	Class<?> checkForClass(String name);
+	Class<?> checkForClass(ClassLoader classLoader, String name);
 
 }
