@@ -67,6 +67,8 @@ public class ClassOutlineGenerator {
 		 * @param name field-name
 		 * @param descriptor field's descriptor
 		 * @param signature field's signature (may be <code>null</code> if there are no generics)
+		 * @param paramTypes parameter-types of the method
+		 * @param returnType return-type of the method
 		 * @param exceptions internal names of the exceptions thrown
 		 */
 		public ClassMethodDefinition(final int accessFlags, final String name, final String descriptor, final String signature,
@@ -87,9 +89,6 @@ public class ClassOutlineGenerator {
 	 * @param classNameInt internal class-name
 	 * @param superClassNameInt internal name of super-class
 	 * @param aInterfaces internal names of interfaces
-	 * @param fields field-definitions
-	 * @param methods method-definitions (without body)
-	 * @return JDK-bytecode
 	 */
 	public ClassOutlineGenerator(final int accessFlags, final String classNameInt, final String superClassNameInt,
 			final String[] aInterfaces) {
