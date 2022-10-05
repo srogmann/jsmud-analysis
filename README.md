@@ -335,6 +335,7 @@ I wrote this project in my free time and I like my free time so support is given
  * [ASM, the all purpose Java bytecode manipulation and analysis framework](https://asm.ow2.io/)
 
 ## Changelog
+ * V 0.6.1, 2022-10-05: Minor improvements, bugfixes (see history), render import-statements in the decompiler.
  * V 0.6.0, 2022-02-27: Switched from maven to gradle, added jsmud-analysis-all which includes a shadowed ASM.
  * V 0.5.2, 2022-02-12: Register bytecode of patched classes, bugfix INVOKEDYNAMIC (array-args), added stacktrace-elements, execute static initializer at (NEW, GETSTATIC, PUTSTATIC or INVOKESTATIC), simulation of Class#newInstance, bugfix STEP-events, bugfix invalid return-type, debugging of static initializer of dynamic generated class.
  * V 0.5.1, 2022-01-16: Use sun.reflect.ReflectionFactory to load a class without constructor-execution, support FutureTask, bugfixes (GETFIELD, LDC, INVOKEDYNAMIC, ...), analyze classes defined at runtime.
