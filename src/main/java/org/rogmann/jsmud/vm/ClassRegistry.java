@@ -166,9 +166,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	private final ConcurrentMap<String, Class<?>> mapLoadedClasses = new ConcurrentHashMap<>();
 
 	/** map from (patched) classes to is-initialized flag */
-	private final ConcurrentMap<Class<?>, Boolean> mapClassesClinitIsInitialized = new ConcurrentHashMap<>();
+	protected final ConcurrentMap<Class<?>, Boolean> mapClassesClinitIsInitialized = new ConcurrentHashMap<>();
 	/** map from (patched) classes to CLINIT-executor */
-	private final ConcurrentMap<Class<?>, Runnable> mapClassesClinitExecutor = new ConcurrentHashMap<>();
+	protected final ConcurrentMap<Class<?>, Runnable> mapClassesClinitExecutor = new ConcurrentHashMap<>();
 
 	/** map containing ref-type-beans of class-signatures */
 	private final ConcurrentMap<String, RefTypeBean> mapClassSignatures = new ConcurrentHashMap<>(100);
