@@ -416,7 +416,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				if (classLoaderDefault instanceof JsmudClassLoader && executor != null) {
 					final JsmudClassLoader jsmudCl = (JsmudClassLoader) classLoaderDefault;
 					final Class<?> classLoaded = clazz;
-					mapClassesClinitExecutor.put(classLoaded, () ->
+					mapClassesClinitExecutor.putIfAbsent(classLoaded, () ->
 						checkAndExecutePatchedClinit(classLoaded, executor, jsmudCl));
 				}
 			}
