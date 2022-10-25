@@ -1889,7 +1889,7 @@ whileInstr:
 					final TypeInsnNode tin = (TypeInsnNode) instr;
 					final Object obj = stack.peek();
 					if (obj != null) {
-						boolean canCast = handleCheckcast(tin.desc, obj);
+						boolean canCast = handleCheckcast(tin.desc, obj, registry, clazz);
 						if (!canCast) {
 							final ClassCastException e = new ClassCastException(String.format("Can't convert object of type (%s) in (%s) to (%s)",
 									obj.getClass(), obj.getClass().getClassLoader(), tin.desc));
@@ -1911,7 +1911,7 @@ whileInstr:
 						stack.push(Integer.valueOf(0));
 					}
 					else {
-						final boolean canCast = handleCheckcast(tin.desc, obj);
+						final boolean canCast = handleCheckcast(tin.desc, obj, registry, clazz);
 						stack.push(Integer.valueOf(canCast ? 1 : 0));
 					}
 					break;
@@ -2879,10 +2879,12 @@ loopDeclMeth:
 	 * Checks if obj can be casted to the type described by desc.
 	 * @param desc type-description
 	 * @param obj object to be checked
+	 * @param registry class-registry 
+	 * @param clazz current context-class
 	 * @return <code>true</code>, if obj can be casted
 	 * @throws ClassNotFoundException in case of an unknown class 
 	 */
-	private boolean handleCheckcast(String desc, Object obj) throws ClassNotFoundException {
+	public static boolean handleCheckcast(String desc, Object obj, ClassRegistry registry, Class<?> clazz) throws ClassNotFoundException {
 		final Class<?> classDesc;
 		if (desc.startsWith("[")) {
 			if ("[I".equals(desc)) {
@@ -2915,7 +2917,7 @@ loopDeclMeth:
 				try {
 					classComp = registry.loadClass(className, clazz);
 				} catch (ClassNotFoundException e) {
-					throw new JvmException("Unknown class " + className, e);
+					throw new JvmUncaughtException("Unknown class " + className, e);
 				}
 				classDesc = Array.newInstance(classComp, 0).getClass();
 			}
@@ -2933,10 +2935,15 @@ loopDeclMeth:
 			}
 		}
 		else {
+			String className = desc;
+			if (desc.startsWith("L") && desc.endsWith(";")) {
+				className = desc.substring(1, desc.length() - 1);
+			}
+			className = className.replace('/', '.');
 			try {
 				classDesc = registry.loadClass(desc.replace('/', '.'), clazz);
 			} catch (ClassNotFoundException e) {
-				throw new JvmException("Unknown class " + desc, e);
+				throw new JvmUncaughtException("Unknown class " + desc, e);
 			}
 		}
 		return classDesc.isInstance(obj);
