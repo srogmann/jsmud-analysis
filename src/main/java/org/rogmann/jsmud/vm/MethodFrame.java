@@ -1660,7 +1660,8 @@ whileInstr:
 					final FieldInsnNode fi = (FieldInsnNode) instr;
 					final Object fieldInstance = stack.pop();
 					if (fieldInstance == null) {
-						throw new NullPointerException();
+						throw new JvmException(String.format("no instance of field %s.%s on stack",
+								fi.owner, fi.name));
 					}
 					Class<?> classFieldOwner = fieldInstance.getClass();
 					final String fiOwnerName = fi.owner.replace('/', '.');
