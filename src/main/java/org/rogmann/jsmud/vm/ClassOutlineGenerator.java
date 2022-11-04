@@ -143,8 +143,10 @@ public class ClassOutlineGenerator {
 		//vm.visitCode();
 		
 		if ("<init>".equals(methodDef.name)) {
-			vm.visitIntInsn(Opcodes.ALOAD, 0);
-			vm.visitMethodInsn(Opcodes.INVOKESPECIAL, classNameSuper, "<init>", "()V", false);
+			if (classNameSuper != null) {
+				vm.visitIntInsn(Opcodes.ALOAD, 0);
+				vm.visitMethodInsn(Opcodes.INVOKESPECIAL, classNameSuper, "<init>", "()V", false);
+			}
 			vm.visitInsn(Opcodes.RETURN);
 		}
 		else {
