@@ -2072,7 +2072,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	 * @param nanos timeout in nanoseconds
 	 * @throws InterruptedException in case of an interruption
 	 */
-	void doObjectWait(Object monitorObj, long timeout, int nanos) throws InterruptedException {
+	public void doObjectWait(Object monitorObj, long timeout, int nanos) throws InterruptedException {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug(String.format("doObjectWait: monitor-object (%s)", monitorObj));
 		}
@@ -2103,7 +2103,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	 * Notifies one waiting thread.
 	 * @param monitorObj monitor-object
 	 */
-	void doNotify(Object monitorObj) {
+	public void doNotify(Object monitorObj) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug(String.format("doNotify: monitor-object (%s)", monitorObj));
 		}
@@ -2119,7 +2119,7 @@ public class ClassRegistry implements VM, ObjectMonitor {
 	 * Notifies all waiting threads.
 	 * @param monitorObj monitor-object
 	 */
-	void doNotifyAll(Object monitorObj) {
+	public void doNotifyAll(Object monitorObj) {
 		if (LOG.isDebugEnabled()) {
 			LOG.debug(String.format("doNotifyAll: monitor-object (%s)", monitorObj));
 		}
