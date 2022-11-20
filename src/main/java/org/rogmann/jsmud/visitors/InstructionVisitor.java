@@ -179,14 +179,20 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 	public void visitMethodExitBack(Class<?> currClass, Executable method, MethodFrame frame, Object objReturn) {
 		if (showOutput) {
 			String sObjReturn = null;
-			if (objReturn != null) {
+			if (objReturn == null) {
+				printer.println(String.format("Back in %s with <null>", method));
+			}
+			else {
 				try {
 					sObjReturn = objReturn.toString();
+					if ("null".equals(sObjReturn)) {
+						sObjReturn += '(' + objReturn.getClass().toString() + ')';
+					}
 				} catch (Exception e) {
 					sObjReturn = String.format("%s(ex/%s)", objReturn.getClass(), e.getMessage());
 				}
+				printer.println(String.format("Back in %s with %s", method, sObjReturn));
 			}
-			printer.println(String.format("Back in %s with %s", method, sObjReturn));
 		}
 		prevOpcode = -1;
 	}
