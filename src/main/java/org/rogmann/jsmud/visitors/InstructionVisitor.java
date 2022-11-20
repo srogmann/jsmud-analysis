@@ -180,7 +180,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		if (showOutput) {
 			String sObjReturn = null;
 			if (objReturn == null) {
-				printer.println(String.format("Back in %s with <null>", method));
+				printer.println(String.format("Back in %s with null", method));
 			}
 			else {
 				try {
