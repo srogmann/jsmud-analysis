@@ -17,6 +17,8 @@ public class ClassOutlineGenerator {
 	/** class-writer */
 	private final ClassWriter cw;
 
+	/** internal name of class */
+	private final String classNameInt;
 	/** internal name of super-class */
 	private final String superClassNameInt;
 
@@ -95,6 +97,7 @@ public class ClassOutlineGenerator {
 		cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		cw.visit(Opcodes.V1_8, accessFlags,
 				classNameInt, null, superClassNameInt, aInterfaces);
+		this.classNameInt = classNameInt;
 		this.superClassNameInt = superClassNameInt;
 	}
 
@@ -115,7 +118,7 @@ public class ClassOutlineGenerator {
 		MethodVisitor vm = cw.visitMethod(methodDef.accessFlags, methodDef.name,
 				methodDef.descriptor, methodDef.signature, methodDef.exceptions);
 		if (!Modifier.isAbstract(methodDef.accessFlags) && !Modifier.isNative(methodDef.accessFlags)) {
-			createEmptyMethod(methodDef, vm, superClassNameInt);
+			createEmptyMethod(methodDef, vm, classNameInt, superClassNameInt);
 		}
 	}
 
@@ -130,11 +133,12 @@ public class ClassOutlineGenerator {
 	/**
 	 * Creates a method body which returns <code>null</code> or 0 (depending on return-type).
 	 * @param methodDef method-definition
-	 * @param vm method
+	 * @param vm method-visitor
+	 * @param classNameInt class-name of the class to be generated
 	 * @param classNameSuper class-name of the super-class
 	 */
 	private static void createEmptyMethod(ClassMethodDefinition methodDef, MethodVisitor vm,
-			final String classNameSuper) {
+			final String classNameInt, final String classNameSuper) {
 		final int localSizeInstance = ((methodDef.accessFlags & Modifier.STATIC) == 0) ? 1 : 0;
 		final int numLocals = localSizeInstance + methodDef.paramTypes.length;
 		final int numStack = 2;
@@ -150,7 +154,7 @@ public class ClassOutlineGenerator {
 			vm.visitInsn(Opcodes.RETURN);
 		}
 		else {
-		final String returnType = methodDef.returnType;
+			final String returnType = methodDef.returnType;
 			if (returnType.length() == 1) {
 				if ("V".equals(returnType)) {
 					vm.visitInsn(Opcodes.RETURN);
@@ -176,6 +180,12 @@ public class ClassOutlineGenerator {
 				else {
 					throw new JvmException("Unexpected return-type " + returnType);
 				}
+			}
+			else if ("toString".equals(methodDef.name) && "Ljava/lang/String;".equals(methodDef.returnType)
+					&& !"java/lang/Object".equals(classNameInt)) {
+				vm.visitVarInsn(Opcodes.ALOAD, 0); 
+				vm.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "toString", "()Ljava/lang/String;", false);
+				vm.visitInsn(Opcodes.ARETURN);
 			}
 			else {
 				vm.visitInsn(Opcodes.ACONST_NULL);
