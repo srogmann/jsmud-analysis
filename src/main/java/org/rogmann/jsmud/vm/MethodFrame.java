@@ -71,6 +71,9 @@ public class MethodFrame {
 	/** map from instruction-index to line-number in generated source (or <code>null</code>) */
 	private final Map<Integer, Integer> sourceFileMapInstrLine;
 
+	/** native method executor (this might be another simulation-engine) */
+	private final NativeMethodExecutor nativeExecutor;
+
 	/** name of the method */
 	private final String methodName;
 	
@@ -122,6 +125,7 @@ public class MethodFrame {
 		this.configuration = registry.getConfiguration();
 		this.clazz = pMethod.getDeclaringClass();
 		this.sourceFileWriter = registry.getSourceFileWriter(clazz);
+		this.nativeExecutor = configuration.getNativeExecutor();
 		this.methodName = pMethod.getName();
 		this.pMethod = pMethod;
 		this.method = method;
@@ -2464,8 +2468,7 @@ whileSuperClass:
 		}
 		final Object returnObj;
 		try {
-			methodExec.setAccessible(true);
-			returnObj = methodExec.invoke(objRef, initargs);
+			returnObj = nativeExecutor.executeMethodNative(methodExec, objRef, initargs);
 		}
 		catch (IllegalAccessException | IllegalArgumentException e) {
 			throw new JvmException(String.format("invokevirtual: Execution error at %s on object of type %s",

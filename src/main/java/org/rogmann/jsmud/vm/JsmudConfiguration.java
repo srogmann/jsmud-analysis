@@ -66,21 +66,27 @@ public class JsmudConfiguration {
 	/** class-remapper */
 	private final Optional<ClassRemapper> classRemapper;
 
+	/** method executor */
+	private final NativeMethodExecutor nativeExecutor;
+
 	/**
-	 * Constructor, remaps "java.lang.Record".
+	 * Constructor.
 	 */
 	public JsmudConfiguration() {
 		reflectionHelper = new ReflectionHelper();
 		classRemapper = Optional.empty();
+		nativeExecutor = new NativeMethodExecutorReflection();
 	}
 
 	/**
 	 * Constructor.
 	 * @param remapper optional class-remapper
+	 * @param nativeExecutor executor to execute methods not to be executed via jsmud-analysis (default is to use reflection)
 	 */
-	public JsmudConfiguration(ClassRemapper remapper) {
+	public JsmudConfiguration(ClassRemapper remapper, NativeMethodExecutor nativeExecutor) {
 		reflectionHelper = new ReflectionHelper();
-		classRemapper = Optional.of(remapper);
+		classRemapper = Optional.ofNullable(remapper);
+		this.nativeExecutor = (nativeExecutor != null) ? nativeExecutor : new NativeMethodExecutorReflection();
 	}
 
 	/**
@@ -124,6 +130,15 @@ public class JsmudConfiguration {
 	 */
 	public Optional<ClassRemapper> getClassRemapper() {
 		return classRemapper;
+	}
+
+	/**
+	 * Gets the executor to execute native methods or methods not to be simulated by jsmud-analysis.
+	 * This executor might use reflection or another simulation-engine.
+	 * @return native executor
+	 */
+	public NativeMethodExecutor getNativeExecutor() {
+		return nativeExecutor;
 	}
 
 }
