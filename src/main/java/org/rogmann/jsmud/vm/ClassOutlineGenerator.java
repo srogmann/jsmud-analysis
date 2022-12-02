@@ -181,7 +181,10 @@ public class ClassOutlineGenerator {
 					throw new JvmException("Unexpected return-type " + returnType);
 				}
 			}
-			else if ("toString".equals(methodDef.name) && "Ljava/lang/String;".equals(methodDef.returnType)
+			else if ("toString".equals(methodDef.name)
+					&& !Modifier.isStatic(methodDef.accessFlags)
+					&& (methodDef.paramTypes.length == 0)
+					&& "Ljava/lang/String;".equals(methodDef.returnType)
 					&& !"java/lang/Object".equals(classNameInt)) {
 				vm.visitVarInsn(Opcodes.ALOAD, 0); 
 				vm.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "toString", "()Ljava/lang/String;", false);
