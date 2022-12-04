@@ -1,5 +1,6 @@
 package org.rogmann.jsmud.vm;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -11,8 +12,21 @@ import java.lang.reflect.Method;
 public interface NativeMethodExecutor {
 
 	/**
+	 * Executes a constructor.
+	 * @param constructor constructor to be executed
+	 * @param aJvmArgs parameters of the constructor (JVM arguments)
+	 * @return new instance
+	 * @throws IllegalArgumentException in case of an illegal argument
+	 * @throws IllegalAccessException in case of an access-violation
+	 * @throws InstantiationException in case of an instantiation-error
+	 * @throws InvocationTargetException in case of an error while execution
+	 */
+	Object executeConstructorNative(Constructor<?> constructor, final Object[] aJvmArgs)
+			throws IllegalAccessException, IllegalArgumentException, InstantiationException, InvocationTargetException;
+
+	/**
 	 * Executes a method.
-	 * @param methodExec method to be executed
+	 * @param method method to be executed
 	 * @param objRef object-instance
 	 * @param aJvmArgs parameters of the method (JVM arguments)
 	 * @return return-value
@@ -20,6 +34,6 @@ public interface NativeMethodExecutor {
 	 * @throws IllegalArgumentException in case of an illegal argument
 	 * @throws InvocationTargetException in case of an error while execution
 	 */
-	Object executeMethodNative(Method methodExec, Object objRef, final Object[] aJvmArgs)
+	Object executeMethodNative(Method method, Object objRef, final Object[] aJvmArgs)
 			throws IllegalAccessException, IllegalArgumentException, InvocationTargetException;
 }

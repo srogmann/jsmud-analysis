@@ -2583,8 +2583,7 @@ whileSuperClass:
 			stack.pop(); // remove objectref
 
 			try {
-				constructor.setAccessible(true);
-				instanceInit = constructor.newInstance(initargs);
+				instanceInit = nativeExecutor.executeConstructorNative(constructor, initargs);
 			}
 			catch (InstantiationException | IllegalAccessException | IllegalArgumentException e) {
 				final Function<Object, String> fktDisp = o -> (o != null) ? o.getClass().toString() : null;
