@@ -2888,6 +2888,26 @@ loopDeclMeth:
 	 * @throws ClassNotFoundException in case of an unknown class 
 	 */
 	public static boolean handleCheckcast(String desc, Object obj, ClassRegistry registry, Class<?> clazz) throws ClassNotFoundException {
+		Class<?> classDesc;
+		try {
+			classDesc = computeClassOfType(registry, desc, clazz);
+		} catch (JvmException e) {
+			throw new JvmException(String.format("Unexpected type in CHECKCAST (%s) to object.class (%s)",
+					desc, (obj != null) ? obj.getClass() : null), e);
+		}
+		return classDesc.isInstance(obj);
+	}
+
+	/**
+	 * Computes the java-class of a given type.
+	 * @param registry class-registry
+	 * @param desc type, e.g. "[I", "java.lang.String" or "[[[org.test.Abc"
+	 * @param clazz context-class
+	 * @return class
+	 * @throws JvmException in case of an unexpected type
+	 */
+	public static Class<?> computeClassOfType(ClassRegistry registry, String desc, Class<?> clazz)
+			throws JvmException {
 		final Class<?> classDesc;
 		if (desc.startsWith("[")) {
 			if ("[I".equals(desc)) {
@@ -2928,13 +2948,17 @@ loopDeclMeth:
 				final Type type = Type.getType(desc);
 				final int dim = type.getDimensions();
 				final int[] aDims = new int[dim];
-				final Class<?> elClass = getClassArrayViaType(type, registry, clazz);
+				Class<?> elClass;
+				try {
+					elClass = getClassArrayViaType(type, registry, clazz);
+				} catch (ClassNotFoundException e) {
+					throw new JvmUncaughtException("Unknown type " + type, e);
+				}
 				final Object oArray = Array.newInstance(elClass, aDims);
 				classDesc = oArray.getClass();
 			}
 			else {
-				throw new JvmException(String.format("Unexpected type in CHECKCAST (%s) to object.class (%s)",
-						desc, (obj != null) ? obj.getClass() : null));
+				throw new JvmException(String.format("Unexpected type %d", desc));
 			}
 		}
 		else {
@@ -2944,12 +2968,12 @@ loopDeclMeth:
 			}
 			className = className.replace('/', '.');
 			try {
-				classDesc = registry.loadClass(desc.replace('/', '.'), clazz);
+				classDesc = registry.loadClass(className, clazz);
 			} catch (ClassNotFoundException e) {
 				throw new JvmUncaughtException("Unknown class " + desc, e);
 			}
 		}
-		return classDesc.isInstance(obj);
+		return classDesc;
 	}
 
 	/**
