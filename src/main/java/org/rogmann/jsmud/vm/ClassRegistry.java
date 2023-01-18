@@ -700,7 +700,9 @@ public class ClassRegistry implements VM, ObjectMonitor {
 				mapObjects.remove(vmThreadGroupID);
 			}
 			final JvmExecutionVisitor visitor = mapThreadVisitor.remove(threadKey);
-			visitor.close();
+			if (visitor != null) {
+				visitor.close();
+			}
 		}
 		finally {
 			if (Thread.currentThread().equals(thread)) {
