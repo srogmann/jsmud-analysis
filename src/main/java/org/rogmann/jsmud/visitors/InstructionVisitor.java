@@ -134,7 +134,7 @@ public class InstructionVisitor implements JvmExecutionVisitor {
 		vFrame.clazz = currClass;
 		vFrame.isJreClass = currClass.getName().startsWith("java.") || currClass.getName().startsWith("sun.com.");
 		if (showOutput) {
-			printer.println(String.format("Enter %s", method));
+			printer.println("Enter " + method);
 		}
 		vFrame.frame = pFrame;
 		vFrame.currLine = -1;
