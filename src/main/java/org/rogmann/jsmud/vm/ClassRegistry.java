@@ -274,10 +274,14 @@ public class ClassRegistry implements VM, ObjectMonitor {
 			executor.getVisitor().visitLoadClass(clazz);
 		}
 		else if (executor == null && !JsmudClassLoader.class.equals(clazz)) {
-			boolean doSimulation = executionFilter.isClassToBeSimulated(clazz) || forceSimulation;
+			boolean isFilterClassToBeSimulated = executionFilter.isClassToBeSimulated(clazz);
+			boolean doSimulation = isFilterClassToBeSimulated || forceSimulation;
 			if (doSimulation) {
 				executor = new SimpleClassExecutor(this, clazz, invocationHandler);
-				mapClassExecutors.put(clazz, executor);
+				if (isFilterClassToBeSimulated) {
+					// All methods in this class should be simulated.
+					mapClassExecutors.put(clazz, executor);
+				}
 				executor.getVisitor().visitLoadClass(clazz);
 			}
 		}
