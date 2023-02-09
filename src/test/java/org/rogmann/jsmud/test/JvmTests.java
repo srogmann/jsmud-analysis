@@ -83,6 +83,7 @@ public class JvmTests {
 //		testsDouble();
 //		testsArray();
 //		testsArrayIndex();
+//		testGetStaticField();
 //		testsExceptionHandling();
 //		testsExceptionHandlingFinally();
 //		testsInvokespecial();
@@ -344,7 +345,19 @@ public class JvmTests {
 		} catch (ArrayIndexOutOfBoundsException e) {
 			assertTrue("AIOOBE-short", true);
 		}
+	}
 
+	@JsmudTest
+	public void testGetStaticField() {
+		assertEquals("StaticFieldClass", 7, StaticA.ARRAY_CLASS[3]);
+		assertEquals("StaticFieldIface", "Value2", StaticA.ARRAY_IFACE[1]);
+	}
+
+	interface StaticB {
+		String ARRAY_IFACE[] = { "Value1", "Value2" };
+	}
+	static class StaticA implements StaticB {
+		static final int ARRAY_CLASS[] = { 1, 3, 5, 7 }; 
 	}
 
 	@JsmudTest

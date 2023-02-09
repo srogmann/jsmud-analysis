@@ -1609,8 +1609,8 @@ whileInstr:
 					else {
 						try {
 							final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
-							registry.checkClassInitialization(classFieldOwner);
-							final Field field = findDeclaredField(classFieldOwner, fi.name);
+							final Field field = findDeclaredField(classFieldOwner, fi.name, true);
+							registry.checkClassInitialization(field.getDeclaringClass());
 							field.setAccessible(true);
 							objField = field.get(classFieldOwner);
 							objField = visitor.visitFieldAccess(opcode, classFieldOwner, field, objField);
@@ -1634,8 +1634,8 @@ whileInstr:
 					final String nameFiOwner = fi.owner.replace('/', '.');
 					try {
 						final Class<?> classFieldOwner = registry.loadClass(nameFiOwner, clazz);
-						registry.checkClassInitialization(classFieldOwner);
-						final Field field = findDeclaredField(classFieldOwner, fi.name);
+						final Field field = findDeclaredField(classFieldOwner, fi.name, false);
+						registry.checkClassInitialization(field.getDeclaringClass());
 						field.setAccessible(true);
 						if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(pMethod.getModifiers())) {
 							// We want to set a final field while executing a constructor.
@@ -1673,7 +1673,7 @@ whileInstr:
 						classFieldOwner = registry.loadClass(fiOwnerName, clazz);
 					}
 					try {
-						final Field field = findDeclaredField(classFieldOwner, fi.name);
+						final Field field = findDeclaredField(classFieldOwner, fi.name, false);
 						assert field != null;
 						field.setAccessible(true);
 						Object fieldValue = field.get(fieldInstance);
@@ -1705,7 +1705,7 @@ whileInstr:
 						classFieldOwner = registry.loadClass(fiOwnerName, clazz);
 					}
 					try {
-						final Field field = findDeclaredField(classFieldOwner, fi.name);
+						final Field field = findDeclaredField(classFieldOwner, fi.name, false);
 						field.setAccessible(true);
 						Object oValueField = convertJvmTypeIntoFieldType(field.getType(), oValue);
 						oValueField = visitor.visitFieldAccess(opcode, fieldInstance, field, oValueField);
@@ -2618,10 +2618,11 @@ whileSuperClass:
 	 * Gets a field in the class or one of its super-classes.
 	 * @param classFieldOwner class
 	 * @param fieldName name of the field
+	 * @param searchInInterfaces <code>true</code> if the field may be in an interface
 	 * @return field
 	 * @throws NoSuchFieldException if the field couldn't be found
 	 */
-	public static Field findDeclaredField(final Class<?> classFieldOwner, final String fieldName)
+	public static Field findDeclaredField(final Class<?> classFieldOwner, final String fieldName, final boolean searchInInterfaces)
 			throws NoSuchFieldException {
 		Class<?> classField = classFieldOwner;
 		Field field = null;
@@ -2636,12 +2637,26 @@ whileSuperClass:
 				}
 				if (Object.class.equals(classField)) {
 					// The field couldn't be found.
+					if (searchInInterfaces) {
+						break;
+					}
 					throw nsfe;
 				}
 				classField = classField.getSuperclass();
 				continue;
 			}
 			break;
+		}
+		if (field == null && searchInInterfaces) {
+			final Class<?>[] aInterfaces = classFieldOwner.getInterfaces();
+			for (Class<?> classIface : aInterfaces) {
+				try {
+					field = findDeclaredField(classIface, fieldName, true);
+				} catch (NoSuchFieldException e) {
+					continue;
+				}
+				break;
+			}
 		}
 		return field;
 	}
